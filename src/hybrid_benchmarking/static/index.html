@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hybrid-benchmarking</title>
+<style>
+  :root {
+    --ground: #f7f8fa; --surface: #fff; --sunk: #eef0f4;
+    --ink: #15181f; --muted: #565e70; --faint: #838b9a;
+    --rule: #dde1e9; --accent: #1d4e6f; --accent-soft: #e4edf3;
+    --warn: #9a5a2e; --warn-soft: #f7ece3; --good: #2c6152;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #101319; --surface: #171b23; --sunk: #1e232c;
+      --ink: #e6e9ef; --muted: #a0a8b8; --faint: #7b8494;
+      --rule: #2a303b; --accent: #7fb4d4; --accent-soft: #1a2c39;
+      --warn: #d19a6e; --warn-soft: #2c2119; --good: #7fbba6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    padding: 1rem 1.5rem; border-bottom: 1px solid var(--rule);
+    display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
+    background: var(--surface);
+  }
+  header h1 { font-family: var(--mono); font-size: 1rem; font-weight: 600; margin: 0; }
+  header p { margin: 0; color: var(--faint); font-size: .82rem; }
+  main { display: grid; grid-template-columns: 1fr; gap: 0; min-height: calc(100vh - 60px); }
+  @media (min-width: 900px) { main { grid-template-columns: 290px minmax(0,1fr); } }
+
+  /* ---- list ---- */
+  nav { border-right: 1px solid var(--rule); background: var(--surface); padding: .9rem; }
+  #filter {
+    width: 100%; padding: .5rem .65rem; font: inherit; color: var(--ink);
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
+  }
+  #filter:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  ul { list-style: none; margin: .8rem 0 0; padding: 0; }
+  li button {
+    width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+    font: inherit; color: var(--ink); padding: .4rem .55rem; border-radius: 4px;
+    display: flex; justify-content: space-between; gap: .5rem; align-items: baseline;
+  }
+  li button:hover { background: var(--sunk); }
+  li button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  li button span { font-family: var(--mono); font-size: .78rem; color: var(--faint); }
+  li button[aria-current="true"] span { color: var(--accent); }
+
+  /* ---- detail ---- */
+  article { padding: 1.4rem 1.6rem 4rem; max-width: 900px; }
+  h2 { font-family: var(--mono); font-size: 1.25rem; margin: 0 0 .35rem; font-weight: 600; }
+  .summary { color: var(--muted); margin: 0 0 1.2rem; max-width: 68ch; }
+  h3 {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--faint); margin: 1.6rem 0 .55rem; font-weight: 700;
+  }
+  .tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .tabs button {
+    font: inherit; font-size: .82rem; padding: .3rem .7rem; cursor: pointer;
+    background: var(--surface); color: var(--muted);
+    border: 1px solid var(--rule); border-radius: 999px;
+  }
+  .tabs button[aria-pressed="true"] {
+    background: var(--accent); border-color: var(--accent); color: var(--ground);
+  }
+  pre {
+    background: var(--sunk); border: 1px solid var(--rule); border-radius: 5px;
+    padding: .8rem .9rem; overflow-x: auto; font-family: var(--mono);
+    font-size: .8rem; margin: 0 0 1rem; line-height: 1.45;
+  }
+  .meta { font-size: .82rem; color: var(--muted); margin: 0 0 .5rem; }
+  .meta b { color: var(--ink); font-weight: 600; }
+  ul.notes { margin: 0 0 1rem; padding-left: 1.1rem; color: var(--muted); font-size: .85rem; }
+  ul.notes li { margin-bottom: .25rem; }
+  .pill {
+    display: inline-block; font-size: .72rem; padding: .12rem .5rem; border-radius: 999px;
+    background: var(--sunk); color: var(--muted); font-family: var(--mono);
+  }
+  .pill.hard { background: var(--warn-soft); color: var(--warn); }
+
+  /* ---- form ---- */
+  form { display: grid; gap: .7rem; margin-bottom: 1rem; }
+  .field { display: grid; grid-template-columns: 1fr; gap: .2rem; }
+  @media (min-width: 620px) { .field { grid-template-columns: 170px 1fr; align-items: center; gap: .8rem; } }
+  .field label { font-family: var(--mono); font-size: .82rem; color: var(--accent); }
+  .field input {
+    font: inherit; font-family: var(--mono); font-size: .84rem; padding: .4rem .55rem;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 4px; width: 100%;
+  }
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  button.primary {
+    font: inherit; font-weight: 600; padding: .45rem 1.1rem; cursor: pointer;
+    background: var(--accent); color: var(--ground);
+    border: 1px solid var(--accent); border-radius: 4px;
+  }
+  button.ghost {
+    font: inherit; padding: .45rem .9rem; cursor: pointer; color: var(--muted);
+    background: none; border: 1px solid var(--rule); border-radius: 4px;
+  }
+
+  /* ---- result ---- */
+  .result { border-left: 3px solid var(--accent); background: var(--surface); padding: .9rem 1.1rem; margin-bottom: 1rem; }
+  .result.bad { border-left-color: var(--warn); background: var(--warn-soft); }
+  .value { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; }
+  .value small { font-size: .8rem; font-weight: 400; color: var(--muted); margin-left: .4rem; }
+  .warn { color: var(--warn); font-size: .85rem; margin: .5rem 0 0; }
+  .none { color: var(--faint); font-style: italic; }
+</style>
+</head>
+<body>
+<header>
+  <h1>hybrid-benchmarking</h1>
+  <p>Quantum subroutines and what they cost. Nothing leaves this machine.</p>
+</header>
+
+<main>
+  <nav>
+    <input id="filter" type="search" placeholder="Filter routines" autocomplete="off">
+    <ul id="list"></ul>
+  </nav>
+  <article id="detail"><p class="none">Loading the registry…</p></article>
+</main>
+
+<script>
+const EXAMPLES = {
+  X: "1000000", t: "1", p: "0.25", p_0: "0.0001",
+  d: "4", kappa: "10", epsilon: "1e-8", delta: "1e-3",
+  N: "1000", x_norm: "1", A_max: "1", A_1: "3", t_sim: "100",
+  n: "200", m: "50", c_max: "2", u_norm: "1.5",
+  bits: "8", capacity: "7", profit_bound: "11",
+  profits: "[6, 2, 1, 2]", weights: "[2, 2, 1, 5]",
+  schedule: "[[6, [1, 2]], [9, [1]]]",
+  layers: "[1, 3, 5, 2]", phases: "[[1, 3, 5, 2], [1, 2, 4]]",
+  inner_gates: "1", inner_gates_2: "1", oracle_gates: "1",
+  prepare_gates: "1", n_qubits: "10", ancillas: "4", terms: "64",
+};
+
+let catalogue = [], current = null, chosenImpl = null, chosenUnit = null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function boot() {
+  catalogue = await (await fetch("/api/routines")).json();
+  drawList();
+  select("QSearch");
+}
+
+function drawList() {
+  const needle = $("filter").value.toLowerCase();
+  const shown = catalogue.filter(r =>
+    !needle || r.name.toLowerCase().includes(needle) ||
+    r.summary.toLowerCase().includes(needle));
+  $("list").innerHTML = shown.map(r => `
+    <li><button data-name="${esc(r.name)}"
+        aria-current="${r.name === (current && current.name)}">
+      <span style="font-family:var(--sans);color:inherit">${esc(r.name)}</span>
+      <span>${r.units.length ? r.units.map(u => u[0]).join("") : "–"}</span>
+    </button></li>`).join("");
+  $("list").querySelectorAll("button").forEach(b =>
+    b.onclick = () => select(b.dataset.name));
+}
+
+async function select(name) {
+  const data = await (await fetch("/api/routine/" + encodeURIComponent(name))).json();
+  if (data.error) { $("detail").innerHTML = `<p class="none">${esc(data.error)}</p>`; return; }
+  current = data;
+  chosenImpl = data.implementations[0];
+  chosenUnit = chosenImpl.units[0] || null;
+  drawList();
+  drawDetail();
+}
+
+function drawDetail() {
+  const r = current, impl = chosenImpl;
+  const cost = chosenUnit ? impl.costs[chosenUnit] : null;
+  const multi = r.implementations.length > 1;
+
+  let html = `<h2>${esc(r.name)}</h2><p class="summary">${esc(r.summary)}</p>`;
+
+  if (multi) {
+    html += `<h3>Construction</h3><div class="tabs" id="impls">` +
+      r.implementations.map(i =>
+        `<button data-impl="${esc(i.name)}" aria-pressed="${i === impl}">${esc(i.name)}</button>`
+      ).join("") + `</div><p class="meta">${esc(impl.summary)}</p>`;
+  }
+
+  if (impl.citation) html += `<p class="meta"><b>Source</b> ${esc(impl.citation)}</p>`;
+  if (impl.built_from.length)
+    html += `<p class="meta"><b>Built from</b> ${impl.built_from.map(esc).join(", ")}</p>`;
+
+  if (!impl.units.length) {
+    html += `<h3>Cost</h3><p class="none">This entry has no cost of its own —
+      it is the unit other costs are counted in.</p>`;
+  } else {
+    html += `<h3>Counted in</h3><div class="tabs" id="units">` +
+      impl.units.map(u =>
+        `<button data-unit="${u}" aria-pressed="${u === chosenUnit}">${esc(impl.costs[u].unit_label)}</button>`
+      ).join("") + `</div>`;
+  }
+
+  if (r.missing && Object.keys(r.missing).length) {
+    html += `<ul class="notes">` + Object.entries(r.missing).map(([u, why]) =>
+      `<li><b>${u.toLowerCase()}</b> — ${esc(why)}</li>`).join("") + `</ul>`;
+  }
+
+  if (cost) {
+    html += `<h3>Formula</h3><pre>${esc(cost.formula)}</pre>`;
+    html += `<p class="meta"><b>${esc(cost.bound)}</b>, ${esc(cost.derivation)}</p>`;
+    if (cost.assumptions.length)
+      html += `<h3>Assuming</h3><ul class="notes">` +
+        cost.assumptions.map(a => `<li>${esc(a)}</li>`).join("") + `</ul>`;
+    if (cost.conditions.length)
+      html += `<h3>Valid where</h3><ul class="notes">` + cost.conditions.map(c =>
+        `<li>${esc(c.message)} <span class="pill${c.hard ? " hard" : ""}">${
+          c.hard ? "required" : "regime"}</span></li>`).join("") + `</ul>`;
+
+    html += `<h3>Evaluate</h3><form id="params">` +
+      cost.parameters.map(p => `<div class="field">
+        <label for="f_${p}">${esc(p)}</label>
+        <input id="f_${p}" name="${esc(p)}" value="${esc(EXAMPLES[p] || "")}"
+               placeholder="${esc(EXAMPLES[p] || "number, or JSON for a vector")}">
+      </div>`).join("") +
+      `<div class="actions">
+         <button class="primary" type="submit">Evaluate</button>
+         <button class="ghost" type="button" id="copy">Copy as code</button>
+       </div></form><div id="out"></div>`;
+  }
+
+  $("detail").innerHTML = html;
+
+  if (multi) $("impls").querySelectorAll("button").forEach(b => b.onclick = () => {
+    chosenImpl = current.implementations.find(i => i.name === b.dataset.impl);
+    chosenUnit = chosenImpl.units[0] || null;
+    drawDetail();
+  });
+  const units = $("units");
+  if (units) units.querySelectorAll("button").forEach(b => b.onclick = () => {
+    chosenUnit = b.dataset.unit; drawDetail();
+  });
+  const form = $("params");
+  if (form) {
+    form.onsubmit = (e) => { e.preventDefault(); run(); };
+    $("copy").onclick = () => run(true);
+  }
+}
+
+function collect() {
+  const values = {};
+  new FormData($("params")).forEach((v, k) => { if (String(v).trim()) values[k] = v; });
+  return values;
+}
+
+async function run(copyOnly) {
+  const path = chosenImpl.name === "default"
+    ? current.name : current.name + "/" + chosenImpl.name;
+  const body = { path, unit: chosenUnit, values: collect() };
+  const res = await (await fetch("/api/evaluate", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })).json();
+
+  if (res.error) {
+    $("out").innerHTML = `<div class="result bad"><b>Cannot evaluate</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+  if (copyOnly) {
+    navigator.clipboard && navigator.clipboard.writeText(res.snippet);
+    $("out").innerHTML = `<h3>Copied</h3><pre>${esc(res.snippet)}</pre>`;
+    return;
+  }
+  $("out").innerHTML = `
+    <div class="result">
+      <div class="value">${res.value.toPrecision(6)}<small>${esc(res.unit_label)}</small></div>
+      <p class="meta" style="margin:.4rem 0 0">${esc(res.provenance)}</p>
+      ${res.warnings.map(w => `<p class="warn">⚠ ${esc(w)}</p>`).join("")}
+    </div>
+    <h3>The same call, as code</h3><pre>${esc(res.snippet)}</pre>`;
+}
+
+$("filter").oninput = drawList;
+boot();
+</script>
+</body>
+</html>

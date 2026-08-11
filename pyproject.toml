@@ -25,5 +25,8 @@ hybrid-benchmarking = "hybrid_benchmarking.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+hybrid_benchmarking = ["static/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

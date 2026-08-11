@@ -24,7 +24,7 @@ are — about 1.4 times the square root of the list length.
 Every routine from the thesis, the maximum-flow study, the quantum interior
 point paper, and the boundary with Cade-style instrumented counts — 44 routines
 across 51 implementations, in gates, oracle queries, cycles, iterations and
-repetitions. The local web interface is not yet written.
+repetitions — plus a local interface and a command line over the same API.
 
 ```python
 hb.capability_table()
@@ -130,6 +130,40 @@ derived in. Parameters that are merely outside that regime produce a warning
 recorded on the result's provenance; parameters that are meaningless — more
 marked elements than list entries — are refused outright.
 
+## The interface
+
+```sh
+hybrid-benchmarking
+```
+
+Starts a local server and opens a browser. Nothing is hosted and nothing is
+uploaded: it binds the loopback interface and serves one browser on the same
+machine. The page has no external resources at all, so it works offline.
+
+Pick a routine, read its formula, see the regime it was derived in, type
+parameters, get a number with its provenance attached — and a snippet that
+reproduces the same call in a script:
+
+```python
+import hybrid_benchmarking as hb
+
+hb.get('HamSim/berry').evaluate(hb.Unit.GATES, A_1=3, A_max=1, d=4, epsilon=0.001, t_sim=10)
+```
+
+Units a routine does not offer are shown with the reason rather than greyed
+out — *no gate count: the oracle implementation is not fixed, so there is
+nothing to count gates for* — because the reason is the interesting part.
+
+Everything the interface does is also available without it:
+
+```sh
+hybrid-benchmarking list                     # what can be counted, and in what
+hybrid-benchmarking show HamSim              # both constructions, with assumptions
+hybrid-benchmarking formula QFT -u GATES     # the expression itself
+hybrid-benchmarking cost QLS-Chebyshev -u QUERIES \
+    -p d=4 -p kappa=10 -p epsilon=1e-8 -p x_norm=1
+```
+
 ## Install
 
 ```sh
@@ -137,4 +171,6 @@ pip install -e ".[dev]"
 python -m pytest
 ```
 
-Python 3.9 or newer. The only runtime dependency is sympy.
+Python 3.9 or newer. The only runtime dependency is sympy; the interface is
+served by the standard library, so a Python installation really is the only
+prerequisite.
