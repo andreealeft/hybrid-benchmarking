@@ -22,29 +22,43 @@ are — about 1.4 times the square root of the list length.
 ## What is here so far
 
 The cost algebra, the amplification generic, both constructions of Hamiltonian
-simulation, and the four functional quantum linear solvers. The simplex
-subroutines, the knapsack routines, quantum breadth-first search, the interior
-point pipeline and the interface are not yet written.
+simulation, the four functional quantum linear solvers, and the quantum simplex
+subroutines with all three pivoting rules. The knapsack routines, quantum
+breadth-first search, the interior point pipeline and the interface are not yet
+written.
 
 ```python
 hb.capability_table()
 ```
 
 ```
-routine                  gates    queries     cycles  iteration  repetitio      calls
--------------------------------------------------------------------------------------
-HHL                          -        yes          -          -          -          -
-HamSim/qubitization          -        yes          -          -          -          -
-HamSim/berry               yes          -          -          -          -          -
-O_A                          -          -          -          -          -          -
-O_F                          -          -          -          -          -          -
-P_b                          -          -          -          -          -          -
-QAA                          -          -          -        yes          -          -
-QLS-Chebyshev                -        yes          -          -          -          -
-QLS-Fourier                  -        yes          -          -          -          -
-QLS-QSVT                     -        yes          -          -          -          -
-QSearch                      -          -          -        yes          -          -
-QSearchAll                   -          -          -        yes          -          -
+routine                           gates    queries     cycles  iteration  repetitio      calls
+----------------------------------------------------------------------------------------------
+CanEnterNFN                         yes          -          -          -          -          -
+CanEnterNFP                         yes          -          -          -          -          -
+FindColumn/steepest-edge            yes          -          -          -          -          -
+FindColumn/dantzig                  yes          -          -          -          -          -
+FindColumn/random                   yes          -          -          -          -          -
+FindRow                             yes          -          -          -          -          -
+HHL                                   -        yes          -          -          -          -
+HamSim/qubitization                   -        yes          -          -          -          -
+HamSim/berry                        yes          -          -          -          -          -
+IsOptimal                           yes          -          -          -          -          -
+IsUnbounded                         yes          -          -          -          -          -
+O_A                                   -          -          -          -          -          -
+O_F                                   -          -          -          -          -          -
+P_b                                   -          -          -          -          -          -
+QAA                                   -          -          -        yes          -          -
+QLS-Chebyshev                         -        yes          -          -          -          -
+QLS-Fourier/via-qubitization          -        yes          -          -          -          -
+QLS-Fourier/via-berry               yes          -          -          -          -          -
+QLS-QSVT                              -        yes          -          -          -          -
+QSearch                               -          -          -        yes          -          -
+QSearchAll                            -          -          -        yes          -          -
+RedCost                             yes          -          -          -          -          -
+SimplexIter/steepest-edge           yes          -          -          -          -          -
+SimplexIter/dantzig                 yes          -          -          -          -          -
+SimplexIter/random                  yes          -          -          -          -          -
 ```
 
 Which units a routine offers is not a maintained table — it is whichever cost

@@ -42,7 +42,7 @@ import sympy as sp
 from .. import symbols as S
 from ..cost import Cost
 from ..provenance import Bound, Derivation, Provenance, Unit
-from ..registry import single
+from ..registry import Implementation, Routine, register, single
 from ..validity import Validity, definition, much_less_than
 from .amplification import qaa_overhead
 
@@ -154,6 +154,38 @@ def fourier_queries(d: float, kappa: float, epsilon: float, norm_x: float,
     p0 = 1.0 / alpha ** 2
     p = norm_x ** 2 / alpha ** 2
     return qaa_overhead(p=min(p, 1.0), p0=p0) * inner
+
+
+def oaa_rounds(alpha: float) -> float:
+    """Applications of the inner routine under oblivious amplitude amplification.
+
+    ``2m + 1`` with ``m = floor(pi / 4 theta)`` and ``sin theta = 1 / alpha``.
+    This is the fixed schedule of Lemma 33 -- the success probability is known
+    in advance here, so no geometric search is needed.
+    """
+    if alpha < 1:
+        raise ValueError(
+            "alpha = {} is below one, so 1/alpha is not a sine".format(alpha)
+        )
+    return math.pi / (2.0 * math.asin(1.0 / alpha)) + 1.0
+
+
+def fourier_gates(d: float, kappa: float, epsilon: float, norm_1: float,
+                  norm_max: float) -> float:
+    """``G[QLS_F]`` of Lemma 7 -- the gate count the quantum simplex is built on.
+
+    Composes exactly: oblivious amplification rounds times the gate cost of one
+    Hamiltonian simulation, taken from **Berry's** construction rather than
+    qubitization.  That substitution is the whole reason routines carry named
+    implementations.
+    """
+    from .hamsim import berry_gates
+
+    t = fourier_time(kappa, epsilon)
+    alpha = fourier_alpha(kappa, epsilon)
+    return oaa_rounds(alpha) * berry_gates(
+        epsilon=epsilon, d=d, t=t, norm_1=norm_1, norm_max=norm_max
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -336,25 +368,66 @@ HHL = single(
     },
 )
 
-QLS_Fourier = single(
+_FOURIER_GATES = "Lemma 7 of the thesis, used throughout the quantum simplex " \
+                 "gate counts (Appendix A.3.6)"
+
+QLS_Fourier = register(Routine(
     name="QLS-Fourier",
     summary="Inverse approximated by a Fourier sum of evolution unitaries, "
             "applied by linear combination of unitaries.",
-    citation=_FOURIER,
-    built_from=("P_b", "LCU", "HamSim/qubitization", "OAA"),
-    costs={
-        Unit.QUERIES: Cost(
-            expr=FOURIER_EXPR,
-            unit=Unit.QUERIES,
-            provenance=_provenance(_FOURIER),
-            validity=_validity(),
-            kernel=lambda v: fourier_queries(
-                d=v["d"], kappa=v["kappa"], epsilon=v["epsilon"],
-                norm_x=v["x_norm"], norm_max=v["A_max"],
-            ),
+    implementations=(
+        Implementation(
+            name="via-qubitization",
+            summary="Evolution by Low-Chuang qubitization. Costed in oracle "
+                    "queries, for the four-way comparison of solvers.",
+            citation=_FOURIER,
+            built_from=("P_b", "LCU", "HamSim/qubitization", "OAA"),
+            costs={
+                Unit.QUERIES: Cost(
+                    expr=FOURIER_EXPR,
+                    unit=Unit.QUERIES,
+                    provenance=_provenance(_FOURIER),
+                    validity=_validity(),
+                    kernel=lambda v: fourier_queries(
+                        d=v["d"], kappa=v["kappa"], epsilon=v["epsilon"],
+                        norm_x=v["x_norm"], norm_max=v["A_max"],
+                    ),
+                ),
+            },
         ),
-    },
-)
+        Implementation(
+            name="via-berry",
+            summary="Evolution by Berry et al.'s fractional-query reduction. "
+                    "Costed in gates, because Nannicini's setting fixes the "
+                    "oracle implementation. This is the solver inside every "
+                    "quantum simplex subroutine.",
+            citation=_FOURIER_GATES,
+            built_from=("P_b", "LCU", "HamSim/berry", "OAA"),
+            costs={
+                Unit.GATES: Cost(
+                    expr=sp.Function("m_OAA")(S.kappa, S.epsilon)
+                    * sp.Function("G_sim")(S.d, S.kappa, S.epsilon,
+                                           S.norm_A_1, S.norm_A_max),
+                    unit=Unit.GATES,
+                    provenance=Provenance.of(
+                        Bound.LOWER, Derivation.ANALYTIC, _FOURIER_GATES,
+                        assumptions=(
+                            "one Toffoli costs one gate",
+                            "state preparation is not counted",
+                            "non-leading terms dropped, in favour of the "
+                            "quantum side",
+                        ),
+                    ),
+                    validity=_validity(),
+                    kernel=lambda v: fourier_gates(
+                        d=v["d"], kappa=v["kappa"], epsilon=v["epsilon"],
+                        norm_1=v["A_1"], norm_max=v["A_max"],
+                    ),
+                ),
+            },
+        ),
+    ),
+))
 
 QLS_Chebyshev = single(
     name="QLS-Chebyshev",

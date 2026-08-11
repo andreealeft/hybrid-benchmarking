@@ -49,11 +49,44 @@ class TestAllFour:
         assert cost.unit is hb.Unit.QUERIES
         assert not cost.is_numeric
 
-    @pytest.mark.parametrize("name", SOLVERS)
-    def test_none_of_them_offers_a_gate_count(self, name):
-        """No gate count exists until an oracle implementation is fixed."""
+    @pytest.mark.parametrize("name", ("HHL", "QLS-Chebyshev", "QLS-QSVT"))
+    def test_no_gate_count_until_the_oracles_are_fixed(self, name):
         with pytest.raises(ValueError, match="no gates count|has no gates"):
             hb.get(name).cost(hb.Unit.GATES)
+
+    def test_fourier_is_the_exception(self):
+        """"Linear solvers are query-only" is true of the comparison, not in
+        general.  Nannicini's setting pins the oracles down, so the Fourier
+        solver acquires a gate count there -- and it is a different
+        construction, evolving the matrix by Berry's reduction rather than by
+        qubitization.
+        """
+        routine = hb.get("QLS-Fourier")
+        assert {i.name for i in routine.implementations} == {
+            "via-qubitization", "via-berry"
+        }
+        assert routine.cost(hb.Unit.QUERIES).unit is hb.Unit.QUERIES
+        assert routine.cost(hb.Unit.GATES).unit is hb.Unit.GATES
+
+    def test_the_gate_count_is_a_lower_bound_the_query_count_is_exact(self):
+        assert hb.get("QLS-Fourier/via-berry").cost().provenance.bound \
+            is hb.Bound.LOWER
+        assert hb.get("QLS-Fourier/via-qubitization").cost().provenance.bound \
+            is hb.Bound.EXACT
+
+    def test_the_gate_count_composes_as_amplification_times_simulation(self):
+        from hybrid_benchmarking.routines.hamsim import berry_gates
+        from hybrid_benchmarking.routines.linsolve import (
+            fourier_alpha, fourier_gates, fourier_time, oaa_rounds,
+        )
+
+        d, kappa, epsilon, norm_1, norm_max = 4, 10.0, 1e-3, 3.0, 1.0
+        expected = oaa_rounds(fourier_alpha(kappa, epsilon)) * berry_gates(
+            epsilon=epsilon, d=d, t=fourier_time(kappa, epsilon),
+            norm_1=norm_1, norm_max=norm_max,
+        )
+        assert fourier_gates(d, kappa, epsilon, norm_1, norm_max) == \
+            pytest.approx(expected)
 
     @pytest.mark.parametrize("name", SOLVERS)
     def test_all_positive_and_finite(self, name):
@@ -178,13 +211,22 @@ class TestRegime:
 class TestWhatEachIsBuiltFrom:
     def test_only_hhl_and_fourier_simulate(self):
         """Chebyshev walks and QSVT block-encodes; neither pays for simulation."""
-        for name in ("HHL", "QLS-Fourier"):
-            assert "HamSim/qubitization" in hb.get(name).implementation().built_from
+        assert "HamSim/qubitization" in hb.get("HHL").implementation().built_from
+        assert "HamSim/qubitization" in \
+            hb.get("QLS-Fourier/via-qubitization").built_from
         for name in ("QLS-Chebyshev", "QLS-QSVT"):
             built = hb.get(name).implementation().built_from
             assert not any(b.startswith("HamSim") for b in built)
 
-    def test_nobody_is_built_on_berrys_construction(self):
-        """That one belongs to the gate-count side of the work."""
-        for name in SOLVERS:
-            assert "HamSim/berry" not in hb.get(name).implementation().built_from
+    def test_query_counts_never_reach_for_berrys_construction(self):
+        """Berry's reduction is costed in gates; mixing it into a query count
+        would be the substitution the implementation layer exists to prevent.
+        """
+        for impl in hb.all_implementations():
+            if hb.Unit.QUERIES in impl.costs:
+                assert "HamSim/berry" not in impl.built_from
+
+    def test_the_gate_count_never_reaches_for_qubitization(self):
+        for impl in hb.all_implementations():
+            if hb.Unit.GATES in impl.costs:
+                assert "HamSim/qubitization" not in impl.built_from

@@ -59,6 +59,20 @@ delta = sp.Symbol("delta", positive=True)
 t_sim = sp.Symbol("t_sim", positive=True)
 """Evolution time for Hamiltonian simulation."""
 
+# --- linear programs --------------------------------------------------------
+
+n_vars = sp.Symbol("n", positive=True, integer=True)
+"""Number of variables in the linear program."""
+
+m_cons = sp.Symbol("m", positive=True, integer=True)
+"""Number of constraints, and so the size of the basis."""
+
+c_max = sp.Symbol("c_max", positive=True)
+"""Largest absolute entry of the cost vector."""
+
+u_norm = sp.Symbol("u_norm", positive=True)
+"""Norm of the pivot direction, ||A_B^{-1} A_k||."""
+
 
 ALL = {
     "N": N,

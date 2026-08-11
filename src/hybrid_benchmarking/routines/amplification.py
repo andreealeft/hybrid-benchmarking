@@ -73,16 +73,31 @@ def rounds(
     the quantum-search statement does; without it, the sum runs until the
     remaining mass is below ``tol``.
     """
-    if not 0 < p <= 1:
-        raise ValueError("success probability p must lie in (0, 1], got {}".format(p))
+    if not 0 <= p <= 1:
+        raise ValueError("success probability p must lie in [0, 1], got {}".format(p))
     if not 0 < p0 <= 1:
         raise ValueError("lower bound p_0 must lie in (0, 1], got {}".format(p0))
-    if p0 > p:
+    if p > 0 and p0 > p:
         raise ValueError(
             "p_0 = {} is not a lower bound on p = {}".format(p0, p)
         )
     if p >= 1 - 1e-12:
         return 1.0
+
+    if p == 0:
+        # Nothing is marked, so no round can succeed and the schedule runs to
+        # exhaustion.  The per-round success probability tends to zero as theta
+        # does -- the ratio sin(4(m+1)theta) / (4(m+1) sin 2theta) tends to one
+        # half, cancelling the one half in front -- so every round contributes
+        # its full budget.  This is the cost of establishing that a search has
+        # no answer, which FindRow pays deliberately at r = 0.
+        if k_max is None:
+            raise ValueError(
+                "with nothing marked the schedule never converges; a round "
+                "budget is required"
+            )
+        return float(sum(math.floor(min(c ** k, math.sqrt(1.0 / p0)))
+                         for k in range(1, k_max + 1)))
 
     theta = math.asin(math.sqrt(p))
     sin_2theta = math.sin(2 * theta)
@@ -125,7 +140,12 @@ def qsearch_k_max(list_length: float) -> int:
 
 
 def qsearch_iterations(list_length: float, marked: float) -> float:
-    """Expected Grover iterations to find one of ``marked`` elements."""
+    """Expected Grover iterations to find one of ``marked`` elements.
+
+    ``marked = 0`` is meaningful and is used: the search exhausts its schedule
+    and reports that there is no answer.  That is what FindRow's binary search
+    pays at ``r = 0``, and Lemma 11 is stated in terms of it.
+    """
     return (0.5 if HALF_IN_QSEARCH else 1.0) * rounds(
         p=float(marked) / float(list_length),
         p0=1.0 / float(list_length),
@@ -208,7 +228,7 @@ QSearch = single(
             ),
             validity=Validity((
                 definition(sp.Ge(S.X, 2), "list must hold at least 2 elements"),
-                definition(sp.Ge(S.t, 1), "at least one marked element"),
+                definition(sp.Ge(S.t, 0), "the marked count cannot be negative"),
                 definition(sp.Le(S.t, S.X),
                            "cannot mark more elements than the list holds"),
             )),
