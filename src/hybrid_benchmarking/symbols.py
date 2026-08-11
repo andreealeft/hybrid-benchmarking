@@ -88,3 +88,14 @@ ALL = {
     "delta": delta,
     "t_sim": t_sim,
 }
+
+# --- knapsack circuits ------------------------------------------------------
+
+register_bits = sp.Symbol("bits", positive=True, integer=True)
+"""Size of a register, in qubits."""
+
+capacity = sp.Symbol("capacity", positive=True, integer=True)
+"""Knapsack capacity.  Fixes the capacity register size at floor(log2 c) + 1."""
+
+profit_bound = sp.Symbol("profit_bound", positive=True, integer=True)
+"""Upper bound on the optimal profit.  Fixes the profit register size."""

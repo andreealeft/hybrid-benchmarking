@@ -22,10 +22,10 @@ are — about 1.4 times the square root of the list length.
 ## What is here so far
 
 The cost algebra, the amplification generic, both constructions of Hamiltonian
-simulation, the four functional quantum linear solvers, and the quantum simplex
-subroutines with all three pivoting rules. The knapsack routines, quantum
-breadth-first search, the interior point pipeline and the interface are not yet
-written.
+simulation, the four functional quantum linear solvers, the quantum simplex subroutines
+with all three pivoting rules, and the quantum tree generator with its Fourier
+arithmetic. Quantum breadth-first search, the interior point pipeline and the
+interface are not yet written.
 
 ```python
 hb.capability_table()
@@ -49,12 +49,17 @@ O_A                                   -          -          -          -        
 O_F                                   -          -          -          -          -          -
 P_b                                   -          -          -          -          -          -
 QAA                                   -          -          -        yes          -          -
+QFT                                 yes          -        yes          -          -          -
+QFTAdd                              yes          -        yes          -          -          -
+QFTSub                              yes          -        yes          -          -          -
 QLS-Chebyshev                         -        yes          -          -          -          -
 QLS-Fourier/via-qubitization          -        yes          -          -          -          -
 QLS-Fourier/via-berry               yes          -          -          -          -          -
 QLS-QSVT                              -        yes          -          -          -          -
 QSearch                               -          -          -        yes          -          -
 QSearchAll                            -          -          -        yes          -          -
+QTG                                 yes          -        yes          -          -          -
+QTGSearch                           yes          -        yes          -          -          -
 RedCost                             yes          -          -          -          -          -
 SimplexIter/steepest-edge           yes          -          -          -          -          -
 SimplexIter/dantzig                 yes          -          -          -          -          -

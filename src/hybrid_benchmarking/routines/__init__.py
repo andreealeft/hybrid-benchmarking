@@ -9,5 +9,6 @@ from . import amplification  # noqa: F401
 from . import hamsim  # noqa: F401
 from . import linsolve  # noqa: F401
 from . import simplex  # noqa: F401
+from . import knapsack  # noqa: F401
 
-__all__ = ["oracles", "amplification", "hamsim", "linsolve", "simplex"]
+__all__ = ["oracles", "amplification", "hamsim", "linsolve", "simplex", "knapsack"]

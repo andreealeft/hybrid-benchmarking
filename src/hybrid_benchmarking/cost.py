@@ -45,6 +45,11 @@ class Cost:
     provenance: Provenance = field(default_factory=Provenance)
     validity: Validity = field(default_factory=Validity)
     kernel: Optional[Kernel] = None
+    #: Inputs the kernel needs that are not scalars and so cannot appear as
+    #: symbols -- the profit and weight vectors of a knapsack instance, say,
+    #: whose individual bit patterns enter the circuit cost.  They are required
+    #: by :meth:`evaluate` exactly like the symbolic parameters.
+    extra_parameters: Tuple[str, ...] = ()
 
     # -- introspection -------------------------------------------------------
 
@@ -54,7 +59,7 @@ class Cost:
 
     @property
     def parameters(self) -> Tuple[str, ...]:
-        return tuple(s.name for s in self.free_symbols)
+        return tuple(s.name for s in self.free_symbols) + self.extra_parameters
 
     @property
     def is_numeric(self) -> bool:
@@ -85,6 +90,8 @@ class Cost:
             provenance=changes.get("provenance", self.provenance),
             validity=changes.get("validity", self.validity),
             kernel=changes.get("kernel", self.kernel),
+            extra_parameters=changes.get("extra_parameters",
+                                         self.extra_parameters),
         )
 
     def __add__(self, other: Union["Cost", Number]) -> "Cost":
@@ -105,6 +112,8 @@ class Cost:
             provenance=left.provenance.combine(right.provenance),
             validity=left.validity + right.validity,
             kernel=kernel,
+            extra_parameters=tuple(dict.fromkeys(
+                left.extra_parameters + right.extra_parameters)),
         )
 
     __radd__ = __add__
@@ -136,6 +145,8 @@ class Cost:
             provenance=left.provenance.combine(right.provenance),
             validity=left.validity + right.validity,
             kernel=kernel,
+            extra_parameters=tuple(dict.fromkeys(
+                left.extra_parameters + right.extra_parameters)),
         )
 
     __rmul__ = __mul__
