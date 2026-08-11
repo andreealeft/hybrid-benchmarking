@@ -21,26 +21,56 @@ are — about 1.4 times the square root of the list length.
 
 ## What is here so far
 
-This is early. The cost algebra and the amplification generic are implemented
-and tested; the linear solvers, the simplex subroutines and the interface are
-not yet.
+The cost algebra, the amplification generic, both constructions of Hamiltonian
+simulation, and the four functional quantum linear solvers. The simplex
+subroutines, the knapsack routines, quantum breadth-first search, the interior
+point pipeline and the interface are not yet written.
 
 ```python
 hb.capability_table()
 ```
 
 ```
-routine         gates  oracle qu     cycles  iteration  repetitio
------------------------------------------------------------------
-HamSim              -        yes          -          -          -
-QAA                 -          -          -        yes          -
-QSearch             -          -          -        yes          -
-QSearchAll          -          -          -        yes          -
+routine                  gates    queries     cycles  iteration  repetitio      calls
+-------------------------------------------------------------------------------------
+HHL                          -        yes          -          -          -          -
+HamSim/qubitization          -        yes          -          -          -          -
+HamSim/berry               yes          -          -          -          -          -
+O_A                          -          -          -          -          -          -
+O_F                          -          -          -          -          -          -
+P_b                          -          -          -          -          -          -
+QAA                          -          -          -        yes          -          -
+QLS-Chebyshev                -        yes          -          -          -          -
+QLS-Fourier                  -        yes          -          -          -          -
+QLS-QSVT                     -        yes          -          -          -          -
+QSearch                      -          -          -        yes          -          -
+QSearchAll                   -          -          -        yes          -          -
 ```
 
 Which units a routine offers is not a maintained table — it is whichever cost
-formulas the routine actually has. A linear solver will show no gate count
-because no gate formula exists for one until an oracle implementation is fixed.
+formulas exist. The linear solvers show no gate count because no gate formula
+exists for one until an oracle implementation is fixed; the oracles themselves
+show nothing at all, which is the honest answer rather than a missing entry.
+
+### Reproducing the published comparison
+
+```python
+for name in ("HHL", "QLS-Fourier", "QLS-Chebyshev", "QLS-QSVT"):
+    print(name, hb.get(name).evaluate(hb.Unit.QUERIES,
+                                      d=4, kappa=50.0, epsilon=1e-8,
+                                      x_norm=1.0, A_max=1.0).value)
+```
+
+```
+HHL             9.26e+16
+QLS-Fourier     1.39e+09
+QLS-Chebyshev   6.03e+07
+QLS-QSVT        2.28e+07
+```
+
+HHL orders of magnitude above the rest and excluded on that basis; Chebyshev and
+QSVT below 10^8; Fourier an order above them; QSVT lowest — the qualitative
+result of chapter 5, from an independent reimplementation.
 
 ## Three ideas the code is built around
 
