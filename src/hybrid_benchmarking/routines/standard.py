@@ -158,8 +158,9 @@ def controlled_gates(controls: int, inner_gates: float) -> float:
 # registry
 # ---------------------------------------------------------------------------
 
-def _bound(expr, kernel, *notes, validity=None) -> Cost:
+def _bound(expr, kernel, *notes, validity=None, slots=None) -> Cost:
     return Cost(
+        slots=slots or {},
         expr=expr,
         unit=Unit.GATES,
         provenance=Provenance.of(
@@ -181,6 +182,7 @@ QPE = single(
         _n_c + (2 ** _n_c - 1) * S.inner_gates,
         lambda v: qpe_gates(v["epsilon"], v["delta"], v["inner_gates"]),
         "the inverse transform is replaced by Hadamards and not counted",
+        slots={"inner_gates": Unit.GATES},
         validity=Validity((
             definition(sp.Lt(S.epsilon, 1), "precision must be below 1"),
             definition(sp.Lt(S.delta, 1), "failure probability must be below 1"),
@@ -199,6 +201,7 @@ QAE = single(
                              S.oracle_gates),
         lambda v: qae_gates(v["epsilon"], v["delta"], int(v["n_qubits"]),
                             v["prepare_gates"], v["oracle_gates"]),
+        slots={"oracle_gates": Unit.GATES, "prepare_gates": Unit.GATES},
     )},
 )
 
@@ -213,6 +216,7 @@ QMF = single(
         lambda v: qmf_gates(int(v["X"]), int(v["n_qubits"]),
                             v["prepare_gates"], v["oracle_gates"]),
         "the rank sum starts at zero; Lemma 27 and Lemma 9 start it at one",
+        slots={"oracle_gates": Unit.GATES, "prepare_gates": Unit.GATES},
         validity=Validity((
             definition(sp.Ge(S.X, 2), "a list of one has nothing to minimise"),
         )),
@@ -229,6 +233,7 @@ QAA_gates = single(
         sp.Function("G_QAA")(S.p, S.n_qubits, S.prepare_gates, S.oracle_gates),
         lambda v: qaa_gates(v["p"], int(v["n_qubits"]), v["prepare_gates"],
                             v["oracle_gates"]),
+        slots={"oracle_gates": Unit.GATES, "prepare_gates": Unit.GATES},
         validity=Validity((
             definition(sp.Le(S.p, 1), "p is a probability"),
         )),
@@ -243,6 +248,7 @@ OAA = single(
     costs={Unit.GATES: _bound(
         sp.Function("G_OAA")(S.p, S.ancillas, S.prepare_gates),
         lambda v: oaa_gates(v["p"], int(v["ancillas"]), v["prepare_gates"]),
+        slots={"prepare_gates": Unit.GATES},
         validity=Validity((
             definition(sp.Le(S.p, 1), "p is a probability"),
         )),
@@ -260,6 +266,7 @@ LCU = single(
         lambda v: lcu_gates(int(v["terms"]), v["inner_gates"]),
         "the state preparation over the coefficients is heuristic and not "
         "expected to dominate",
+        slots={"inner_gates": Unit.GATES},
     )},
 )
 
@@ -271,5 +278,6 @@ ControlledUnitary = single(
     costs={Unit.GATES: _bound(
         2 * (S.n_qubits - 1) + S.inner_gates,
         lambda v: controlled_gates(int(v["n_qubits"]), v["inner_gates"]),
+        slots={"inner_gates": Unit.GATES},
     )},
 )

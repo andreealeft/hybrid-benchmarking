@@ -154,6 +154,31 @@ Units a routine does not offer are shown with the reason rather than greyed
 out — *no gate count: the oracle implementation is not fixed, so there is
 nothing to count gates for* — because the reason is the interesting part.
 
+### Building an algorithm
+
+The **Build** tab assembles routines the way the published analyses are
+assembled. A wrapper such as amplitude estimation declares a *slot*; leave it
+empty and the cost counts how many times it calls something, or fill it with
+another routine and get the composite:
+
+```python
+import hybrid_benchmarking as hb
+
+cost = hb.get('QAE').cost(hb.Unit.GATES).bind(
+    oracle_gates=hb.get('CanEnterNFP').cost(hb.Unit.GATES))
+```
+
+Three moves — fill a slot, add two counts of the same thing, multiply
+repetitions by what is repeated — which is all the cost algebra offers. It
+refuses the rest: adding gates to oracle queries, or multiplying two absolute
+counts with no multiplier between them.
+
+The composite carries the union of the parameters, the weaker of the two bound
+directions, every assumption either side made, and both validity domains. So an
+assembled cost is exactly as hedged as its weakest ingredient and says so.
+Assembling `IsOptimal + FindColumn + IsUnbounded + FindRow` by hand reproduces
+the registered `SimplexIter` exactly — there is a test for it.
+
 Everything the interface does is also available without it:
 
 ```sh

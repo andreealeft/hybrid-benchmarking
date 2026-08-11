@@ -24,7 +24,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from .cost import Cost, ValidityWarning
+from .compose import build, code, describe, entries, fillings_for
+from .cost import Cost, UnitMismatch, ValidityWarning
 from .provenance import Unit
 from .registry import Implementation, Routine, all_routines, get
 
@@ -54,6 +55,7 @@ def _cost_data(cost: Cost) -> Dict[str, Any]:
             {"message": condition.message, "hard": condition.hard}
             for condition in cost.validity.conditions
         ],
+        "slots": {name: unit.name for name, unit in cost.slots.items()},
     }
 
 
@@ -162,6 +164,30 @@ def snippet(path: str, unit: Optional[str], values: Dict[str, Any]) -> str:
     )
 
 
+def _run(cost: Cost, coerced: Dict[str, Any]) -> Tuple[Cost, List[str]]:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", ValidityWarning)
+        evaluated = cost.evaluate(**coerced)
+    return evaluated, [str(w.message) for w in caught]
+
+
+def evaluate_composition(spec: Dict[str, Any],
+                         values: Dict[str, Any]) -> Dict[str, Any]:
+    """Evaluate an assembled cost, the same way a single one is evaluated."""
+    coerced = {name: _coerce(raw) for name, raw in values.items()}
+    cost, caught = _run(build(spec), coerced)
+    return {
+        "value": cost.value,
+        "unit": _unit_name(cost.unit),
+        "unit_label": str(cost.unit),
+        "provenance": cost.provenance.describe(),
+        "bound": str(cost.provenance.bound),
+        "assumptions": list(cost.provenance.assumptions),
+        "warnings": caught,
+        "snippet": code(spec, coerced),
+    }
+
+
 def evaluate(path: str, unit: Optional[str],
              values: Dict[str, Any]) -> Dict[str, Any]:
     """Evaluate one cost, reporting warnings rather than swallowing them."""
@@ -219,6 +245,13 @@ class _Handler(BaseHTTPRequestHandler):
             return self._send(200, page, "text/html; charset=utf-8")
         if self.path == "/api/routines":
             return self._json(catalogue())
+        if self.path == "/api/entries":
+            return self._json(entries())
+        if self.path.startswith("/api/fillings/"):
+            try:
+                return self._json(fillings_for(self.path.rsplit("/", 1)[-1]))
+            except KeyError as error:
+                return self._fail(error, 404)
         if self.path.startswith("/api/routine/"):
             name = self.path[len("/api/routine/"):]
             try:
@@ -237,7 +270,8 @@ class _Handler(BaseHTTPRequestHandler):
         self._send(404, b"not found", "text/plain; charset=utf-8")
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/api/evaluate":
+        if self.path not in ("/api/evaluate", "/api/compose",
+                             "/api/compose/evaluate"):
             return self._send(404, b"not found", "text/plain; charset=utf-8")
         length = int(self.headers.get("Content-Length", 0))
         try:
@@ -245,10 +279,17 @@ class _Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError as error:
             return self._fail(error)
         try:
-            return self._json(evaluate(
-                request["path"], request.get("unit"), request.get("values", {})
+            if self.path == "/api/evaluate":
+                return self._json(evaluate(
+                    request["path"], request.get("unit"),
+                    request.get("values", {}),
+                ))
+            if self.path == "/api/compose":
+                return self._json(describe(request["spec"]))
+            return self._json(evaluate_composition(
+                request["spec"], request.get("values", {})
             ))
-        except (KeyError, ValueError) as error:
+        except (KeyError, ValueError, UnitMismatch) as error:
             return self._fail(error)
 
 

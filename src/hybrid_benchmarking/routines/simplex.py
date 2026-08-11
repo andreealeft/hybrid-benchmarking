@@ -205,8 +205,9 @@ def simplex_iteration(v: Dict[str, float], rule: str) -> float:
 # ---------------------------------------------------------------------------
 
 def _lower_bound(expr: sp.Expr, kernel, *extra: str,
-                 validity: Validity = None) -> Cost:
+                 validity: Validity = None, slots=None) -> Cost:
     return Cost(
+        slots=slots or {},
         expr=expr,
         unit=Unit.GATES,
         provenance=Provenance.of(
@@ -261,6 +262,7 @@ Interfere = single(
         S.inner_gates + S.inner_gates_2,
         lambda v: v["inner_gates"] + v["inner_gates_2"],
         validity=Validity(),
+        slots={"inner_gates": Unit.GATES, "inner_gates_2": Unit.GATES},
     )},
 )
 
@@ -276,6 +278,7 @@ SignEstNFN = single(
         validity=Validity((
             definition(sp.Lt(S.epsilon, 1), "precision must be below 1"),
         )),
+        slots={"inner_gates": Unit.GATES},
     )},
 )
 
@@ -292,6 +295,7 @@ SignEstNFP = single(
         validity=Validity((
             definition(sp.Lt(S.epsilon, 1), "precision must be below 1"),
         )),
+        slots={"inner_gates": Unit.GATES},
     )},
 )
 

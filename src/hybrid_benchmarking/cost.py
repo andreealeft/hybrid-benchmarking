@@ -50,6 +50,11 @@ class Cost:
     #: whose individual bit patterns enter the circuit cost.  They are required
     #: by :meth:`evaluate` exactly like the symbolic parameters.
     extra_parameters: Tuple[str, ...] = ()
+    #: Parameters that stand for the cost of something else, and the unit that
+    #: something must be counted in.  A wrapper such as amplitude estimation
+    #: takes the cost of what it wraps; leave the slot empty and you get a call
+    #: count, fill it with another routine and you get the composite.
+    slots: Dict[str, Unit] = field(default_factory=dict)
 
     # -- introspection -------------------------------------------------------
 
@@ -92,6 +97,7 @@ class Cost:
             kernel=changes.get("kernel", self.kernel),
             extra_parameters=changes.get("extra_parameters",
                                          self.extra_parameters),
+            slots=changes.get("slots", self.slots),
         )
 
     def __add__(self, other: Union["Cost", Number]) -> "Cost":
@@ -114,6 +120,7 @@ class Cost:
             kernel=kernel,
             extra_parameters=tuple(dict.fromkeys(
                 left.extra_parameters + right.extra_parameters)),
+            slots=dict(left.slots, **right.slots),
         )
 
     __radd__ = __add__
@@ -147,6 +154,7 @@ class Cost:
             kernel=kernel,
             extra_parameters=tuple(dict.fromkeys(
                 left.extra_parameters + right.extra_parameters)),
+            slots=dict(left.slots, **right.slots),
         )
 
     __rmul__ = __mul__
@@ -198,6 +206,62 @@ class Cost:
             provenance=provenance,
             validity=self.validity,
         )
+
+    def bind(self, **inner: "Cost") -> "Cost":
+        """Fill a slot with the cost of an actual routine.
+
+        ``QAE.bind(oracle_gates=CanEnterNFP)`` is amplitude estimation *of*
+        that marker, rather than amplitude estimation costed per call to an
+        unnamed one.  The composite takes the union of both parameter lists,
+        the weaker of the two bound directions, and every assumption either
+        made -- which is the point: a composition should be exactly as hedged
+        as its weakest ingredient and say so.
+        """
+        result = self
+        for name, filling in inner.items():
+            if name not in result.slots:
+                raise ValueError(
+                    "{} has no slot {!r}; it has {}".format(
+                        result.unit, name,
+                        ", ".join(sorted(result.slots)) or "none",
+                    )
+                )
+            wanted = result.slots[name]
+            if filling.unit is not wanted:
+                raise UnitMismatch(
+                    "slot {!r} takes {}, not {}".format(
+                        name, wanted, filling.unit
+                    )
+                )
+
+            outer, plugged = result, filling
+            # Match the symbol already in the expression rather than building a
+            # fresh one: sympy distinguishes symbols by their assumptions, so a
+            # bare Symbol("x") is not the positive Symbol("x") declared in
+            # `symbols`, and substituting it would silently do nothing.
+            symbol = next(
+                (sym for sym in result.expr.free_symbols if sym.name == name),
+                sp.Symbol(name),
+            )
+
+            def kernel(values, _outer=outer, _plugged=plugged, _name=name):
+                enriched = dict(values)
+                enriched[_name] = _plugged._numeric(values)
+                return _outer._numeric(enriched)
+
+            remaining = dict(result.slots)
+            remaining.pop(name)
+            result = Cost(
+                expr=result.expr.subs(symbol, filling.expr),
+                unit=result.unit,
+                provenance=result.provenance.combine(filling.provenance),
+                validity=result.validity + filling.validity,
+                kernel=kernel,
+                extra_parameters=tuple(dict.fromkeys(
+                    result.extra_parameters + filling.extra_parameters)),
+                slots=remaining,
+            )
+        return result
 
     def subs(self, **values: Number) -> "Cost":
         """Partially substitute, symbolically.  Drops any numeric kernel."""
