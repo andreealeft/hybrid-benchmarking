@@ -252,6 +252,49 @@ def _display(*extra: sp.Symbol) -> sp.Expr:
 
 _SOLVE = "solve"
 
+Interfere = single(
+    name="Interfere",
+    summary="Hadamard-interfere two unitaries into element-wise sums and "
+            "differences of their amplitudes.",
+    citation=_NANNICINI + " (Lemma 19)",
+    costs={Unit.GATES: _lower_bound(
+        S.inner_gates + S.inner_gates_2,
+        lambda v: v["inner_gates"] + v["inner_gates_2"],
+        validity=Validity(),
+    )},
+)
+
+SignEstNFN = single(
+    name="SignEstNFN",
+    summary="Is an amplitude positive -- with no false negatives. Amplitude "
+            "estimation on the interference of the state with a basis vector.",
+    citation=_NANNICINI + " (Lemma 20)",
+    built_from=("Interfere", "QAE"),
+    costs={Unit.GATES: _lower_bound(
+        (5 * sp.sqrt(3) * sp.pi / S.epsilon - 1) * S.inner_gates,
+        lambda v: sign_est_nfn(v, v["inner_gates"], v["epsilon"]),
+        validity=Validity((
+            definition(sp.Lt(S.epsilon, 1), "precision must be below 1"),
+        )),
+    )},
+)
+
+SignEstNFP = single(
+    name="SignEstNFP",
+    summary="The same, with no false positives. Differs only in the precision "
+            "handed to the amplitude estimation -- a factor of nine, and so a "
+            "factor of nine in cost.",
+    citation=_NANNICINI + " (Lemma 21)",
+    built_from=("Interfere", "QAE"),
+    costs={Unit.GATES: _lower_bound(
+        (45 * sp.sqrt(3) * sp.pi / S.epsilon - 1) * S.inner_gates,
+        lambda v: sign_est_nfp(v, v["inner_gates"], v["epsilon"]),
+        validity=Validity((
+            definition(sp.Lt(S.epsilon, 1), "precision must be below 1"),
+        )),
+    )},
+)
+
 RedCost = single(
     name="RedCost",
     summary="Encode a column's reduced cost in the zeroth amplitude of a state.",

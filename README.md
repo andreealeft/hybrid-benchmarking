@@ -21,11 +21,10 @@ are — about 1.4 times the square root of the list length.
 
 ## What is here so far
 
-The cost algebra, the amplification generic, both constructions of Hamiltonian
-simulation, the four functional quantum linear solvers, the quantum simplex subroutines
-with all three pivoting rules, and the quantum tree generator with its Fourier
-arithmetic. Quantum breadth-first search, the interior point pipeline and the
-interface are not yet written.
+Every routine from the thesis, the maximum-flow study, the quantum interior
+point paper, and the boundary with Cade-style instrumented counts — 44 routines
+across 51 implementations, in gates, oracle queries, cycles, iterations and
+repetitions. The local web interface is not yet written.
 
 ```python
 hb.capability_table()
@@ -34,8 +33,14 @@ hb.capability_table()
 ```
 routine                           gates    queries     cycles  iteration  repetitio      calls
 ----------------------------------------------------------------------------------------------
+Cade-amplitude                        -          -          -          -          -          -
+Cade-linalg                           -          -          -          -          -          -
+Cade-max                              -          -          -          -          -          -
+Cade-search                           -          -          -          -          -          -
 CanEnterNFN                         yes          -          -          -          -          -
 CanEnterNFP                         yes          -          -          -          -          -
+CtrlU                               yes          -          -          -          -          -
+Dinic                               yes          -        yes          -          -          -
 FindColumn/steepest-edge            yes          -          -          -          -          -
 FindColumn/dantzig                  yes          -          -          -          -          -
 FindColumn/random                   yes          -          -          -          -          -
@@ -43,12 +48,20 @@ FindRow                             yes          -          -          -        
 HHL                                   -        yes          -          -          -          -
 HamSim/qubitization                   -        yes          -          -          -          -
 HamSim/berry                        yes          -          -          -          -          -
+IPM/mnes                              -          -        yes          -          -          -
+IPM/oss                               -          -        yes          -          -          -
+Interfere                           yes          -          -          -          -          -
 IsOptimal                           yes          -          -          -          -          -
 IsUnbounded                         yes          -          -          -          -          -
+IterRefine                            -          -          -          -          -          -
+LCU                                 yes          -          -          -          -          -
+OAA                                 yes          -          -          -          -          -
 O_A                                   -          -          -          -          -          -
 O_F                                   -          -          -          -          -          -
 P_b                                   -          -          -          -          -          -
 QAA                                   -          -          -        yes          -          -
+QAA-fixed                           yes          -          -          -          -          -
+QAE                                 yes          -          -          -          -          -
 QFT                                 yes          -        yes          -          -          -
 QFTAdd                              yes          -        yes          -          -          -
 QFTSub                              yes          -        yes          -          -          -
@@ -56,14 +69,21 @@ QLS-Chebyshev                         -        yes          -          -        
 QLS-Fourier/via-qubitization          -        yes          -          -          -          -
 QLS-Fourier/via-berry               yes          -          -          -          -          -
 QLS-QSVT                              -        yes          -          -          -          -
+QMF                                 yes          -          -          -          -          -
+QPE                                 yes          -          -          -          -          -
 QSearch                               -          -          -        yes          -          -
 QSearchAll                            -          -          -        yes          -          -
 QTG                                 yes          -        yes          -          -          -
 QTGSearch                           yes          -        yes          -          -          -
 RedCost                             yes          -          -          -          -          -
+SignEstNFN                          yes          -          -          -          -          -
+SignEstNFP                          yes          -          -          -          -          -
 SimplexIter/steepest-edge           yes          -          -          -          -          -
 SimplexIter/dantzig                 yes          -          -          -          -          -
 SimplexIter/random                  yes          -          -          -          -          -
+Tomography                            -          -          -          -        yes          -
+VTAA                                  -          -          -          -          -          -
+qBFS                                yes          -        yes          -          -          -
 ```
 
 Which units a routine offers is not a maintained table — it is whichever cost

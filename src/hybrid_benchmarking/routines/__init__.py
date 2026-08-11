@@ -6,6 +6,7 @@ in that a composition must be imported after what it is built from.
 
 from . import oracles  # noqa: F401
 from . import amplification  # noqa: F401
+from . import standard  # noqa: F401
 from . import hamsim  # noqa: F401
 from . import linsolve  # noqa: F401
 from . import simplex  # noqa: F401
@@ -15,6 +16,6 @@ from . import qipm  # noqa: F401
 from . import cade  # noqa: F401
 
 __all__ = [
-    "oracles", "amplification", "hamsim", "linsolve", "simplex", "knapsack",
+    "oracles", "amplification", "standard", "hamsim", "linsolve", "simplex", "knapsack",
     "maxflow", "qipm", "cade",
 ]

@@ -99,3 +99,29 @@ capacity = sp.Symbol("capacity", positive=True, integer=True)
 
 profit_bound = sp.Symbol("profit_bound", positive=True, integer=True)
 """Upper bound on the optimal profit.  Fixes the profit register size."""
+
+# --- generic wrappers -------------------------------------------------------
+
+inner_gates = sp.Symbol("inner_gates", positive=True)
+"""Gate cost of the unitary a wrapper is applied to."""
+
+oracle_gates = sp.Symbol("oracle_gates", positive=True)
+"""Gate cost of one call to the marker or comparison oracle."""
+
+prepare_gates = sp.Symbol("prepare_gates", positive=True)
+"""Gate cost of preparing the state a routine amplifies or estimates."""
+
+n_qubits = sp.Symbol("n_qubits", positive=True, integer=True)
+"""Width of the register a routine acts on."""
+
+ancillas = sp.Symbol("ancillas", positive=True, integer=True)
+"""Ancilla qubits an oblivious amplification reflects about."""
+
+terms = sp.Symbol("terms", positive=True, integer=True)
+"""Number of unitaries in a linear combination."""
+
+clock_qubits_sym = sp.Symbol("n_c", positive=True, integer=True)
+"""Clock register width in phase estimation, fixed by epsilon and delta."""
+
+inner_gates_2 = sp.Symbol("inner_gates_2", positive=True)
+"""Gate cost of a second unitary, where a routine interferes two of them."""
