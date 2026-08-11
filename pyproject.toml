@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hybrid-benchmarking"
+version = "0.1.0.dev0"
+description = "Resource analysis of fault-tolerant quantum algorithms: subroutines, their costs, and where every number came from."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Andreea-Iulia Lefterovici" }]
+keywords = ["quantum algorithms", "hybrid benchmarking", "resource estimation"]
+
+dependencies = [
+    "sympy>=1.11",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+hybrid-benchmarking = "hybrid_benchmarking.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
