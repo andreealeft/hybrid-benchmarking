@@ -20,12 +20,15 @@ from __future__ import annotations
 from .cost import Cost, UnitMismatch, ValidityWarning, exact, lower_bound
 from .provenance import Bound, Derivation, Provenance, Unit
 from .registry import (
+    Implementation,
     Routine,
+    all_implementations,
     all_routines,
     capability_table,
     get,
     names,
     register,
+    single,
 )
 from .validity import Condition, Validity
 from . import symbols
@@ -38,12 +41,14 @@ __all__ = [
     "Condition",
     "Cost",
     "Derivation",
+    "Implementation",
     "Provenance",
     "Routine",
     "Unit",
     "UnitMismatch",
     "Validity",
     "ValidityWarning",
+    "all_implementations",
     "all_routines",
     "capability_table",
     "exact",
@@ -51,5 +56,6 @@ __all__ = [
     "lower_bound",
     "names",
     "register",
+    "single",
     "symbols",
 ]

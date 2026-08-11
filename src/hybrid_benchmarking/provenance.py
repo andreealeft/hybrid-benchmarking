@@ -27,6 +27,13 @@ class Unit(Enum):
     ITERATIONS = "iterations"
     REPETITIONS = "repetitions"
 
+    #: Calls to a classically-defined subroutine, counted by instrumenting a
+    #: classical run in the manner of Cade et al.  Deliberately *not* the same
+    #: unit as QUERIES: those are calls to sparse-access oracles, derived in
+    #: closed form.  Both are honestly called "queries" in the literature, they
+    #: are not the same quantity, and the type system must refuse to mix them.
+    SUBROUTINE_CALLS = "subroutine calls"
+
     @property
     def is_multiplier(self) -> bool:
         return self in (Unit.ITERATIONS, Unit.REPETITIONS)

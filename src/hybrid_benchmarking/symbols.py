@@ -24,6 +24,9 @@ kappa = sp.Symbol("kappa", positive=True)
 norm_A_max = sp.Symbol("A_max", positive=True)
 """Largest absolute entry of the matrix."""
 
+norm_A_1 = sp.Symbol("A_1", positive=True)
+"""Induced 1-norm: the largest absolute column sum."""
+
 norm_x = sp.Symbol("x_norm", positive=True)
 """Norm of the solution vector, which sets the true success probability."""
 

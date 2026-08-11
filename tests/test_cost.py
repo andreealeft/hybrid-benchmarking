@@ -108,20 +108,87 @@ class TestPresentation:
         assert set(cost.parameters) == {"t_sim", "epsilon"}
 
 
-class TestHamiltonianSimulation:
+class TestTwoConstructionsOfOneRoutine:
+    """Hamiltonian simulation is two algorithms, not one seen two ways.
+
+    The simplex gate counts come from Berry et al.'s fractional-query
+    reduction; the linear solver query counts come from Low-Chuang
+    qubitization. A composition that silently picked the wrong one would be
+    wrong in a way no test of either construction alone would catch.
+    """
+
+    def test_the_routine_holds_both(self):
+        assert {i.name for i in hb.get("HamSim").implementations} == {
+            "qubitization", "berry"
+        }
+
+    def test_asking_without_disambiguating_refuses(self):
+        with pytest.raises(ValueError, match="say which"):
+            hb.get("HamSim").cost()
+
+    def test_the_unit_picks_the_construction(self):
+        """Only one construction offers each unit, so the unit is enough."""
+        assert hb.get("HamSim").cost(Unit.QUERIES).unit is Unit.QUERIES
+        assert hb.get("HamSim").cost(Unit.GATES).unit is Unit.GATES
+
+    def test_addressing_by_path(self):
+        impl = hb.get("HamSim/qubitization")
+        assert impl.path == "HamSim/qubitization"
+        assert impl.units == (Unit.QUERIES,)
+
+    def test_gate_counts_are_lower_bounds_query_counts_are_exact(self):
+        assert hb.get("HamSim/berry").cost().provenance.bound is Bound.LOWER
+        assert hb.get("HamSim/qubitization").cost().provenance.bound is Bound.EXACT
+
+    def test_the_two_take_different_parameters(self):
+        """Berry's bound needs the 1-norm; qubitization never sees it."""
+        assert "A_1" in hb.get("HamSim/berry").parameters
+        assert "A_1" not in hb.get("HamSim/qubitization").parameters
+
+
+class TestQubitization:
     def test_long_evolutions_cost_linearly_in_time(self):
         short = hb.get("HamSim").evaluate(
-            d=4, A_max=1, t_sim=100, epsilon=1e-8).value
+            Unit.QUERIES, d=4, A_max=1, t_sim=100, epsilon=1e-8).value
         long = hb.get("HamSim").evaluate(
-            d=4, A_max=1, t_sim=200, epsilon=1e-8).value
+            Unit.QUERIES, d=4, A_max=1, t_sim=200, epsilon=1e-8).value
         assert long == pytest.approx(2 * short, rel=0.01)
 
     def test_tighter_precision_costs_more(self):
         loose = hb.get("HamSim").evaluate(
-            d=4, A_max=1, t_sim=0.001, epsilon=1e-3).value
+            Unit.QUERIES, d=4, A_max=1, t_sim=0.001, epsilon=1e-3).value
         tight = hb.get("HamSim").evaluate(
-            d=4, A_max=1, t_sim=0.001, epsilon=1e-12).value
+            Unit.QUERIES, d=4, A_max=1, t_sim=0.001, epsilon=1e-12).value
         assert tight > loose
+
+
+class TestBerryFractionalQuery:
+    PARAMS = dict(d=4, A_max=1.0, A_1=3.0, t_sim=10.0, epsilon=1e-3)
+
+    def test_it_produces_a_gate_count(self):
+        cost = hb.get("HamSim/berry").evaluate(**self.PARAMS)
+        assert cost.unit is Unit.GATES
+        assert cost.value > 0
+
+    def test_longer_evolutions_cost_more(self):
+        near = dict(self.PARAMS, t_sim=10.0)
+        far = dict(self.PARAMS, t_sim=100.0)
+        assert (hb.get("HamSim/berry").evaluate(**far).value
+                > hb.get("HamSim/berry").evaluate(**near).value)
+
+    def test_tighter_precision_costs_more(self):
+        loose = dict(self.PARAMS, epsilon=1e-3)
+        tight = dict(self.PARAMS, epsilon=1e-6)
+        assert (hb.get("HamSim/berry").evaluate(**tight).value
+                > hb.get("HamSim/berry").evaluate(**loose).value)
+
+    def test_segment_count_grows_logarithmically(self):
+        from hybrid_benchmarking.routines.hamsim import queries_per_segment
+
+        coarse = queries_per_segment(1e-4)
+        fine = queries_per_segment(1e-8)
+        assert fine > coarse
+        assert fine < 4 * coarse  # log growth, not polynomial
 
 
 class TestCapabilityTable:

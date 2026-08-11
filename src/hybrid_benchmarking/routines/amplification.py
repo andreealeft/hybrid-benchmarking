@@ -8,13 +8,20 @@ prepare a state, mark the good subspace, amplify.
 This module implements that once.  Everything else here is a wrapper that fixes
 the success probability and its known lower bound.
 
-Two published statements of the expected round count differ in one factor.  The
-quantum-search form (Lemma 6 of the thesis) counts expected Grover *iterations*
-and carries a factor of one half; the amplification form (Lemma 13) counts
-applications of the amplified algorithm and does not.  The product term is
-identical: ``1 - <p>`` in one is ``1/2 + sin(...)/(...)`` in the other.  Both
-are derived here from :func:`rounds`, so the relationship stays visible rather
-than being reimplemented twice with a discrepancy nobody notices.
+Two published statements of the expected round count differ in one factor, and
+the difference is **an error, not a difference of unit**.  Lemma 6 of the thesis
+carries ``m_k / 2`` and truncates at ``k_max``; Lemma 13 carries ``m_k`` and
+sums to convergence.  The product term is identical -- ``1 - <p>`` in one is
+``1/2 + sin(...)/(...)`` in the other -- so the two are meant to report the same
+quantity.
+
+Which of the two is right is not yet settled.  Until it is, each entry
+reproduces the convention of the paper it was published in, so no previously
+published number moves: :data:`HALF_IN_QSEARCH` keeps the factor in the
+quantum-search form used by the simplex gate counts, and leaves it out of the
+amplification form used by the linear solver query counts.  Both come from the
+single kernel :func:`rounds`, so reconciling them is a one-line change here
+rather than an edit in every dependent analysis.
 """
 
 from __future__ import annotations
@@ -27,12 +34,20 @@ import sympy as sp
 from .. import symbols as S
 from ..cost import Cost
 from ..provenance import Bound, Derivation, Provenance, Unit
-from ..registry import Routine, register
+from ..registry import single
 from ..validity import Validity, definition
 
 #: Schedule growth factor.  Any 1 < c < 2 works; the literature uses 6/5.
 LAMBDA = sp.Rational(6, 5)
 _LAMBDA = float(LAMBDA)
+
+#: Whether the quantum-search form keeps Lemma 6's factor of one half while the
+#: amplification form follows Lemma 13 without it.  See the module docstring:
+#: the two statements disagree and the reconciliation is unresolved, so each
+#: keeps its own published convention.  Set to ``False`` to make both report the
+#: same quantity, which doubles every count that runs through
+#: :func:`qsearch_iterations` -- including all quantum simplex gate counts.
+HALF_IN_QSEARCH = True
 
 
 # --------------------------------------------------------------------------
@@ -111,7 +126,7 @@ def qsearch_k_max(list_length: float) -> int:
 
 def qsearch_iterations(list_length: float, marked: float) -> float:
     """Expected Grover iterations to find one of ``marked`` elements."""
-    return 0.5 * rounds(
+    return (0.5 if HALF_IN_QSEARCH else 1.0) * rounds(
         p=float(marked) / float(list_length),
         p0=1.0 / float(list_length),
         k_max=qsearch_k_max(list_length),
@@ -178,7 +193,7 @@ QAA_EXPR = _sum_form(_theta_qaa, sp.sqrt(1 / S.p0), sp.oo, half=False)
 _SEARCH_SOURCE = "Boyer-Brassard-Hoyer-Tapp schedule; Lemma 6 of the thesis"
 _QAA_SOURCE = "Lemma 13 of the thesis"
 
-QSearch = register(Routine(
+QSearch = single(
     name="QSearch",
     summary="Unstructured search for one of t marked elements in a list of X; "
             "returns expected Grover iterations.",
@@ -200,9 +215,9 @@ QSearch = register(Routine(
             kernel=lambda v: qsearch_iterations(v["X"], v["t"]),
         ),
     },
-))
+)
 
-QSearchAll = register(Routine(
+QSearchAll = single(
     name="QSearchAll",
     summary="Find every one of the t marked elements, by repeated search over a "
             "shrinking list.",
@@ -228,9 +243,9 @@ QSearchAll = register(Routine(
             kernel=lambda v: qsearch_all_iterations(v["X"], v["t"]),
         ),
     },
-))
+)
 
-QAA = register(Routine(
+QAA = single(
     name="QAA",
     summary="Amplitude amplification: expected applications of the amplified "
             "algorithm needed to reach constant success probability.",
@@ -252,7 +267,7 @@ QAA = register(Routine(
             kernel=lambda v: qaa_overhead(v["p"], v["p_0"]),
         ),
     },
-))
+)
 
 
 def amplify(inner: Cost, p: sp.Expr, p0: sp.Expr) -> Cost:
