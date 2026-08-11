@@ -157,6 +157,11 @@ _REGISTRY: Dict[str, Routine] = {}
 
 
 def register(routine: Routine) -> Routine:
+    if "/" in routine.name:
+        raise ValueError(
+            "{!r} may not contain a slash: that separates a routine from its "
+            "implementation in a lookup path".format(routine.name)
+        )
     if routine.name in _REGISTRY:
         raise ValueError("{} is already registered".format(routine.name))
     # Stamp each implementation with its routine so it can report a full path.
