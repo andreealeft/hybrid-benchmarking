@@ -120,11 +120,18 @@ def _generatable() -> frozenset:
 
 
 def _route_data(route: Route, problem_key: str = "") -> Dict[str, Any]:
+    from .classical.generate import accepts
+
+    wanted, example = accepts(problem_key, route.key)
     return {
         "key": route.key,
         #: True when pointing at an instance file is enough -- the classical
         #: run happens here and the log is produced rather than asked for.
         "generated": (problem_key, route.key) in _generatable(),
+        #: What sort of file, and what one is usually called.  "Give it an
+        #: instance file" is only an instruction if it says which.
+        "accepts": wanted,
+        "example_file": example,
         "label": route.label,
         "classical": route.classical,
         "replaces": route.replaces,

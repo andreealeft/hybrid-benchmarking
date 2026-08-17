@@ -115,6 +115,13 @@
   .value { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; }
   .value small { font-size: .8rem; font-weight: 400; color: var(--muted); margin-left: .4rem; }
   .warn { color: var(--warn); font-size: .85rem; margin: .5rem 0 0; }
+  /* The hand-logging path, folded away where the instance form can do the job.
+     Still one click, because plenty of people arrive already holding a log. */
+  details.secondary { margin-top: 1.6rem; border-top: 1px solid var(--rule);
+    padding-top: .8rem; }
+  details.secondary > summary { cursor: pointer; font-size: .85rem;
+    color: var(--muted); }
+  details.secondary[open] > summary { margin-bottom: .6rem; }
   .none { color: var(--faint); font-style: italic; }
   .term {
     border: 1px solid var(--rule); border-radius: 6px; background: var(--surface);
@@ -620,15 +627,17 @@ async function drawRoute() {
 
   let html = "";
 
-  if (r.generated) html += `<h3>Start from an instance file</h3>
-    <p class="meta">Point at a network, a knapsack, a matrix or a model and
-      ${esc(r.classical)} runs here, instrumented, to produce the log below.
+  if (r.generated) html += `<h3>Give it an instance file</h3>
+    <p class="meta">That is the whole input. ${esc(r.classical)} runs here,
+      instrumented, works out the quantities the bound needs, and the answer is
+      a ${esc(r.unit_label)} count. Accepts ${esc(r.accepts || "an instance file")}.
       Nothing is uploaded and nothing is installed — the file is read where it
-      sits. The log is what gets costed, and you see it before the number.</p>
+      sits, and you see the log it produced before you see the number.</p>
     <form id="genform">
       <div class="field">
         <label for="genpath">file</label>
-        <input id="genpath" name="instance" placeholder="/path/to/instance.max">
+        <input id="genpath" name="instance"
+               placeholder="${esc(r.example_file || "/path/to/instance")}">
       </div>
       <div class="field">
         <label for="genbudget">seconds</label>
@@ -645,8 +654,16 @@ async function drawRoute() {
          </div>
     </form><div id="genout"></div>`;
 
-  html += `<h3>${r.generated ? "Or log it yourself" : "What to log"}</h3>
-    <p class="meta">Run ${esc(r.classical)} on your instance with logging, and
+  // Where the instance form exists it is the answer, so the hand-logging path
+  // folds away behind it. Left open and equally weighted it reads as an
+  // instruction to go and instrument a solver yourself, which is the dead end
+  // this panel was built to remove.
+  if (r.generated) html += `<details class="secondary">
+    <summary>I already have a log, or I want to produce one myself</summary>`;
+
+  html += `<h3>${r.generated ? "The shape of a log" : "What to log"}</h3>
+    <p class="meta">${r.generated ? "If you would rather run" : "Run"}
+      ${esc(r.classical)} ${r.generated ? "yourself" : "on your instance with logging"},
       record ${r.whole_run ? "the run" : "one row per iteration"} in this shape.
       Every column is named below.</p>
     <pre>${esc(tpl)}</pre>`;
@@ -668,6 +685,7 @@ async function drawRoute() {
 
   html += `<div class="actions"><button class="primary" type="submit">Cost this run</button></div>
     </form><div id="logout"></div>`;
+  if (r.generated) html += `</details>`;
 
   document.getElementById("routebody").innerHTML = html;
   $("logform").onsubmit = (e) => { e.preventDefault(); runLog(); };

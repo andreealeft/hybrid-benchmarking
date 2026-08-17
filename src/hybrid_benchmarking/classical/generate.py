@@ -69,6 +69,29 @@ class Generated:
 
 Runner = Callable[[Instance, Route, Budget, Dict[str, Any]], Run]
 _RUNNERS: Dict[Tuple[str, str], Runner] = {}
+#: Which kind of instance each route's runner needs.  Kept beside the runner so
+#: an interface can say what to hand over rather than leaving someone to find
+#: out by handing over the wrong thing.
+_ACCEPTS: Dict[Tuple[str, str], type] = {}
+
+#: How to describe each kind of instance to someone about to look for one on
+#: their disk: what it is, and what it is usually called.
+_DESCRIBED: Dict[str, Tuple[str, str]] = {
+    "Network": ("a DIMACS maximum-flow network", "instance.max"),
+    "Graph": ("a DIMACS graph or edge list", "instance.clq"),
+    "Knapsack": ("a knapsack instance, Pisinger or Martello-Toth layout",
+                 "instance.kp"),
+    "Matrix": ("a Matrix Market matrix", "instance.mtx"),
+    "LinearProgram": ("an MPS model, fixed or free format", "model.mps"),
+}
+
+
+def accepts(problem: str, route: str) -> Tuple[str, str]:
+    """What to hand this route, and what such a file is usually called."""
+    wanted = _ACCEPTS.get((problem, route))
+    if wanted is None:
+        return "", ""
+    return _DESCRIBED.get(wanted.__name__, ("an instance file", "instance"))
 #: Routes we deliberately do not produce a log for, and the reason, phrased so
 #: that someone reading it knows what would have to happen instead.
 _HANDOFF: Dict[Tuple[str, str], str] = {}
@@ -88,6 +111,7 @@ def _runner(problem: str, route: str, wants: type) -> Callable[[Callable], Calla
             return function(instance, chosen_route, budget, options)
 
         _RUNNERS[(problem, route)] = checked
+        _ACCEPTS[(problem, route)] = wants
         return function
     return register
 
