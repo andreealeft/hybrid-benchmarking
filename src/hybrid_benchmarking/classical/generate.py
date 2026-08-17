@@ -100,6 +100,61 @@ def _run_dinic(instance: Network, route: Route, budget: Budget,
     return solve(instance, budget)
 
 
+def _run_simplex(problem: str, instance, route: Route, budget: Budget,
+                 options: Dict[str, Any]) -> Run:
+    """Build the linear program this problem makes of the instance, then pivot.
+
+    The graph problems predict their own shape -- a vertex cover on ``V``
+    vertices and ``E`` edges is a program of ``2V + E`` columns and ``V + E``
+    rows -- and the route feeds that prediction to the lemmas rather than
+    anything this run reports.  So the two have to agree, and this is where
+    that is checked: a disagreement means the model built here is not the model
+    the cost is being computed for, which is precisely the kind of mismatch
+    that produces a plausible number.
+    """
+    from .lp import ModelError, model_for, standard_form
+    from .simplex import solve
+
+    try:
+        form = standard_form(model_for(instance, problem))
+    except ModelError as error:
+        raise GenerationError(str(error))
+
+    run = solve(form, budget, options.get("rule", "steepest-edge"))
+    if route.shape is not None:
+        predicted = route.shape(_instance_shape(instance))
+        for name in ("n", "m"):
+            if int(predicted[name]) != form.shape[name]:
+                raise GenerationError(
+                    "{} predicts a program of {} = {:.0f} but the one built "
+                    "here has {} = {}; the log and the cost would be about "
+                    "different programs".format(
+                        route.label, name, predicted[name], name,
+                        form.shape[name])
+                )
+    run.instance.update(_instance_shape(instance))
+    return run
+
+
+def _instance_shape(instance) -> Dict[str, Any]:
+    """The instance's own size, under the names the route's shape expects."""
+    if isinstance(instance, Graph):
+        return {"vertices": instance.vertices, "edges": len(instance.edges)}
+    return {}
+
+
+for _problem in ("vertex-cover", "independent-set", "clique"):
+    _runner(_problem, "quantum-simplex", Graph)(
+        (lambda key: lambda instance, route, budget, options:
+            _run_simplex(key, instance, route, budget, options))(_problem)
+    )
+
+_runner("linear-programming", "quantum-simplex", LinearProgram)(
+    lambda instance, route, budget, options:
+        _run_simplex("linear-programming", instance, route, budget, options)
+)
+
+
 def supported() -> Tuple[Tuple[str, str], ...]:
     """Every problem and route this package can produce a log for."""
     return tuple(sorted(_RUNNERS))

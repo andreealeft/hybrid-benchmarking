@@ -189,7 +189,10 @@ class TestTheFileTheUserSees:
         )
         path = write(data, str(tmp_path / "flat.csv"))
         text = open(path).read()
-        assert text.splitlines()[0].startswith("# generated:")
+        # A sentence first, for whoever opens the file; the machine-readable
+        # twin of it further down, for whoever loads it.
+        assert text.splitlines()[0] == "# a test -- complete, 0 records in 0s"
+        assert "# generated: {" in text
 
         back = load(path)
         assert back.generated["implementation"] == "a test"

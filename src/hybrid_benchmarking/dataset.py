@@ -189,6 +189,17 @@ def _load_csv(text: str, source: str) -> Dataset:
     return Dataset(varying, instance, source, generated)
 
 
+def summarise(generated: Dict[str, Any]) -> str:
+    """One sentence saying who wrote this log and whether they finished."""
+    return "{} -- {}, {} record{} in {}s".format(
+        generated.get("implementation", "an instrumented classical run"),
+        generated.get("status", "complete"),
+        generated.get("records", 0),
+        "" if generated.get("records") == 1 else "s",
+        generated.get("elapsed_seconds", 0),
+    )
+
+
 def is_flat(data: Dataset) -> bool:
     """Whether every value is a scalar, and so whether CSV can hold this log."""
     return not any(
@@ -233,12 +244,16 @@ def _render_csv(data: Dataset, route: Optional[Route]) -> str:
 
     lines = []
     if data.generated:
-        lines.append("{} {}".format(_GENERATED,
-                                    json.dumps(data.generated, sort_keys=True)))
+        lines.append("# " + summarise(data.generated))
     if route is not None:
         explained = {f.name: f.help for f in route.per_record + route.per_instance}
         lines += ["# {} -- {}".format(name, explained[name])
                   for name in columns if name in explained]
+    if data.generated:
+        # Last, and on one line: this is the machine-readable twin of the
+        # sentence at the top, and it is long enough to bury everything else.
+        lines.append("{} {}".format(_GENERATED,
+                                    json.dumps(data.generated, sort_keys=True)))
     lines.append(",".join(columns))
     for record in data.records:
         values = dict(data.instance)

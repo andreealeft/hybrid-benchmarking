@@ -181,7 +181,10 @@ def _log_preview(generated) -> List[str]:
     from .dataset import is_flat, render
 
     if is_flat(generated.data):
-        return render(generated.data, generated.route).splitlines()
+        # The header is provenance, and it is already printed under the cost;
+        # what a preview is for is seeing the shape of the data.
+        return [line for line in render(generated.data, generated.route)
+                .splitlines() if not line.startswith("#")]
     lines = ["instance: " + json.dumps(generated.data.instance)]
     lines += [json.dumps(record) for record in generated.data.records]
     return lines
