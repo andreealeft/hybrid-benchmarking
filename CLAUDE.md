@@ -146,7 +146,7 @@ structural and should stay:
   which is a lower bound for a reason unrelated to the lemmas'. It is a status
   carried in the log file, not a warning in a terminal.
 
-Three things left open, each surfaced rather than decided:
+Two things left open, each surfaced rather than decided:
 
 - **`SimplexIter/random` reuses one `t` for two different searches** — Lemma
   24's over the `n−m` columns and Lemma 10's over the `m` components of `u`.
@@ -156,15 +156,26 @@ Three things left open, each surfaced rather than decided:
   Binkowski's "modified" form was not to hand; a diagonal equilibration is
   logged beside it as `kappa_equilibrated`, and it is *not* reliably smaller, so
   there is no safe choice here — only a stated one. See `classical/ipm.py`.
-- **Maximum flow as a linear program is not generated.** `flow_shape` predicts
-  `n = 2E`, and a circulation formulation with conservation at all `V` vertices
-  needs the return arc, giving `2E + 1`. Dinic covers the problem; the LP routes
-  through it would need that discrepancy settled first.
+One earlier entry here is now closed, and the resolution is worth keeping.
+**`flow_shape` predicted `n = 2E` and it is `2E + 1`.** Conservation at every
+vertex, over the arc variables alone, forces the net flow out of the source to
+zero — those rows sum to zero, because every arc leaves one vertex and enters
+another — so such a program can express circulations and nothing else, and its
+maximum flow is zero on every network. The missing column is the flow value.
+A flow variable and an uncapacitated return arc both give `2E + 1`, so the two
+defensible readings agree and this was a correction rather than a choice. It
+moves the `n − m` non-basic count that the optimality test and the pivoting
+rule search over, so anyone holding an old max-flow simplex log should recost.
+
+Related, and it is why the interior point route works on networks at all: the
+conservation rows are redundant by construction, so `classical/ipm.py` now
+presolves dependent rows away rather than refusing, as any interior point code
+does, and logs the reduced system dimension.
 
 ## Where it stands
 
 Complete: 44 routines / 51 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade boundary, the
 composition layer, the problem-first entry point, the log format, instance
-readers and instrumented classical solvers for every problem but one, a local
-web interface and a CLI. 640 tests.
+readers and instrumented classical solvers for every problem, a local web
+interface and a CLI. 659 tests.

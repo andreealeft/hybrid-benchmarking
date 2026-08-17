@@ -195,6 +195,8 @@ def _instance_shape(instance) -> Dict[str, Any]:
     """The instance's own size, under the names the route's shape expects."""
     if isinstance(instance, Graph):
         return {"vertices": instance.vertices, "edges": len(instance.edges)}
+    if isinstance(instance, Network):
+        return {"vertices": instance.vertices, "edges": len(instance.arcs)}
     return {}
 
 
@@ -220,7 +222,7 @@ def _run_ipm(problem: str, instance, route: Route, budget: Budget,
 
 
 for _problem, _type in (("vertex-cover", Graph), ("independent-set", Graph),
-                        ("clique", Graph),
+                        ("clique", Graph), ("maximum-flow", Network),
                         ("linear-programming", LinearProgram)):
     _runner(_problem, "quantum-simplex", _type)(
         (lambda key: lambda instance, route, budget, options:

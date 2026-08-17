@@ -146,6 +146,12 @@ as a log you produced yourself would be — and if you already have one, nothing
 about your path changed. `log` stops after the log; `batch` does a directory and
 tabulates; the same thing is a form in the browser panel.
 
+Every route through every problem starts from a file this way. Maximum flow can
+be attacked three ways from one DIMACS network — quantum search inside Dinic,
+the quantum simplex, the quantum interior point method — and since Dinic, a
+simplex and an interior point method share only the file reader, that they agree
+on the flow value is the cross-check the whole pipeline rests on.
+
 Two things follow from running it ourselves, and both are attached to every
 number rather than mentioned here:
 

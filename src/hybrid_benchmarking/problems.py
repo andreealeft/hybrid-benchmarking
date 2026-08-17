@@ -127,14 +127,27 @@ def clique_shape(data: Dict[str, float]) -> Dict[str, float]:
 
 
 def flow_shape(data: Dict[str, float]) -> Dict[str, float]:
-    """Maximum flow: one variable per edge.
+    """Maximum flow: one variable per edge, and one more for the flow itself.
 
     Conservation is an equality at every vertex and needs no slack; each
-    capacity bound is an inequality and takes one, giving ``2E`` columns and
-    ``V + E`` rows.
+    capacity is an inequality and takes one.  That gives ``V + E`` rows and, on
+    the face of it, ``2E`` columns.
+
+    It is ``2E + 1``.  Conservation at *every* vertex, over the edge variables
+    alone, forces the net flow out of the source to zero -- such a program can
+    express circulations and nothing else, so its maximum flow is always zero
+    whatever the network.  What makes it a maximum-flow program is one further
+    column: the flow value, entering the source's row and the sink's row with
+    opposite signs and carrying the whole objective.  Writing it instead as an
+    uncapacitated return arc from sink to source gives the same count, since
+    that arc takes a column and, being uncapacitated, no row and no slack.
+
+    Both readings agree, so this is a correction rather than a choice.  It moves
+    ``n`` by one, and so moves the ``n - m`` non-basic count that the optimality
+    test and the pivoting rule search over.
     """
     vertices, edges = data["vertices"], data["edges"]
-    return {"n": 2 * edges, "m": vertices + edges}
+    return {"n": 2 * edges + 1, "m": vertices + edges}
 
 
 # ---------------------------------------------------------------------------

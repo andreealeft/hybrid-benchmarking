@@ -85,10 +85,30 @@ class TestProblemShapeBecomesProgramShape:
         dense = clique_shape({"vertices": 100, "edges": 4000})
         assert sparse["m"] > dense["m"]
 
-    def test_flow_has_a_variable_per_edge_and_a_row_per_vertex_and_edge(self):
+    def test_flow_has_a_variable_per_edge_and_one_more_for_the_flow_itself(self):
         assert flow_shape({"vertices": 300, "edges": 900}) == {
-            "n": 1800, "m": 1200
+            "n": 1801, "m": 1200
         }
+
+    def test_without_that_extra_column_the_program_can_only_circulate(self):
+        """Why the count is 2E + 1 and not 2E.
+
+        Conservation at every vertex, over the edge variables alone, forces the
+        net flow out of the source to zero: the rows sum to zero because every
+        arc leaves one vertex and enters another. Such a program has maximum
+        flow zero on every network, so it is not a maximum-flow program at all.
+        The missing column is the flow value.
+        """
+        import numpy as np
+
+        arcs = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]
+        vertices = 4
+        conservation = np.zeros((vertices, len(arcs)))
+        for column, (tail, head) in enumerate(arcs):
+            conservation[tail, column] += 1.0
+            conservation[head, column] -= 1.0
+        assert np.allclose(conservation.sum(axis=0), 0.0)
+        assert np.linalg.matrix_rank(conservation) < vertices
 
     def test_a_naive_shape_would_be_refused(self):
         """Guards the modelling fix: one variable per vertex and one constraint

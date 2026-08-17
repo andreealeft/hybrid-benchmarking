@@ -72,6 +72,33 @@ _MAX_ITERATIONS = 200
 _STALLED = 1e-12
 
 
+def independent_rows(matrix: np.ndarray, tolerance: float = 1e-9) -> List[int]:
+    """A maximal independent set of rows, kept in order, by Gram-Schmidt.
+
+    The normal equations are singular the moment two constraints say the same
+    thing, and some programs are redundant by construction rather than by
+    accident: a maximum-flow model has one conservation row per vertex, and
+    those always sum to zero, because every arc leaves one vertex and enters
+    another.  Refusing such a program would refuse the whole problem.
+
+    So the redundancy is removed, which is what any interior point code's
+    presolve does.  It changes ``m``, and therefore changes the dimension of
+    every Newton system logged afterwards -- the reduced one is what gets
+    logged, being the system that was actually solved.
+    """
+    keep: List[int] = []
+    basis: List[np.ndarray] = []
+    for index, row in enumerate(matrix):
+        residual = np.asarray(row, dtype=float).copy()
+        for direction in basis:
+            residual -= (residual @ direction) * direction
+        size = float(np.linalg.norm(residual))
+        if size > tolerance * max(1.0, float(np.linalg.norm(row))):
+            basis.append(residual / size)
+            keep.append(index)
+    return keep
+
+
 def _starting_point(matrix: np.ndarray, rhs: np.ndarray, objective: np.ndarray
                     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Mehrotra's starting point: the least-squares solution, pushed inside.
@@ -150,15 +177,28 @@ def solve(form: StandardForm, budget: Budget) -> Run:
     """Run the method, logging one Newton system per iteration."""
     matrix, rhs, objective = form.matrix, form.rhs, form.objective
     rows, columns = matrix.shape
+
+    # Redundant rows make the normal equations singular whatever the iterates
+    # do, and some programs are redundant by construction rather than by
+    # accident, so they are presolved away rather than refused.
+    keep = independent_rows(matrix)
+    dropped = rows - len(keep)
+    if dropped:
+        augmented = np.column_stack([matrix, rhs])
+        if np.linalg.matrix_rank(augmented) > len(keep):
+            return _failed(
+                budget,
+                "the constraints are inconsistent: {} of them are linear "
+                "combinations of the others but disagree with them about the "
+                "right-hand side, so the program has no feasible point"
+                .format(dropped),
+            )
+        matrix, rhs = matrix[keep], rhs[keep]
+        rows = len(keep)
+
     if rows < 2:
         return _failed(budget, "a Newton system of one unknown is vacuous; the "
-                               "program has {} constraint".format(rows))
-    if np.linalg.matrix_rank(matrix) < rows:
-        return _failed(
-            budget,
-            "the constraint matrix does not have full row rank, so the normal "
-            "equations are singular however the iterates are placed",
-        )
+                               "program has {} independent constraint".format(rows))
 
     primal, dual, slack = _starting_point(matrix, rhs, objective)
     records: List[Dict[str, Any]] = []
@@ -279,7 +319,12 @@ def solve(form: StandardForm, budget: Budget) -> Run:
             "the path is Mehrotra's, taking {} of the distance to the "
             "boundary; another implementation's iterates sit elsewhere and "
             "have other condition numbers".format(_FRACTION),
-        ),
+        ) + ((
+            "{} redundant constraint row{} removed before solving, as any "
+            "interior point code's presolve does, so the logged system "
+            "dimension is the reduced one".format(
+                dropped, "" if dropped == 1 else "s"),
+        ) if dropped else ()),
     )
 
 

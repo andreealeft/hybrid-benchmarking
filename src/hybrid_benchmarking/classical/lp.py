@@ -47,7 +47,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from ..instances import Graph, LinearProgram
+from ..instances import Graph, LinearProgram, Network
 
 #: Refuse rather than ask the machine for a matrix this big.  A dense standard
 #: form of this many entries is already a third of a gigabyte, and the basis
@@ -288,6 +288,60 @@ def clique(graph: Graph) -> Model:
     return model
 
 
+def maximum_flow(network: Network) -> Model:
+    """``max F`` subject to conservation everywhere and capacity on every arc.
+
+    The flow value is a column of its own, entering the source's conservation
+    row and the sink's with opposite signs.  Without it, conservation at every
+    vertex over the arc variables alone forces the net flow out of the source
+    to zero and the program can only express circulations -- see
+    :func:`~..problems.flow_shape`, which says the same thing from the other
+    side.
+
+    Capacities are written as rows rather than as bounds on the columns.  The
+    two are the same program, but a zero-capacity arc -- which DIMACS permits
+    and files contain -- has equal bounds, and the standard-form converter quite
+    correctly folds a column that cannot move into the right-hand side and drops
+    it.  That would make the program one column and one row smaller than the
+    shape the route predicts, on some networks and not others.
+    """
+    if network.source_vertex == network.sink_vertex:
+        raise ModelError(
+            "the source and the sink are the same vertex, so the flow value is "
+            "unconstrained and the program is unbounded"
+        )
+
+    arcs = network.arcs
+    flow = len(arcs)  # the flow-value column sits after the arc columns
+    model = Model(
+        columns=len(arcs) + 1,
+        objective=np.eye(1, len(arcs) + 1, flow)[0],
+        maximise=True,
+        name=network.name,
+    )
+
+    # One conservation row per vertex, in vertex order.
+    for vertex in range(network.vertices):
+        indices, values = [], []
+        for index, (tail, head, _) in enumerate(arcs):
+            weight = (1.0 if tail == vertex else 0.0) - (1.0 if head == vertex
+                                                         else 0.0)
+            if weight:
+                indices.append(index)
+                values.append(weight)
+        if vertex == network.source_vertex:
+            indices.append(flow)
+            values.append(-1.0)
+        elif vertex == network.sink_vertex:
+            indices.append(flow)
+            values.append(1.0)
+        model.add_row(indices, values, "E", 0.0)
+
+    for index, (_, _, capacity) in enumerate(arcs):
+        model.add_row((index,), (1.0,), "L", float(capacity))
+    return model
+
+
 def from_linear_program(program: LinearProgram) -> Model:
     """An MPS model, with its ranges turned into bounded slacks.
 
@@ -369,7 +423,7 @@ def model_for(instance, problem: str) -> Model:
         "independent-set": independent_set,
         "clique": clique,
         "linear-programming": from_linear_program,
-        "maximum-flow": None,
+        "maximum-flow": maximum_flow,
     }
     if problem not in builders or builders[problem] is None:
         raise ModelError(

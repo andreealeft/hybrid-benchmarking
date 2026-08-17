@@ -38,6 +38,7 @@ from hybrid_benchmarking.classical.lp import (
 )
 from hybrid_benchmarking.classical.simplex import solve as pivot
 from hybrid_benchmarking.instances import Graph
+from hybrid_benchmarking.instances.dimacs import read_max_flow
 from hybrid_benchmarking.instances.mps import read as read_mps
 from hybrid_benchmarking.provenance import Bound, Derivation
 
@@ -190,15 +191,44 @@ class TestCostingIt:
 
 
 class TestWhenItCannotRun:
-    def test_a_rank_deficient_program_is_refused_by_name(self):
+    def test_a_redundant_row_is_presolved_away_rather_than_refused(self):
+        # Some programs are redundant by construction, not by accident -- a
+        # maximum-flow model's conservation rows always sum to zero -- so
+        # refusing them would refuse the whole problem.
         from hybrid_benchmarking.classical.lp import Model
 
-        model = Model(columns=2, objective=np.ones(2))
+        # Equalities, because an inequality gets a surplus column of its own and
+        # so two proportional inequalities are independent once converted.
+        model = Model(columns=3, objective=np.ones(3))
         model.add_row((0, 1), (1.0, 1.0), "E", 1.0)
-        model.add_row((0, 1), (2.0, 2.0), "E", 2.0)  # the same row, doubled
+        model.add_row((1, 2), (1.0, 1.0), "E", 1.0)
+        model.add_row((0, 1, 2), (1.0, 2.0, 1.0), "E", 2.0)  # the sum of both
+        run = interior_point(standard_form(model), Budget(60))
+        assert run.status is Status.COMPLETE
+        assert all(entry["N"] == 2 for entry in run.records)
+        assert any("redundant constraint row" in note
+                   for note in run.assumptions)
+
+    def test_the_logged_dimension_is_the_system_that_was_actually_solved(self):
+        from hybrid_benchmarking.classical.lp import maximum_flow
+
+        network = read_max_flow("tests/fixtures/tiny.max")
+        form = standard_form(maximum_flow(network))
+        run = interior_point(form, Budget(60))
+        # One conservation row is always dependent, so the Newton system is one
+        # smaller than the program's row count.
+        assert run.records[0]["N"] == form.rows - 1
+
+    def test_rows_that_contradict_each_other_are_refused(self):
+        from hybrid_benchmarking.classical.lp import Model
+
+        model = Model(columns=3, objective=np.ones(3))
+        model.add_row((0, 1), (1.0, 1.0), "E", 1.0)
+        model.add_row((1, 2), (1.0, 1.0), "E", 1.0)
+        model.add_row((0, 1, 2), (1.0, 2.0, 1.0), "E", 5.0)  # should be 2
         run = interior_point(standard_form(model), Budget(60))
         assert run.status is Status.FAILED
-        assert "full row rank" in run.reason
+        assert "inconsistent" in run.reason
 
     def test_an_exhausted_budget_keeps_whatever_iterations_it_had(self):
         run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(1e-9))

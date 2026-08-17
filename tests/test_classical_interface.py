@@ -30,10 +30,9 @@ class TestThePanelCanStartFromAnInstance:
     def test_a_route_says_whether_a_log_can_be_produced_for_it(self):
         routes = {r["key"]: r["generated"]
                   for r in problem_detail("maximum-flow")["routes"]}
-        assert routes["quantum-bfs"] is True
-        # Honest about the ones it cannot: the panel offers the form only where
-        # there is something behind it.
-        assert routes["quantum-simplex"] is False
+        # All three of maximum flow's routes now run from a file: the quantum
+        # search one through Dinic, the other two through the linear program.
+        assert set(routes.values()) == {True}
 
     def test_it_hands_back_the_log_as_well_as_the_number(self):
         result = cost_from_instance("maximum-flow", "quantum-bfs",
