@@ -228,8 +228,21 @@ SIMULATED_ENTRY = (
 
 NEWTON_RECORD = (
     Field("N", "Dimension", "Unknowns in this Newton system", "1000"),
-    Field("d", "Sparsity", "Most non-zeros in any row", "50"),
+    Field("d", "Sparsity",
+          "Most non-zeros in any row or column of the system matrix", "50"),
     Field("kappa", "Condition number", "Of this Newton system", "100"),
+)
+
+#: The interior point analysis fixes its own precision rather than taking the
+#: caller's.  Its Section IV-A assumes iterative refinement turns a solve at
+#: 10^-1 into a high-precision answer in one step, and then puts 10^-1 into
+#: equation (10) -- so that is the number the published bound is computed at,
+#: and a tighter one here would not be the paper's figure.
+IPM_PRECISION = (
+    Field("epsilon", "Precision",
+          "What each Newton system is solved to. The paper uses 1e-1 and "
+          "assumes one step of iterative refinement does the rest; the readout "
+          "cost scales as one over its square", "1e-1"),
 )
 
 
@@ -255,7 +268,7 @@ def _simplex_route(shape: Shape, rule: str = "steepest-edge") -> Route:
     )
 
 
-def _ipm_route() -> Route:
+def _ipm_route(system: str = "mnes") -> Route:
     # No problem shape here, unlike the simplex route beside it.  A Newton
     # system states its own dimension, which is what the cost reads; the
     # program's column and row counts never reach it.  Declaring them anyway
@@ -264,15 +277,16 @@ def _ipm_route() -> Route:
     # point method presolves redundant rows away, and a maximum-flow model has
     # one by construction.
     return Route(
-        key="quantum-interior-point",
-        label="Quantum interior point",
+        key="quantum-interior-point" + ("" if system == "mnes" else "-oss"),
+        label="Quantum interior point" + (
+            "" if system == "mnes" else ", orthogonal subspace system"),
         classical="A primal-dual interior point method",
         replaces="the Newton system solve at each step with a quantum linear "
                  "solver, then reads the answer back out",
-        target="IPM/mnes",
+        target="IPM/" + system,
         unit=Unit.CYCLES,
         per_record=NEWTON_RECORD,
-        chosen=(PRECISION[0],),
+        chosen=IPM_PRECISION,
         note="A lower bound under deliberately generous assumptions: one "
              "oracle call per cycle, no amplification overhead, convergence in "
              "a single step. The readout dominates.",
@@ -280,7 +294,8 @@ def _ipm_route() -> Route:
 
 
 def _lp_routes(shape: Shape) -> Tuple[Route, ...]:
-    return (_simplex_route(shape), _ipm_route())
+    return (_simplex_route(shape), _ipm_route("mnes"),
+            _ipm_route("oss"))
 
 
 # ---------------------------------------------------------------------------
@@ -318,7 +333,8 @@ PROBLEMS: Tuple[Problem, ...] = (
                      "generous -- a cycle usually holds many gates.",
             ),
             _simplex_route(flow_shape),
-            _ipm_route(),
+            _ipm_route("mnes"),
+            _ipm_route("oss"),
         ),
     ),
     Problem(

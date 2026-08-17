@@ -224,7 +224,8 @@ def _run_ipm(problem: str, instance, route: Route, budget: Budget,
     except ModelError as error:
         raise GenerationError(str(error))
 
-    run = solve(form, budget)
+    run = solve(form, budget, options.get("system") or
+                ("oss" if route.target.endswith("/oss") else "mnes"))
     run.instance.update(_instance_shape(instance))
     return run
 
@@ -236,10 +237,11 @@ for _problem, _type in (("vertex-cover", Graph), ("independent-set", Graph),
         (lambda key: lambda instance, route, budget, options:
             _run_simplex(key, instance, route, budget, options))(_problem)
     )
-    _runner(_problem, "quantum-interior-point", _type)(
-        (lambda key: lambda instance, route, budget, options:
-            _run_ipm(key, instance, route, budget, options))(_problem)
-    )
+    for _which in ("quantum-interior-point", "quantum-interior-point-oss"):
+        _runner(_problem, _which, _type)(
+            (lambda key: lambda instance, route, budget, options:
+                _run_ipm(key, instance, route, budget, options))(_problem)
+        )
 
 
 def supported() -> Tuple[Tuple[str, str], ...]:

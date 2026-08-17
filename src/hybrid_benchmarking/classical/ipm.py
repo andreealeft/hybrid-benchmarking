@@ -1,43 +1,56 @@
-"""A primal-dual interior point method, instrumented per Newton system.
+"""The Newton systems Binkowski's benchmark costs, built the way he builds them.
 
-The interior point route costs one Newton system per iteration, from three
-numbers: its dimension, its sparsity and its condition number.  Getting them
-means running the method, because the condition number of the system is the
-whole story of that analysis -- it is what the solver's cost is quadratic in,
-and it degrades as the iterates approach the boundary, which is a property of
-the path and not of the instance.
+This follows *Practical lower bounds for hybrid quantum interior point methods
+in linear programming* (arXiv:2604.24362) closely enough to be checked against
+it, because the alternative is a plausible cycle count from a system the paper
+does not describe.  An earlier version of this module built the plain normal
+equations ``A D^2 A'`` and walked a Mehrotra path; both were wrong, and neither
+would have failed a test.
 
-The method here is Mehrotra's predictor-corrector, with the standard starting
-point and the standard two solves against one system per iteration.  That last
-detail is why a record is an iteration rather than a solve: the predictor and
-the corrector reuse the same matrix, so an iteration faces one system, which is
-what the route's ``per_record`` means.
+**What is costed is one system, not a solve.**  The paper's Section IV-B assumes
+benevolently that the method converges in a single iteration, "so the benchmark
+uses only the cost of solving the resulting first Newton system and never
+propagates the resulting iterate into subsequent iterations".  That assumption
+is already recorded on the ``IPM/mnes`` entry.  So there is one record, and
+summing a path of them -- which the earlier version did -- would have produced
+a number several times the paper's and no longer a lower bound.
 
-**The system logged is the normal-equation system** ``M = A D A'`` with
-``D = diag(x / s)``, in the dual variables, of dimension ``m``.  That is the
-dimension and the density the ``IPM/mnes`` entry describes, and its own recorded
-assumption -- that the system inherits a density of order ``m`` rather than the
-constraint matrix's -- is what these runs bear out.
+**The iterate is canonical, not computed.**  ``(x, y, s) = (1, 0, 1)``: strictly
+positive, deliberately not feasible, chosen so the diagonal matrices are
+invertible.  It follows that ``X = S = I`` and hence ``D = D_B = I``, which is
+what collapses the two constructions to the forms below.
 
-**Where the modification in "modified normal equations" would go, this does
-nothing**, and that is worth saying out loud rather than leaving to be
-discovered.  The construction is Binkowski's, and it is not reimplemented here
-from a one-line statement of it -- only the three quantities it needs are.
-Dimension and sparsity are the same under any diagonal rescaling of the system.
-The condition number is not, and the cost is quadratic in it.
+**The modified normal equation system** is not the normal equations.  With
+``A_B`` a set of ``m`` independent columns of ``A`` and ``A_N`` the rest,
+equation (6) reduces at this iterate to ``M_hat = I + F F'`` with
+``F := A_B^-1 A_N``.  Its dimension is ``m``.  Its condition number follows from
+``lambda_i(M_hat) = 1 + sigma_i(F)^2`` without forming it:
 
-So a diagonal equilibration of the same system -- one candidate reading of what
-"modified" does, and the usual one -- is logged beside it under
-``kappa_equilibrated``, and the column the route consumes carries the
-**unmodified** one.  Equilibration is not reliably an improvement: on the graph
-relaxations here it lowers the condition number by around a third for a vertex
-cover and raises it slightly for an independent set, which is what the classical
-bound on Jacobi scaling would lead one to expect.  So this is not a case of
-taking the safer of two numbers -- there is no safer one.  It is a case of not
-inventing a modification the source may not mean, logging what the alternative
-reading would give, and saying plainly that this one quantity is not established
-as favourable to the quantum side in either direction.  If the paper's rescaling
-does turn out to apply, the correction is a column swap rather than a rerun.
+    kappa(M_hat) = (1 + sigma_max(F)^2) / (1 + sigma_min(F)^2)
+
+and where ``n - m < m`` the matrix ``F F'`` has a null space, so
+``sigma_min = 0`` and the denominator is exactly 1.
+
+**The orthogonal subspace system** is equation (8): ``O = [-X A' , S V]``, of
+dimension ``n``, with ``V`` the null-space basis of (7) -- ``A_B^-1 A_N`` in the
+rows belonging to the basis columns and ``-I`` in the rest.  ``O`` is not
+symmetric, and footnote 2 says to read its sparsity and condition number off the
+Hermitian dilation, which shares both.  Its condition number is taken directly
+as ``sigma_max / sigma_min``.
+
+Two deliberate departures, both recorded on every cost:
+
+*The singular values are exact here.*  The paper estimates them with ARPACK and
+a sampling fallback, chosen so that the numerator is underestimated and the
+denominator overestimated -- making its ``kappa`` a lower bound on the true one.
+At the sizes this tool runs, an exact decomposition is affordable, and the exact
+value is what it is: not an over-estimate, but larger than the paper's estimate
+would be on the same instance.
+
+*The sparsity is measured rather than argued.*  The paper takes ``s = m`` for the
+MNES, on the grounds that ``A_B^-1`` is generally dense and so ``M_hat`` is too.
+That is usually right and never smaller than the truth, so measuring the built
+matrix instead can only lower the count.  Both are logged.
 """
 
 from __future__ import annotations
@@ -49,42 +62,32 @@ import numpy as np
 from .budget import Budget, Run, Status
 from .lp import StandardForm
 
-IMPLEMENTATION = ("Mehrotra's predictor-corrector interior point method, this "
-                  "library's own numpy implementation, logging the "
-                  "normal-equation system of each iteration")
+IMPLEMENTATION = ("the first Newton system from the canonical iterate, built "
+                  "and measured as in Binkowski's benchmark -- with exact "
+                  "singular values where the paper estimates them")
 
-#: Duality gap, relative to the starting one, at which the method has converged.
-_GAP = 1e-8
+#: Entries below this fraction of the largest are not structurally present.
+#: The systems here are products of dense factors, so a structural count needs a
+#: threshold; it is recorded, because it decides the sparsity that the cycle
+#: count is quadratic in.
+DENSITY_TOLERANCE = 1e-12
 
-#: Fraction of the distance to the boundary a step is allowed to take.  Every
-#: interior point implementation has one and they do not agree; it changes how
-#: fast the iterates approach the boundary and so changes every condition number
-#: logged after the first.
-_FRACTION = 0.99
+#: Rank tolerance for choosing the basis and for dropping redundant rows.
+_RANK_TOLERANCE = 1e-9
 
-#: Iterations after which a run is declared not to be converging.  Reached only
-#: on instances a longer budget would not rescue.
-_MAX_ITERATIONS = 200
-
-#: A step this short is not progress.  Degenerate programs -- which the graph
-#: relaxations routinely are -- stall here rather than grinding through two
-#: hundred iterations that all describe the same point.
-_STALLED = 1e-12
+#: Beyond this a dense decomposition is not something to wait for at any budget.
+MAX_DIMENSION = 4000
 
 
-def independent_rows(matrix: np.ndarray, tolerance: float = 1e-9) -> List[int]:
+def independent_rows(matrix: np.ndarray,
+                     tolerance: float = _RANK_TOLERANCE) -> List[int]:
     """A maximal independent set of rows, kept in order, by Gram-Schmidt.
 
-    The normal equations are singular the moment two constraints say the same
-    thing, and some programs are redundant by construction rather than by
-    accident: a maximum-flow model has one conservation row per vertex, and
-    those always sum to zero, because every arc leaves one vertex and enters
-    another.  Refusing such a program would refuse the whole problem.
-
-    So the redundancy is removed, which is what any interior point code's
-    presolve does.  It changes ``m``, and therefore changes the dimension of
-    every Newton system logged afterwards -- the reduced one is what gets
-    logged, being the system that was actually solved.
+    Both constructions need ``A`` to have full row rank -- the paper gets there
+    with HiGHS's presolve, which eliminates redundant constraints before the
+    standard form is built.  Some programs are redundant by construction rather
+    than by accident: a maximum-flow model has one conservation row per vertex
+    and those always sum to zero, so refusing them would refuse the problem.
     """
     keep: List[int] = []
     basis: List[np.ndarray] = []
@@ -99,263 +102,189 @@ def independent_rows(matrix: np.ndarray, tolerance: float = 1e-9) -> List[int]:
     return keep
 
 
-def _starting_point(matrix: np.ndarray, rhs: np.ndarray, objective: np.ndarray
-                    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Mehrotra's starting point: the least-squares solution, pushed inside.
+def choose_basis(matrix: np.ndarray,
+                 tolerance: float = _RANK_TOLERANCE) -> List[int]:
+    """``m`` linearly independent columns of ``A``, in order.
 
-    A bad start is not merely slow here -- it puts the first few iterates in a
-    part of the path nobody would visit, and those iterates are records.
+    The paper finds these once by sparse QR and reuses them for both systems.
+    This does the same job by orthogonalising the columns; which independent set
+    comes out depends on the method, and both constructions are built on it, so
+    the choice is recorded rather than assumed away.
     """
-    gram = matrix @ matrix.T
-    dual = np.linalg.solve(gram, rhs)
-    primal = matrix.T @ dual
-    multipliers = np.linalg.solve(gram, matrix @ objective)
-    slack = objective - matrix.T @ multipliers
-
-    shift_x = max(-1.5 * float(np.min(primal)), 0.0)
-    shift_s = max(-1.5 * float(np.min(slack)), 0.0)
-    primal = primal + shift_x
-    slack = slack + shift_s
-
-    product = float(primal @ slack)
-    if product <= 0:
-        primal = np.maximum(primal, 1.0)
-        slack = np.maximum(slack, 1.0)
-        return primal, multipliers, slack
-    primal = primal + 0.5 * product / float(np.sum(slack))
-    slack = slack + 0.5 * product / float(np.sum(primal))
-    return primal, multipliers, slack
+    return independent_rows(matrix.T, tolerance)
 
 
-def _step(direction: np.ndarray, value: np.ndarray) -> float:
-    """How far along a direction the iterate stays strictly positive."""
-    falling = direction < 0
-    if not falling.any():
-        return 1.0
-    return float(min(1.0, _FRACTION * np.min(-value[falling] / direction[falling])))
+def _sparsity(matrix: np.ndarray) -> int:
+    """Largest number of structurally present entries in any row or column.
 
-
-def _pattern_sparsity(matrix: np.ndarray) -> int:
-    """Most non-zeros in any row of ``A A'``, from the pattern rather than the values.
-
-    Counted structurally: ``A D A'`` has the pattern of ``A A'`` whatever the
-    diagonal holds, and counting numerically would need a tolerance whose choice
-    would then be a logged quantity in its own right.
+    Both, because the Hermitian dilation a quantum solver acts on has the
+    original's rows and its columns -- which is footnote 2's point about the
+    OSS matrix, and is what the sparse-access oracle would have to answer for.
     """
-    # Counted in a width that cannot wrap. An int8 product accumulates in
-    # int8, so two rows sharing a multiple of 256 columns would come out as
-    # structurally disjoint -- and d enters the cycle count as gamma = d kappa
-    # with gamma squared inside it, so the understatement is not small.
-    occupied = (matrix != 0).astype(np.int64)
-    return int(np.max(np.count_nonzero(occupied @ occupied.T, axis=1)))
+    if matrix.size == 0:
+        return 0
+    largest = float(np.max(np.abs(matrix)))
+    if largest <= 0:
+        return 0
+    present = np.abs(matrix) > DENSITY_TOLERANCE * largest
+    return int(max(np.max(np.count_nonzero(present, axis=1)),
+                   np.max(np.count_nonzero(present, axis=0))))
 
 
-def _ratio(system: np.ndarray) -> float:
-    """Largest singular value over smallest, or infinity if there is no answer.
+def _extreme_singular_values(matrix: np.ndarray) -> Tuple[float, float]:
+    values = np.linalg.svd(matrix, compute_uv=False)
+    if values.size == 0:
+        return 0.0, 0.0
+    return float(values[0]), float(values[-1])
 
-    A decomposition that does not converge is itself a statement about the
-    system -- it has gone past what double precision can describe -- so it comes
-    back as infinity and ends the run, rather than as an exception from three
-    frames down.
+
+def mnes(matrix: np.ndarray, basis: List[int]) -> Dict[str, Any]:
+    """Equation (6) at the canonical iterate: dimension, sparsity, condition.
+
+    ``M_hat = I + F F'`` with ``F = A_B^-1 A_N``.  The condition number comes
+    from the singular values of ``F`` rather than from ``M_hat`` itself, which
+    is the paper's own route and is better conditioned numerically.
     """
-    try:
-        singular = np.linalg.svd(system, compute_uv=False)
-    except np.linalg.LinAlgError:
-        return float("inf")
-    if not np.all(np.isfinite(singular)) or singular[-1] <= 0:
-        return float("inf")
-    return float(singular[0] / singular[-1])
-
-
-def _condition(system: np.ndarray) -> Tuple[float, float]:
-    """The system's condition number, and what equilibrating it would give."""
-    plain = _ratio(system)
-    diagonal = np.abs(np.diag(system))
-    if not np.all(np.isfinite(diagonal)) or not np.all(diagonal > 0):
-        return plain, plain
-    scale = 1.0 / np.sqrt(diagonal)
-    return plain, _ratio(system * scale[:, None] * scale[None, :])
-
-
-def solve(form: StandardForm, budget: Budget) -> Run:
-    """Run the method, logging one Newton system per iteration."""
-    matrix, rhs, objective = form.matrix, form.rhs, form.objective
     rows, columns = matrix.shape
+    other = [j for j in range(columns) if j not in set(basis)]
+    inverse_times_n = np.linalg.solve(matrix[:, basis], matrix[:, other]) \
+        if other else np.zeros((rows, 0))
 
-    # Redundant rows make the normal equations singular whatever the iterates
-    # do, and some programs are redundant by construction rather than by
-    # accident, so they are presolved away rather than refused.
+    largest, smallest = _extreme_singular_values(inverse_times_n)
+    if len(other) < rows:
+        # F F' has a null space, so the smallest eigenvalue of M_hat is exactly
+        # one -- the paper says so, and it is worth not discovering it from a
+        # decomposition that returns 1e-17 instead.
+        smallest = 0.0
+    kappa = (1.0 + largest ** 2) / (1.0 + smallest ** 2)
+
+    built = np.eye(rows) + inverse_times_n @ inverse_times_n.T
+    return {
+        "N": rows,
+        "d": _sparsity(built),
+        "kappa": kappa,
+        "d_paper": rows,
+        "sigma_max_F": largest,
+        "sigma_min_F": smallest,
+    }
+
+
+def oss(matrix: np.ndarray, basis: List[int]) -> Dict[str, Any]:
+    """Equation (8) at the canonical iterate: ``O = [-A' , V]``.
+
+    ``V`` is the null-space basis of (7): ``A_B^-1 A_N`` in the rows belonging
+    to the basis columns, ``-I`` in the rest.  Assembled by position rather than
+    stacked, because those rows are variables and the basis columns are not
+    contiguous.
+    """
+    rows, columns = matrix.shape
+    chosen = set(basis)
+    other = [j for j in range(columns) if j not in chosen]
+    null = np.zeros((columns, len(other)))
+    if other:
+        null[basis, :] = np.linalg.solve(matrix[:, basis], matrix[:, other])
+        null[other, :] = -np.eye(len(other))
+
+    system = np.hstack([-matrix.T, null])
+    largest, smallest = _extreme_singular_values(system)
+    if smallest <= 0:
+        return {"singular": True}
+    return {
+        "N": columns,
+        "d": _sparsity(system),
+        "kappa": largest / smallest,
+        "sigma_max_O": largest,
+        "sigma_min_O": smallest,
+    }
+
+
+_SYSTEMS = {"mnes": mnes, "oss": oss}
+
+
+def solve(form: StandardForm, budget: Budget, system: str = "mnes") -> Run:
+    """Build the first Newton system and record what a quantum solver faces."""
+    if system not in _SYSTEMS:
+        raise ValueError("no Newton system {!r}; there is {}".format(
+            system, " and ".join(sorted(_SYSTEMS))))
+
+    matrix = form.matrix
+    rows, columns = matrix.shape
+    if max(rows, columns) > MAX_DIMENSION:
+        return _failed(budget, system,
+                       "the program is {} by {}, and both systems here are "
+                       "decomposed densely; a longer budget will not "
+                       "help".format(rows, columns))
+    if budget.spent:
+        return _failed(budget, system, "the budget was gone before the system "
+                                       "was built")
+
     keep = independent_rows(matrix)
     dropped = rows - len(keep)
     if dropped:
-        augmented = np.column_stack([matrix, rhs])
+        augmented = np.column_stack([matrix, form.rhs])
         if np.linalg.matrix_rank(augmented) > len(keep):
-            return _failed(
-                budget,
-                "the constraints are inconsistent: {} of them are linear "
-                "combinations of the others but disagree with them about the "
-                "right-hand side, so the program has no feasible point"
-                .format(dropped),
-            )
-        matrix, rhs = matrix[keep], rhs[keep]
+            return _failed(budget, system,
+                           "the constraints are inconsistent: {} of them are "
+                           "combinations of the others but disagree about the "
+                           "right-hand side".format(dropped))
+        matrix = matrix[keep]
         rows = len(keep)
 
-    if rows < 2:
-        return _failed(budget, "a Newton system of one unknown is vacuous; the "
-                               "program has {} independent constraint".format(rows))
+    if rows < 2 or columns <= rows:
+        return _failed(budget, system,
+                       "the program has {} independent constraints and {} "
+                       "columns; there is no basis to split".format(rows, columns))
 
-    primal, dual, slack = _starting_point(matrix, rhs, objective)
-    records: List[Dict[str, Any]] = []
-    status, reason = Status.COMPLETE, ""
-    gap = float(primal @ slack) / columns
-    # Everything below is measured against the size of the data, not against
-    # the first iterate: a program stated in different units is the same
-    # program, and should stop at the same place.
-    primal_scale = 1.0 + float(np.linalg.norm(rhs))
-    dual_scale = 1.0 + float(np.linalg.norm(objective))
+    basis = choose_basis(matrix)
+    if len(basis) < rows:
+        return _failed(budget, system,
+                       "only {} of the {} columns are independent, so the "
+                       "constraint matrix has no basis".format(len(basis), rows))
+    basis = basis[:rows]
 
-    for _ in range(_MAX_ITERATIONS):
-        if budget.spent:
-            status = Status.TRUNCATED if records else Status.FAILED
-            reason = "the budget ran out with the duality gap at {:.3g}".format(gap)
-            break
+    record = _SYSTEMS[system](matrix, basis)
+    if record.get("singular"):
+        return _failed(budget, system,
+                       "the orthogonal subspace system is singular, so it has "
+                       "no condition number")
 
-        if not (np.all(np.isfinite(primal)) and np.all(np.isfinite(dual))
-                and np.all(np.isfinite(slack))):
-            status = Status.TRUNCATED if records else Status.FAILED
-            reason = ("the iterates left the range of double precision at "
-                      "iteration {}, which is a breakdown of this "
-                      "implementation".format(len(records)))
-            break
-
-        gap = float(primal @ slack) / columns
-        residual_p = rhs - matrix @ primal
-        residual_d = objective - matrix.T @ dual - slack
-        if (gap / (1.0 + abs(float(objective @ primal))) < _GAP
-                and float(np.linalg.norm(residual_p)) / primal_scale < _GAP
-                and float(np.linalg.norm(residual_d)) / dual_scale < _GAP):
-            break
-
-        scaling = primal / slack
-        system = (matrix * scaling) @ matrix.T
-        plain, equilibrated = _condition(system)
-        if not np.isfinite(plain):
-            # The system has gone past what double precision describes.  The
-            # iteration would still have a cost, but not one this can report.
-            status = Status.TRUNCATED if records else Status.FAILED
-            reason = ("the normal equations became numerically singular at "
-                      "iteration {}, with the duality gap at {:.3g}"
-                      .format(len(records), gap))
-            break
-        records.append({
-            "N": rows,
-            "d": _pattern_sparsity(matrix),
-            "kappa": plain,
-            "kappa_equilibrated": equilibrated,
-            "duality_gap": gap,
-        })
-
-        # Predictor: aim straight at complementarity and see how far that gets.
-        try:
-            affine = _direction(matrix, system, scaling, slack, residual_p,
-                                residual_d, -primal * slack)
-        except np.linalg.LinAlgError:
-            status = Status.TRUNCATED if records else Status.FAILED
-            reason = "the normal equations became singular at iteration {}" \
-                .format(len(records))
-            break
-        step_p = _step(affine[0], primal)
-        step_d = _step(affine[2], slack)
-        probe = float((primal + step_p * affine[0])
-                      @ (slack + step_d * affine[2])) / columns
-        centring = (probe / gap) ** 3 if gap > 0 else 0.0
-
-        # Corrector: aim at a point on the central path instead.
-        target = (-primal * slack + centring * gap
-                  - affine[0] * affine[2])
-        combined = _direction(matrix, system, scaling, slack, residual_p,
-                              residual_d, target)
-        step_p = _step(combined[0], primal)
-        step_d = _step(combined[2], slack)
-
-        primal = primal + step_p * combined[0]
-        dual = dual + step_d * combined[1]
-        slack = slack + step_d * combined[2]
-        if np.min(primal) <= 0 or np.min(slack) <= 0:
-            status = Status.TRUNCATED if records else Status.FAILED
-            reason = "an iterate reached the boundary, which is a breakdown of " \
-                     "this implementation rather than of the instance"
-            break
-        if max(step_p, step_d) < _STALLED:
-            status = Status.TRUNCATED if records else Status.FAILED
-            reason = ("the steps became too small to make progress at "
-                      "iteration {}, with the duality gap at {:.3g}"
-                      .format(len(records), gap))
-            break
-    else:
-        status = Status.TRUNCATED if records else Status.FAILED
-        reason = "the method had not converged after {} iterations".format(
-            _MAX_ITERATIONS)
-
+    record["gamma"] = record["d"] * record["kappa"]
     return Run(
         implementation=IMPLEMENTATION,
-        status=status,
-        records=tuple(records),
+        status=Status.COMPLETE,
+        records=(record,),
         instance={},
         elapsed=budget.elapsed,
         budget=budget.seconds,
-        result={"objective": float(form.value_of(float(objective @ primal))),
-                "duality_gap": gap, "iterations": len(records)}
-        if status is Status.COMPLETE else {"duality_gap": gap},
-        reason=reason,
+        result={"system": system.upper(), "dimension": record["N"],
+                "sparsity": record["d"], "condition_number": record["kappa"],
+                "difficulty": record["gamma"]},
         assumptions=(
-            "the system logged is the normal-equation system A D A' in the "
-            "dual variables, of dimension m",
-            "the condition number is the unmodified system's. The paper's "
-            "modified form is not reimplemented here; a diagonal "
-            "equilibration, the usual reading of it, is logged beside it as "
-            "kappa_equilibrated and is sometimes smaller and sometimes larger. "
-            "The cost is quadratic in this quantity, so unlike everything else "
-            "here it is not established as favourable to the quantum side in "
-            "either direction",
-            "d is the structural row density of A A', which is what A D A' has "
-            "whatever the diagonal holds",
-            "the path is Mehrotra's, taking {} of the distance to the "
-            "boundary; another implementation's iterates sit elsewhere and "
-            "have other condition numbers".format(_FRACTION),
-        ) + ((
-            "{} redundant constraint row{} removed before solving, as any "
-            "interior point code's presolve does, so the logged system "
-            "dimension is the reduced one".format(
-                dropped, "" if dropped == 1 else "s"),
-        ) if dropped else ()),
+            "the system is the {} of Binkowski's equation ({}), built at the "
+            "canonical iterate (x, y, s) = (1, 0, 1) -- strictly positive and "
+            "deliberately not feasible, which is what makes X = S = I".format(
+                system.upper(), "6" if system == "mnes" else "8"),
+            "one system is costed, not a solve: the paper assumes the method "
+            "converges in a single iteration and benchmarks only the first "
+            "Newton system",
+            "the basis is a set of m independent columns found by "
+            "orthogonalisation rather than by the paper's sparse QR; both "
+            "constructions rest on it, and a different independent set gives a "
+            "different condition number",
+            "the singular values are exact, where the paper estimates them so "
+            "that its condition number is a lower bound on the true one; this "
+            "one is the true one, and so is the larger",
+            "the sparsity is measured on the system as built, with an entry "
+            "counted as present above {:g} of the largest. The paper argues "
+            "s = m for the MNES on the grounds that the basis inverse is "
+            "dense; that reading is logged beside it as "
+            "d_paper".format(DENSITY_TOLERANCE),
+        ) + (("{} redundant constraint row{} removed first, as the paper's "
+              "presolve does".format(dropped, "" if dropped == 1 else "s"),)
+             if dropped else ()),
     )
 
 
-def _direction(matrix: np.ndarray, system: np.ndarray, scaling: np.ndarray,
-               slack: np.ndarray, residual_p: np.ndarray,
-               residual_d: np.ndarray, target: np.ndarray):
-    """One Newton solve against the same system.
-
-    The predictor and the corrector differ only in ``target``, which is why an
-    iteration faces one system and not two -- and therefore why a record is an
-    iteration.
-
-    Solved rather than multiplied by an inverse, and the difference is not
-    stylistic here.  These systems reach condition numbers of ``10^16`` by the
-    last iteration -- that is the phenomenon being logged -- and an explicit
-    inverse at that conditioning destroys primal feasibility faster than the
-    duality gap closes, so the method stalls short of the optimum and the last
-    and most ill-conditioned iterations, the ones the cost is dominated by,
-    never get logged. Forming the inverse would corrupt the measurement.
-    """
-    inner = residual_p + matrix @ (scaling * residual_d - target / slack)
-    step_dual = np.linalg.solve(system, inner)
-    step_slack = residual_d - matrix.T @ step_dual
-    step_primal = target / slack - scaling * step_slack
-    return step_primal, step_dual, step_slack
-
-
-def _failed(budget: Budget, reason: str) -> Run:
+def _failed(budget: Budget, system: str, reason: str) -> Run:
     return Run(implementation=IMPLEMENTATION, status=Status.FAILED,
                budget=budget.seconds, elapsed=budget.elapsed, reason=reason)

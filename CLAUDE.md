@@ -153,23 +153,17 @@ structural and should stay:
   which is a lower bound for a reason unrelated to the lemmas'. It is a status
   carried in the log file, not a warning in a terminal.
 
-Three things left open, each surfaced rather than decided:
+Two things left open, each surfaced rather than decided:
 
 - **`SimplexIter/random` reuses one `t` for two different searches** — Lemma
   24's over the `n−m` columns and Lemma 10's over the `m` components of `u`.
   Harmless today because every registered route uses steepest edge. Fixing it
   means a second symbol in the routines layer.
-- **`IPM/mnes` does not use the `QLS-Chebyshev` entry, though its docstring
-  says it does.** `routines/qipm.py` imports `chebyshev_terms` and never calls
-  it; `newton_system_cycles` inlines a solver degree with `log2(2/ε)` where
-  Lemma 16 has `log2(dκ/ε)`. At `d=50, κ=100, ε=1e-3` that is 104 713 against
-  151 061 — a factor of 0.69 on the dominant term. Either the paper's inner
-  solver genuinely differs from Lemma 16 and the docstring's "the same registry
-  entry" is wrong, or the formula is. Not guessed at; needs the paper.
-- **The interior point route's κ is the unmodified normal-equation system's.**
-  Binkowski's "modified" form was not to hand; a diagonal equilibration is
-  logged beside it as `kappa_equilibrated`, and it is *not* reliably smaller, so
-  there is no safe choice here — only a stated one. See `classical/ipm.py`.
+- **The interior point route's numbers depend on which basis is chosen.** Both
+  of Binkowski's systems are built on a set of `m` independent columns of `A`;
+  the paper finds them by sparse QR, this finds them by orthogonalisation, and a
+  different independent set gives a different condition number. Recorded on
+  every cost rather than assumed away.
 One earlier entry here is now closed, and the resolution is worth keeping.
 **`flow_shape` predicted `n = 2E` and it is `2E + 1`.** Conservation at every
 vertex, over the arc variables alone, forces the net flow out of the source to
@@ -186,10 +180,35 @@ conservation rows are redundant by construction, so `classical/ipm.py` now
 presolves dependent rows away rather than refusing, as any interior point code
 does, and logs the reduced system dimension.
 
+## The interior point route follows the paper, now that we have it
+
+`arXiv:2604.24362` was read against the code, and three things were wrong.
+
+- **The system was the wrong system.** `classical/ipm.py` built the plain normal
+  equations `A D² Aᵀ` and walked a Mehrotra path. The paper's MNES is equation
+  (6), which at its canonical iterate `(x, y, s) = (1, 0, 1)` reduces to
+  `M̂ = I + F̄F̄ᵀ` with `F̄ = A_B⁻¹A_N`, and its condition number comes from
+  `λ_i(M̂) = 1 + σ_i(F̄)²` — not from anything resembling `A D² Aᵀ`.
+- **One system is costed, not a solve.** Section IV-B assumes convergence in a
+  single iteration and benchmarks only the first Newton system. Summing a path
+  gave several times the paper's number and was no longer a lower bound.
+- **`newton_system_cycles` restated Lemma 1 and got it wrong**, with
+  `log2(2/ε)` where equation (10) has `log2(γ/ε)`. It now calls
+  `binkowski_chebyshev_queries`, so the two cannot drift; and the factor of
+  eight moved from `Tomography` to the solver, where the paper puts it.
+
+`IPM/oss` is now reachable too, as `quantum-interior-point-oss`: equation (8),
+`O = [−XAᵀ , SV]`, n-dimensional. On the instances here it is the *larger*
+system and the *easier* one — lower sparsity and condition number, so lower
+difficulty `γ = sκ` — which is why the paper reports both rather than picking.
+
+The interior point routes default to **ε = 1e-1**, not 1e-3: Section IV-A puts
+`10⁻¹` into (10) and assumes one step of iterative refinement does the rest.
+
 ## Where it stands
 
 Complete: 44 routines / 51 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade boundary, the
 composition layer, the problem-first entry point, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 734 tests.
+interface and a CLI. 796 tests.

@@ -58,8 +58,14 @@ class TestTheCatalogue:
             for route in problem.routes:
                 assert route.unit in hb.get(route.target).units
 
-    def test_maximum_flow_is_the_one_with_three_routes(self):
-        assert len(get_problem("maximum-flow").routes) == 3
+    def test_maximum_flow_is_the_one_with_the_most_routes(self):
+        # Quantum search inside Dinic, the simplex, and the two interior point
+        # system formulations the interior point paper compares.
+        assert len(get_problem("maximum-flow").routes) == 4
+        assert {r.key for r in get_problem("maximum-flow").routes} == {
+            "quantum-bfs", "quantum-simplex", "quantum-interior-point",
+            "quantum-interior-point-oss",
+        }
 
     def test_an_unknown_problem_lists_what_there_is(self):
         with pytest.raises(KeyError, match="knapsack"):
@@ -171,7 +177,8 @@ class TestWhatIsMissingIsNamed:
         route = get_route("vertex-cover", "quantum-simplex")
         missing = check(route, Dataset(({"kappa": 3.0},), {}), {})
         assert any(m.startswith("u_norm") for m in missing)
-        assert any("Norm of the pivot direction" in m for m in missing)
+        assert any("pivot direction of the entering column" in m
+                   for m in missing)
 
     def test_a_route_that_costs_iterations_needs_at_least_one(self):
         route = get_route("vertex-cover", "quantum-simplex")

@@ -29,7 +29,12 @@ import pytest
 
 import hybrid_benchmarking as hb
 from hybrid_benchmarking.classical import Budget, Status, cost, generate
-from hybrid_benchmarking.classical.ipm import _pattern_sparsity
+from hybrid_benchmarking.classical.ipm import (
+    choose_basis,
+    independent_rows,
+    mnes,
+    oss,
+)
 from hybrid_benchmarking.classical.ipm import solve as interior_point
 from hybrid_benchmarking.classical.lp import (
     from_linear_program,
@@ -63,174 +68,204 @@ PROGRAMS = [
 ]
 
 
-class TestTwoSolversMustAgree:
-    @pytest.mark.parametrize("label,model", PROGRAMS,
-                             ids=[label for label, _ in PROGRAMS])
-    def test_the_boundary_and_the_interior_reach_the_same_optimum(
-            self, label, model):
-        form = standard_form(model)
-        walked = pivot(form, Budget(60))
-        approached = interior_point(form, Budget(60))
-        assert walked.status is Status.COMPLETE
-        assert approached.status is Status.COMPLETE
-        assert approached.result["objective"] == pytest.approx(
-            walked.result["objective"], abs=1e-5)
+class TestTheSystemsAreThePapersSystems:
+    """Checked against arXiv:2604.24362 rather than against our own docstrings.
 
-    def test_they_agree_on_the_worked_mps_example_too(self):
-        form = standard_form(
-            from_linear_program(read_mps("tests/fixtures/mps/testprob.mps")))
-        assert interior_point(form, Budget(60)).result["objective"] == \
-            pytest.approx(16.0, abs=1e-5)
+    The MNES is not the normal equations. At the canonical iterate equation (6)
+    reduces to ``I + F F'`` with ``F = A_B^-1 A_N``, and its eigenvalues are
+    ``1 + sigma_i(F)^2`` -- which is both how the paper estimates the condition
+    number and a property that can be checked here without trusting either.
+    """
 
-
-class TestWhatARecordIs:
-    def test_a_record_is_an_iteration_not_a_solve(self):
-        # The predictor and the corrector reuse one system, so an iteration
-        # faces one, which is what the route costs per record.
-        run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(60))
-        assert len(run.records) == run.result["iterations"]
-
-    def test_the_dimension_is_the_constraint_count(self):
+    def test_the_mnes_matrix_is_the_identity_plus_f_f_transpose(self):
         form = standard_form(vertex_cover(CYCLE_5))
-        run = interior_point(form, Budget(60))
-        assert all(entry["N"] == form.rows for entry in run.records)
+        matrix = form.matrix[independent_rows(form.matrix)]
+        basis = choose_basis(matrix)[:matrix.shape[0]]
+        other = [j for j in range(matrix.shape[1]) if j not in set(basis)]
 
-    def test_the_density_comes_out_of_order_m_as_the_entry_assumes(self):
-        # The registered cost assumes the system inherits a density of order m
-        # rather than the constraint matrix's. That is a claim about instances,
-        # and this is where it is checked rather than repeated.
+        f = np.linalg.solve(matrix[:, basis], matrix[:, other])
+        built = np.eye(matrix.shape[0]) + f @ f.T
+        # Equation (6) at x = s = 1, spelled out the long way.
+        direct = np.linalg.solve(matrix[:, basis], matrix)
+        assert np.allclose(built, direct @ direct.T)
+
+    def test_the_condition_number_follows_the_papers_eigenvalue_identity(self):
         form = standard_form(vertex_cover(CYCLE_5))
-        run = interior_point(form, Budget(60))
-        density = run.records[0]["d"]
-        assert density == _pattern_sparsity(form.matrix)
-        assert density > _column_sparsity(form.matrix)
+        matrix = form.matrix[independent_rows(form.matrix)]
+        basis = choose_basis(matrix)[:matrix.shape[0]]
+        record = mnes(matrix, basis)
 
-    def test_the_condition_number_worsens_as_the_iterates_approach_the_boundary(
-            self):
-        # The whole negative result rests on kappa, and kappa is a property of
-        # the path rather than of the instance -- which is why it has to be
-        # logged rather than derived.
-        run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(60))
-        assert run.records[-1]["kappa"] > run.records[0]["kappa"]
+        other = [j for j in range(matrix.shape[1]) if j not in set(basis)]
+        f = np.linalg.solve(matrix[:, basis], matrix[:, other])
+        built = np.eye(matrix.shape[0]) + f @ f.T
+        assert record["kappa"] == pytest.approx(np.linalg.cond(built), rel=1e-8)
 
-    def test_the_duality_gap_is_logged_so_the_path_can_be_read(self):
-        run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(60))
-        gaps = [entry["duality_gap"] for entry in run.records]
-        assert gaps == sorted(gaps, reverse=True)
-
-
-def _column_sparsity(matrix: np.ndarray) -> int:
-    return int(np.max(np.count_nonzero(matrix, axis=0)))
-
-
-class TestTheConditionNumberThatIsConsumed:
-    def test_the_column_the_route_reads_is_the_unmodified_systems(self):
-        # The precise claim, checkable without the paper: kappa is the
-        # condition number of A D A' as formed, with nothing done to it.
+    def test_a_wide_basis_split_makes_the_smallest_eigenvalue_exactly_one(self):
+        # The paper's parenthesis: where n - m < m, F F' has a null space, so
+        # sigma_min is zero and lambda_min is one exactly.
         form = standard_form(vertex_cover(CYCLE_5))
-        run = interior_point(form, Budget(60))
-        first = run.records[0]
+        matrix = form.matrix[independent_rows(form.matrix)]
+        rows, columns = matrix.shape
+        assert columns - rows < rows
+        record = mnes(matrix, choose_basis(matrix)[:rows])
+        assert record["sigma_min_F"] == 0.0
+        assert record["kappa"] == pytest.approx(1.0 + record["sigma_max_F"] ** 2)
 
-        from hybrid_benchmarking.classical.ipm import _starting_point
+    def test_the_oss_matrix_columns_span_the_null_space_of_a(self):
+        # V is the null-space basis of (7): A V = 0 is what makes the update
+        # feasible by construction, which is the whole point of that formulation.
+        form = standard_form(vertex_cover(CYCLE_5))
+        matrix = form.matrix[independent_rows(form.matrix)]
+        rows, columns = matrix.shape
+        basis = choose_basis(matrix)[:rows]
+        other = [j for j in range(columns) if j not in set(basis)]
 
-        primal, _, slack = _starting_point(form.matrix, form.rhs,
-                                           form.objective)
-        system = (form.matrix * (primal / slack)) @ form.matrix.T
-        assert first["kappa"] == pytest.approx(np.linalg.cond(system))
+        null = np.zeros((columns, len(other)))
+        null[basis, :] = np.linalg.solve(matrix[:, basis], matrix[:, other])
+        null[other, :] = -np.eye(len(other))
+        assert np.allclose(matrix @ null, 0.0)
 
-    def test_equilibrating_is_not_reliably_an_improvement(self):
-        # Which is exactly why the modification is not invented here: if
-        # rescaling always helped, taking the unrescaled number would be a
-        # safe over-estimate, and it is not.
-        lowered = interior_point(standard_form(vertex_cover(CYCLE_5)),
-                                 Budget(60)).records
-        raised = interior_point(standard_form(independent_set(CYCLE_5)),
-                                Budget(60)).records
-        assert any(e["kappa_equilibrated"] < e["kappa"] for e in lowered)
-        assert any(e["kappa_equilibrated"] > e["kappa"] for e in raised)
+    def test_the_two_systems_have_the_dimensions_the_paper_states(self):
+        form = standard_form(vertex_cover(CYCLE_5))
+        matrix = form.matrix[independent_rows(form.matrix)]
+        rows, columns = matrix.shape
+        basis = choose_basis(matrix)[:rows]
+        assert mnes(matrix, basis)["N"] == rows      # m-dimensional
+        assert oss(matrix, basis)["N"] == columns    # n-dimensional
 
-    def test_both_readings_are_logged_so_the_choice_can_be_revisited(self):
-        run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(60))
-        assert all({"kappa", "kappa_equilibrated"} <= set(entry)
-                   for entry in run.records)
-
-    def test_the_choice_is_recorded_on_every_cost_it_produces(self):
-        report = cost(generate(CYCLE_5, "vertex-cover",
-                               "quantum-interior-point", Budget(60)), CHOSEN)
-        joined = " ".join(report["assumptions"])
-        assert "kappa_equilibrated" in joined
-        assert "not established as favourable to the quantum side" in joined
-
-    def test_a_condition_number_is_never_below_one(self):
-        run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(60))
-        assert all(entry["kappa"] >= 1.0 for entry in run.records)
+    def test_the_mnes_is_smaller_and_the_oss_is_feasible_by_construction(self):
+        # Which is the trade the paper draws between them.
+        form = standard_form(vertex_cover(CYCLE_5))
+        matrix = form.matrix[independent_rows(form.matrix)]
+        basis = choose_basis(matrix)[:matrix.shape[0]]
+        assert mnes(matrix, basis)["N"] < oss(matrix, basis)["N"]
 
 
-class TestCostingIt:
-    def test_it_comes_out_in_cycles_and_logged(self):
-        report = cost(generate(CYCLE_5, "vertex-cover",
-                               "quantum-interior-point", Budget(60)), CHOSEN)
+class TestTheCostIsEquationTen:
+    def test_it_is_tomography_times_the_chebyshev_query_count(self):
+        # The module said it reused the QLS-Chebyshev entry and did not; now it
+        # does, so the two cannot drift apart.
+        from hybrid_benchmarking.routines.linsolve import (
+            binkowski_chebyshev_queries,
+        )
+        from hybrid_benchmarking.routines.qipm import (
+            newton_system_cycles,
+            tomography_repetitions,
+        )
+
+        d, s, k, e = 1000, 50, 100.0, 0.1
+        assert newton_system_cycles(d, s, k, e) == pytest.approx(
+            tomography_repetitions(d, e) * binkowski_chebyshev_queries(s, k, e))
+
+    def test_it_matches_equation_ten_written_out_by_hand(self):
+        import math
+
+        from hybrid_benchmarking.routines.qipm import newton_system_cycles
+
+        d, s, k, e = 1000, 50, 100.0, 0.1
+        gamma = s * k
+        inner = math.ceil(gamma ** 2 * math.log2(gamma / e))
+        by_hand = (8 * (d - 1) / e ** 2) * math.sqrt(
+            inner * math.log2(4.0 / e * inner))
+        assert newton_system_cycles(d, s, k, e) == pytest.approx(by_hand, rel=1e-4)
+
+    def test_the_readout_is_the_dimension_over_the_precision_squared(self):
+        from hybrid_benchmarking.routines.qipm import tomography_repetitions
+
+        assert tomography_repetitions(1000, 0.1) == pytest.approx(999 / 0.01)
+
+    def test_the_route_defaults_to_the_precision_the_paper_uses(self):
+        route = hb.get_route("vertex-cover", "quantum-interior-point")
+        assert [f.example for f in route.chosen] == ["1e-1"]
+
+
+class TestBothSystemsAreRoutes:
+    @pytest.mark.parametrize("key,target", [
+        ("quantum-interior-point", "IPM/mnes"),
+        ("quantum-interior-point-oss", "IPM/oss"),
+    ])
+    def test_each_names_the_construction_it_costs(self, key, target):
+        assert hb.get_route("vertex-cover", key).target == target
+
+    @pytest.mark.parametrize("key", ["quantum-interior-point",
+                                     "quantum-interior-point-oss"])
+    def test_each_runs_from_a_file_and_costs_in_cycles(self, key):
+        report = cost(generate(CYCLE_5, "vertex-cover", key, Budget(60)),
+                      {"epsilon": 0.1})
         assert report["unit"] == "CYCLES"
-        assert report["derivation"] == str(Derivation.LOGGED)
-        assert report["bound"] == str(Bound.LOWER)
+        assert report["total"] > 0
+        assert report["logged_records"] == 1  # one system, not a path
 
-    def test_the_two_routes_through_one_problem_are_not_added_up(self):
-        # They are different units by construction, and that is what stops
-        # anyone tabulating them as though they were comparable.
-        simplex = cost(generate(CYCLE_5, "vertex-cover", "quantum-simplex",
-                                Budget(60)), {"epsilon": 1e-3, "delta": 1e-3})
-        interior = cost(generate(CYCLE_5, "vertex-cover",
-                                 "quantum-interior-point", Budget(60)), CHOSEN)
-        assert simplex["unit"] != interior["unit"]
+    def test_the_larger_system_is_the_easier_one(self):
+        """Which is the trade the paper is measuring, and it runs both ways.
 
-    def test_the_benevolent_assumptions_of_the_source_survive(self):
+        The OSS is n-dimensional against the MNES's m, so its readout costs
+        more per solve. But the MNES is built through a dense basis inverse and
+        inherits both a higher sparsity and a higher condition number, so its
+        difficulty ``gamma = s kappa`` is the larger. Neither dominates, which
+        is why the paper reports both rather than picking one.
+        """
+        form = standard_form(vertex_cover(CYCLE_5))
+        small = interior_point(form, Budget(60), "mnes").records[0]
+        large = interior_point(form, Budget(60), "oss").records[0]
+
+        assert large["N"] > small["N"]          # the OSS is the bigger system
+        assert large["gamma"] < small["gamma"]  # and the easier one
+
+
+class TestWhatIsRecorded:
+    def test_only_the_first_system_is_costed_and_it_says_so(self):
         report = cost(generate(CYCLE_5, "vertex-cover",
-                               "quantum-interior-point", Budget(60)), CHOSEN)
+                               "quantum-interior-point", Budget(60)),
+                      {"epsilon": 0.1})
+        assert any("converges in a single iteration" in note
+                   for note in report["assumptions"])
+
+    def test_the_departures_from_the_paper_are_both_declared(self):
+        report = cost(generate(CYCLE_5, "vertex-cover",
+                               "quantum-interior-point", Budget(60)),
+                      {"epsilon": 0.1})
         joined = " ".join(report["assumptions"])
-        assert "no amplitude amplification overhead" in joined
-        assert "converges in a single iteration" in joined
+        assert "singular values are exact" in joined
+        assert "d_paper" in joined
+
+    def test_the_paper_reading_of_the_sparsity_is_logged_beside_ours(self):
+        run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(60))
+        entry = run.records[0]
+        assert entry["d_paper"] == entry["N"]     # s = m, as the paper argues
+        assert entry["d"] <= entry["d_paper"]     # measured can only be smaller
+
+    def test_the_difficulty_is_sparsity_times_condition_number(self):
+        run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(60))
+        entry = run.records[0]
+        assert entry["gamma"] == pytest.approx(entry["d"] * entry["kappa"])
 
 
 class TestWhenItCannotRun:
-    def test_a_redundant_row_is_presolved_away_rather_than_refused(self):
-        # Some programs are redundant by construction, not by accident -- a
-        # maximum-flow model's conservation rows always sum to zero -- so
-        # refusing them would refuse the whole problem.
+    def test_a_redundant_row_is_presolved_away_as_the_paper_does(self):
         from hybrid_benchmarking.classical.lp import Model
 
-        # Equalities, because an inequality gets a surplus column of its own and
-        # so two proportional inequalities are independent once converted.
-        model = Model(columns=3, objective=np.ones(3))
+        model = Model(columns=4, objective=np.ones(4))
         model.add_row((0, 1), (1.0, 1.0), "E", 1.0)
         model.add_row((1, 2), (1.0, 1.0), "E", 1.0)
         model.add_row((0, 1, 2), (1.0, 2.0, 1.0), "E", 2.0)  # the sum of both
         run = interior_point(standard_form(model), Budget(60))
         assert run.status is Status.COMPLETE
-        assert all(entry["N"] == 2 for entry in run.records)
         assert any("redundant constraint row" in note
                    for note in run.assumptions)
-
-    def test_the_logged_dimension_is_the_system_that_was_actually_solved(self):
-        from hybrid_benchmarking.classical.lp import maximum_flow
-
-        network = read_max_flow("tests/fixtures/tiny.max")
-        form = standard_form(maximum_flow(network))
-        run = interior_point(form, Budget(60))
-        # One conservation row is always dependent, so the Newton system is one
-        # smaller than the program's row count.
-        assert run.records[0]["N"] == form.rows - 1
 
     def test_rows_that_contradict_each_other_are_refused(self):
         from hybrid_benchmarking.classical.lp import Model
 
-        model = Model(columns=3, objective=np.ones(3))
+        model = Model(columns=4, objective=np.ones(4))
         model.add_row((0, 1), (1.0, 1.0), "E", 1.0)
         model.add_row((1, 2), (1.0, 1.0), "E", 1.0)
-        model.add_row((0, 1, 2), (1.0, 2.0, 1.0), "E", 5.0)  # should be 2
+        model.add_row((0, 1, 2), (1.0, 2.0, 1.0), "E", 5.0)
         run = interior_point(standard_form(model), Budget(60))
         assert run.status is Status.FAILED
         assert "inconsistent" in run.reason
 
-    def test_an_exhausted_budget_keeps_whatever_iterations_it_had(self):
-        run = interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(1e-9))
-        assert run.status is Status.FAILED and not run.records
+    def test_an_unknown_system_is_refused_by_name(self):
+        with pytest.raises(ValueError, match="mnes"):
+            interior_point(standard_form(vertex_cover(CYCLE_5)), Budget(60),
+                           system="normal-equations")

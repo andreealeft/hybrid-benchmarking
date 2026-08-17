@@ -1,10 +1,10 @@
-"""Maximum flow attacked as a linear program, by both of the other two routes.
+"""Maximum flow attacked as a linear program, by the other routes.
 
-The problem now has three routes that all start from the same DIMACS file, and
-they are the strongest cross-check in the library: Dinic walks augmenting paths,
-the simplex walks the boundary of a polytope, the interior point method avoids
-that boundary, and all three have to report the same maximum flow.  They share a
-file reader and nothing else.
+Every route through the problem now starts from the same DIMACS file.  Two of
+them solve it, and that they agree is the cross-check this rests on: Dinic walks
+augmenting paths and the simplex walks the boundary of a polytope, sharing a file
+reader and nothing else, so a common answer is worth something.  The interior
+point routes do not solve anything -- see :class:`TestTwoSolversOnOneFile`.
 
 The modelling claim underneath is the one that took a correction.
 :func:`~hybrid_benchmarking.problems.flow_shape` predicted ``2E`` columns, and a
@@ -72,10 +72,21 @@ def minimum_cut(instance: Network) -> float:
     return best
 
 
-class TestThreeSolversOnOneFile:
+class TestTwoSolversOnOneFile:
+    """Dinic and the simplex must agree; the interior point route is not here.
+
+    It used to be, and that was a symptom rather than a strength: this library's
+    interior point route follows Binkowski's benchmark, which does not solve the
+    program at all. It builds the first Newton system from a canonical iterate
+    and measures it, because the analysis assumes convergence in one step. An
+    interior point method that walked the whole path was a construction the
+    paper does not describe, and its agreeing with the simplex was reassurance
+    about the wrong thing.
+    """
+
     @pytest.mark.parametrize("label,instance", NETWORKS,
                              ids=[label for label, _ in NETWORKS])
-    def test_they_all_agree_with_the_minimum_cut(self, label, instance):
+    def test_they_both_agree_with_the_minimum_cut(self, label, instance):
         form = standard_form(maximum_flow(instance))
         expected = minimum_cut(instance)
 
@@ -83,17 +94,23 @@ class TestThreeSolversOnOneFile:
             pytest.approx(expected)
         assert pivot(form, Budget(60)).result["objective"] == \
             pytest.approx(expected, abs=1e-6)
-        assert interior_point(form, Budget(60)).result["objective"] == \
-            pytest.approx(expected, abs=1e-5)
 
-    def test_all_three_routes_run_from_the_same_file_on_disk(self):
+    @pytest.mark.parametrize("label,instance", NETWORKS,
+                             ids=[label for label, _ in NETWORKS])
+    def test_the_interior_point_route_still_builds_a_system_for_each(
+            self, label, instance):
+        run = interior_point(standard_form(maximum_flow(instance)), Budget(60))
+        assert run.status is Status.COMPLETE
+        assert len(run.records) == 1
+
+    def test_every_route_runs_from_the_same_file_on_disk(self):
         instance = read_max_flow("tests/fixtures/tiny.max")
         for route in ("quantum-bfs", "quantum-simplex",
-                      "quantum-interior-point"):
+                      "quantum-interior-point", "quantum-interior-point-oss"):
             generated = generate(instance, "maximum-flow", route, Budget(60))
             assert generated.status is Status.COMPLETE, route
 
-    def test_the_three_routes_are_not_in_the_same_unit(self):
+    def test_the_routes_are_not_all_in_the_same_unit(self):
         # Which is what stops them being tabulated as a comparison. The quantum
         # search route counts gates, the interior point one cycles.
         instance = read_max_flow("tests/fixtures/tiny.max")

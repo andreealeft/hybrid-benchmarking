@@ -2,10 +2,16 @@
 
 Structurally this is the quantum simplex with a different outer algorithm: a
 classical linear-programming method that hands its inner linear system to a
-quantum solver.  The solver is the Chebyshev one, and it is *the same registry
-entry* -- Lemma 1 of the interior point paper is Lemma 16 of the thesis, reached
-independently.  The tests in ``test_linsolve.py`` assert that they agree; here
-the entry is simply reused.
+quantum solver.  The solver is the Chebyshev one, and it is *the same result* --
+Lemma 1 of the interior point paper cites Lefterovici et al. for it, and the
+tests in ``test_linsolve.py`` assert that the two statements agree.  So equation
+(10) is assembled here by calling that count rather than restating it.
+
+It did restate it, and wrongly: the inner logarithm read ``log2(2/eps)`` where
+both (10) and Lemma 1 have ``log2(gamma/eps)``, which understated the dominant
+term by about a third at realistic difficulties.  The docstring claiming reuse
+was right and the code was not, which is the argument for reuse over
+restatement.
 
 What is new is the step the thesis never costed.  A linear solver prepares a
 state proportional to the solution; an interior point method needs the solution
@@ -32,7 +38,7 @@ from ..cost import Cost
 from ..provenance import Bound, Derivation, Provenance, Unit
 from ..registry import Implementation, Routine, register, single
 from ..validity import Validity, definition
-from .linsolve import chebyshev_terms
+from .linsolve import binkowski_chebyshev_queries
 
 _SOURCE = "Binkowski, practical lower bounds for hybrid quantum interior point " \
           "methods (arXiv:2604.24362)"
@@ -47,15 +53,20 @@ _BENEVOLENT = (
 
 
 def tomography_repetitions(dimension: float, epsilon: float) -> float:
-    """``8 (d - 1) / eps^2`` repetitions of the solver, in the copy-access model.
+    """``(d - 1) / eps^2`` uses of the state preparation, in the copy-access model.
 
     Resolving ``d - 1`` independent real amplitudes to additive error epsilon
     needs at least this many preparations, whatever the tomography protocol.
     Without a reusable state-preparation unitary there is no way around it.
+
+    The factor of eight that (10) carries belongs to the solver, not here: it is
+    the constant in front of Lemma 1's query count.  The product is the same
+    either way, but attributing it to the readout made the readout look four
+    times worse than the source says it is.
     """
     if dimension < 2:
         raise ValueError("tomography of a one-dimensional state is vacuous")
-    return 8.0 * (dimension - 1.0) / epsilon ** 2
+    return (dimension - 1.0) / epsilon ** 2
 
 
 def difficulty(sparsity: float, kappa: float) -> float:
@@ -65,17 +76,23 @@ def difficulty(sparsity: float, kappa: float) -> float:
 
 def newton_system_cycles(dimension: float, sparsity: float, kappa: float,
                          epsilon: float) -> float:
-    """Lower bound on the cycles to solve one Newton system and read it out.
+    """Equation (10): cycles to solve one Newton system and read it out.
 
     The solver cost and the tomography overhead multiply: every repetition
-    demanded by the readout runs the solver again.
+    demanded by the readout runs the solver again.  So this is exactly
+    :func:`tomography_repetitions` times the query count of the Chebyshev
+    solver at the system's own difficulty -- which is what the module docstring
+    has always claimed and what, until the paper was read against the code, it
+    did not do.  The inner logarithm was ``log2(2/eps)`` where both (10) and
+    Lemma 1 have ``log2(gamma/eps)``, understating the dominant term by around
+    a third at realistic difficulties.
+
+    Reusing :func:`~.linsolve.binkowski_chebyshev_queries` rather than restating
+    it is the point: the two are the same lemma, and one copy of it cannot drift
+    from the other.
     """
-    gamma = difficulty(sparsity, kappa)
-    inner = math.ceil(gamma ** 2 * math.log2(2.0 / epsilon))
-    solver = math.ceil(
-        math.sqrt(inner * math.log2(4.0 / epsilon * inner))
-    )
-    return tomography_repetitions(dimension, epsilon) * solver
+    return tomography_repetitions(dimension, epsilon) * \
+        binkowski_chebyshev_queries(sparsity, kappa, epsilon)
 
 
 def _cost(kernel, *notes) -> Cost:
@@ -103,7 +120,7 @@ Tomography = single(
     citation=_SOURCE,
     costs={
         Unit.REPETITIONS: Cost(
-            expr=8 * (S.N - 1) / S.epsilon ** 2,
+            expr=(S.N - 1) / S.epsilon ** 2,
             unit=Unit.REPETITIONS,
             provenance=Provenance.of(
                 Bound.LOWER, Derivation.ANALYTIC, _SOURCE,
