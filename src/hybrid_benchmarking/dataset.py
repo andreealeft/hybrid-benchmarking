@@ -361,9 +361,18 @@ def origin(data: Dataset) -> Optional[Provenance]:
     for note in stated.get("assumptions", ()):
         assumptions.append(str(note))
 
+    # Not every generated log is a measurement.  The knapsack circuits read the
+    # binary representations of an instance's own profits and weights, and
+    # nothing was run to find those, so calling them logged would hedge a number
+    # that is not hedged.  The run says which it is.
+    try:
+        derivation = Derivation[str(stated.get("derivation", "LOGGED")).upper()]
+    except KeyError:
+        derivation = Derivation.LOGGED
+
     return Provenance.of(
         bound=Bound.LOWER if truncated else Bound.EXACT,
-        derivation=Derivation.LOGGED,
+        derivation=derivation,
         source=str(stated.get("implementation", "an instrumented classical run")),
         assumptions=assumptions,
     )

@@ -109,6 +109,18 @@ class Run:
     #: taken from the thesis, a quantity we chose to lower-bound rather than
     #: compute.  These land on the cost's provenance.
     assumptions: tuple = ()
+    #: How the records were arrived at, named as
+    #: :class:`~..provenance.Derivation` names it.  Almost everything here is
+    #: ``LOGGED``: the numbers are measurements of a classical run and would
+    #: differ under another implementation.  A route whose inputs are the
+    #: instance itself -- the knapsack circuits read the binary representations
+    #: of the profits, and nothing was run to find them -- says ``ANALYTIC``,
+    #: because calling that logged would hedge a number that is not hedged.
+    derivation: str = "LOGGED"
+    #: What this run deliberately does not produce, and what would be needed to
+    #: get it.  Shown to the user rather than discovered later as a missing
+    #: parameter.
+    handoff: str = ""
 
     @property
     def truncated(self) -> bool:
@@ -116,17 +128,27 @@ class Run:
 
     @property
     def usable(self) -> bool:
-        return self.status is not Status.FAILED and bool(self.records)
+        """Whether there is anything here to cost.
+
+        Records or an instance: a route whose cost depends on the instance
+        rather than on how the solve went produces no records at all, and a run
+        that produced none of either produced nothing.
+        """
+        return (self.status is not Status.FAILED
+                and bool(self.records or self.instance))
 
     def stated(self) -> Dict[str, Any]:
         """The ``generated`` block that travels in the log file."""
         block: Dict[str, Any] = {
             "status": str(self.status),
             "implementation": self.implementation,
+            "derivation": self.derivation,
             "records": len(self.records),
             "elapsed_seconds": round(self.elapsed, 3),
             "budget_seconds": self.budget,
         }
+        if self.handoff:
+            block["handoff"] = self.handoff
         if self.result:
             block["result"] = self.result
         if self.reason:

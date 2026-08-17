@@ -156,9 +156,18 @@ def _show_instance(instance) -> None:
 
 
 def _show_run(generated) -> None:
+    """What ran, in its own words rather than the route's.
+
+    The route names the classical algorithm the analysis is about -- COMBO, or
+    GLPK's simplex.  That is not what ran here, and printing it would be the
+    first line of a claim this whole package exists to avoid making.
+    """
+    import textwrap
+
     run = generated.run
-    print("{} -- {} in {:.1f}s, {} record{}".format(
-        generated.route.classical, run.status, run.elapsed,
+    print("\n".join(textwrap.wrap(run.implementation, 78)))
+    print("  {} in {:.1f}s, {} record{}".format(
+        run.status, run.elapsed,
         len(run.records), "" if len(run.records) == 1 else "s",
     ))
     if run.result:
@@ -168,6 +177,9 @@ def _show_run(generated) -> None:
         ))
     if run.advice():
         print("  " + run.advice())
+    if run.handoff:
+        print("\n".join(textwrap.wrap(run.handoff, 78,
+                                      initial_indent="  ", subsequent_indent="  ")))
 
 
 def _log_preview(generated) -> List[str]:
@@ -204,10 +216,11 @@ def _show_log(generated, saved: str = "") -> None:
 def _show_cost(report: Dict[str, Any], chosen: Dict[str, Any]) -> None:
     print("\n{:.6g} {}".format(report["total"], report["unit_label"]))
     logged = report.get("logged_records", report["records"])
-    print("  over {} logged record{}{}".format(
-        logged, "" if logged == 1 else "s",
-        ", costed as one whole run" if report["whole_run"] else "",
-    ))
+    if logged:
+        print("  over {} logged record{}{}".format(
+            logged, "" if logged == 1 else "s",
+            ", costed as one whole run" if report["whole_run"] else "",
+        ))
     if chosen:
         print("  at " + ", ".join(
             "{} = {:g}".format(name, value) if isinstance(value, float)

@@ -100,6 +100,14 @@ def _run_dinic(instance: Network, route: Route, budget: Budget,
     return solve(instance, budget)
 
 
+@_runner("knapsack", "tree-generator", Knapsack)
+def _run_knapsack(instance: Knapsack, route: Route, budget: Budget,
+                  options: Dict[str, Any]) -> Run:
+    from .knapsack import solve
+
+    return solve(instance, budget)
+
+
 def _run_simplex(problem: str, instance, route: Route, budget: Budget,
                  options: Dict[str, Any]) -> Run:
     """Build the linear program this problem makes of the instance, then pivot.
