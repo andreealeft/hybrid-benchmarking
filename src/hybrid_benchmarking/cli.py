@@ -387,7 +387,7 @@ def _command_batch(args: argparse.Namespace) -> int:
     if len(totals) > 1:
         print("kept apart on purpose: these units do not add")
     if truncations:
-        print("{} run{} cut off by the {:.0f}s budget, so {} total is an "
+        print("{} run{} cut off by the {:g}s budget, so {} total is an "
               "understatement as well as a bound -- rerun with --budget"
               .format(truncations, "" if truncations == 1 else "s",
                       args.budget, "that" if len(totals) == 1 else "each"))

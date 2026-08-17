@@ -167,12 +167,15 @@ class Run:
         if self.status is Status.COMPLETE:
             return ""
         if self.status is Status.TRUNCATED:
+            # Four times what it had, floored at a minute: the suggestion has to
+            # be proportionate to the run that was cut off, or it reads as a
+            # ritual rather than as advice.
             return (
-                "cut off after {:.0f}s and {} records; rerun with "
+                "cut off after {:.1f}s and {} records; rerun with "
                 "--budget {:.0f} to let it finish, and if it still will not, "
                 "the instance is larger than this tool is packaged for -- "
                 "that is worth telling us about".format(
-                    self.elapsed, len(self.records), max(self.budget * 4, 1200)
+                    self.elapsed, len(self.records), max(self.budget * 4, 60)
                 )
             )
         return "produced nothing usable: {}".format(self.reason or "no reason given")
