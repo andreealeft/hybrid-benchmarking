@@ -185,7 +185,10 @@ def cost_from_log(problem: str, route_key: str, chosen: Dict[str, Any],
     if path:
         data = load_log(path)
     elif text.strip():
-        suffix = ".json" if text.lstrip().startswith("{") else ".csv"
+        from .dataset import _strip_comments
+
+        suffix = ".json" if _strip_comments(text).lstrip().startswith("{") \
+            else ".csv"
         import tempfile
 
         with tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False) as tmp:

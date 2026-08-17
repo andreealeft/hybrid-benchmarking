@@ -92,9 +92,6 @@ def accepts(problem: str, route: str) -> Tuple[str, str]:
     if wanted is None:
         return "", ""
     return _DESCRIBED.get(wanted.__name__, ("an instance file", "instance"))
-#: Routes we deliberately do not produce a log for, and the reason, phrased so
-#: that someone reading it knows what would have to happen instead.
-_HANDOFF: Dict[Tuple[str, str], str] = {}
 
 
 def _runner(problem: str, route: str, wants: type) -> Callable[[Callable], Callable]:
@@ -249,9 +246,6 @@ def generate(instance: Instance, problem: str = "", route: str = "",
     problem_key, route_key = _choose(instance, problem, route)
     chosen = get_route(problem_key, route_key)
 
-    handoff = _HANDOFF.get((problem_key, route_key))
-    if handoff:
-        raise GenerationError(handoff)
     runner = _RUNNERS.get((problem_key, route_key))
     if runner is None:
         raise GenerationError(

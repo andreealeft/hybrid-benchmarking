@@ -103,9 +103,15 @@ class TestTheModelIsTheOneTheCostIsAbout:
         assert built == {name: int(value) for name, value in predicted.items()}
 
     @pytest.mark.parametrize("instance", [CYCLE_5, CYCLE_4, STAR_5])
-    def test_independent_set_has_the_same_shape_as_vertex_cover(self, instance):
-        assert (standard_form(independent_set(instance)).shape
-                == standard_form(vertex_cover(instance)).shape)
+    def test_independent_set_has_the_shape_the_catalogue_predicts(self, instance):
+        # It shares cover_shape with vertex cover, and shares the builder, so
+        # this looks redundant -- but the two claims are separable and only one
+        # of them was being checked.
+        built = standard_form(independent_set(instance)).shape
+        predicted = cover_shape({"vertices": instance.vertices,
+                                 "edges": len(instance.edges)})
+        assert built == {name: int(value) for name, value in predicted.items()}
+        assert built == standard_form(vertex_cover(instance)).shape
 
     @pytest.mark.parametrize("instance", [CYCLE_5, CYCLE_4, STAR_5])
     def test_clique_counts_the_non_edges(self, instance):

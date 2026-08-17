@@ -81,11 +81,30 @@ def required(route: Route) -> Tuple[Descriptor, ...]:
     return route.per_instance + route.per_record + route.chosen
 
 
-def template(route: Route, fmt: str = "csv") -> str:
+def natural_format(route: Route) -> str:
+    """Which of the two shapes a route's own fields require.
+
+    Not a preference.  A route whose record holds the sizes of a sweep's layers
+    cannot be written as a column, so offering it a CSV template hands out a
+    file that reads back as a truncated string -- and the reader, having found
+    something under that name, does not complain.
+    """
+    listed = any(
+        isinstance(_example(f), (list, dict))
+        for f in route.per_record + route.per_instance
+    )
+    return "json" if listed else "csv"
+
+
+def template(route: Route, fmt: str = "") -> str:
     """A blank log in the right shape, with every column named and explained.
 
-    Handing someone this is the whole answer to "what format?"
+    Handing someone this is the whole answer to "what format?", which is only
+    true if what comes back is a file this library can read.  So the shape is
+    the route's own unless one is asked for by name, and both shapes round-trip
+    through :func:`load`.
     """
+    fmt = fmt or natural_format(route)
     per_row = [f.name for f in route.per_record]
     constant = [f.name for f in route.per_instance]
 
@@ -127,14 +146,30 @@ def load(path: str) -> Dataset:
     if not location.exists():
         raise FormatError("no such file: {}".format(location))
     text = location.read_text()
-    if location.suffix.lower() == ".json" or text.lstrip().startswith("{"):
+    if (location.suffix.lower() == ".json"
+            or _strip_comments(text).lstrip().startswith("{")):
         return _load_json(text, str(location))
     return _load_csv(text, str(location))
 
 
+def _strip_comments(text: str) -> str:
+    """Drop leading ``#`` lines, which is how a template explains its columns.
+
+    The CSV reader has always ignored them; JSON did not, so the JSON template
+    -- the one every list-valued route needs -- could be filled in and then not
+    read back. A format someone cannot hand back is not a format.
+    """
+    lines = text.splitlines()
+    start = 0
+    while start < len(lines) and (not lines[start].strip()
+                                  or lines[start].lstrip().startswith("#")):
+        start += 1
+    return "\n".join(lines[start:])
+
+
 def _load_json(text: str, source: str) -> Dataset:
     try:
-        payload = json.loads(text)
+        payload = json.loads(_strip_comments(text))
     except json.JSONDecodeError as error:
         raise FormatError("not valid JSON: {}".format(error))
     if not isinstance(payload, dict):
@@ -334,6 +369,40 @@ def parameters_for(route: Route, record: Dict[str, Any],
     return values
 
 
+def _collected(data: Dataset, source_field: str) -> List[Any]:
+    """One field of every record, gathered into a list.
+
+    Looks in the instance as well, because a column that never varies is hoisted
+    there when a CSV is read -- a sweep whose layers happen to be identical
+    every time is still a sweep with those layers.  A field genuinely absent is
+    reported by name: :func:`check` cannot catch it, since after the hoisting it
+    cannot tell a per-record field from an instance-wide one.
+    """
+    gathered: List[Any] = []
+    for position, record in enumerate(data.records):
+        if source_field in record:
+            value = record[source_field]
+        elif source_field in data.instance:
+            value = data.instance[source_field]
+        else:
+            raise FormatError(
+                "record {} has no {!r}; this route costs the run by gathering "
+                "that field from every record".format(position + 1, source_field)
+            )
+        if not isinstance(value, (list, tuple)):
+            # Almost always a list written into a CSV: the commas inside it are
+            # column separators, so it arrives as the string "[1". Refusing here
+            # names the file's problem, rather than letting a string reach a
+            # comparison inside a cost formula and fail as a type error.
+            raise FormatError(
+                "record {}'s {!r} is {!r}, and this route needs a list. A "
+                "comma-separated file cannot hold a comma-separated value -- "
+                "write this log as JSON".format(position + 1, source_field, value)
+            )
+        gathered.append(value)
+    return gathered
+
+
 def origin(data: Dataset) -> Optional[Provenance]:
     """What the log itself says about where its numbers came from.
 
@@ -408,7 +477,7 @@ def run(route: Route, data: Dataset,
     if route.collects:
         source_field, parameter = route.collects
         values = parameters_for(route, {}, data, chosen)
-        values[parameter] = [record[source_field] for record in data.records]
+        values[parameter] = _collected(data, source_field)
         evaluated = call(values)
         return _report(route, [evaluated.value], evaluated, True, data, source)
 

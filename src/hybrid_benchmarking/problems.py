@@ -193,11 +193,21 @@ SIMPLEX_RECORD = (
           "1.5"),
 )
 
+# Not every solver reads every one of these.  Chebyshev reaches the matrix
+# through a quantum walk and the singular value transformation through a block
+# encoding, so neither ever sees the largest entry; only the two that simulate
+# the matrix -- HHL and Fourier, both through qubitization -- pay for it.  Asking
+# for it anyway would refuse a log that is complete for the route it was written
+# for, which is the opposite of what checking a log is for.
 SOLVER_RECORD = (
     Field("kappa", "Condition number", "Of this system", "10"),
     Field("d", "Sparsity", "Most non-zeros in any row", "4"),
     Field("x_norm", "Solution norm", "Norm of the solution vector", "1"),
-    Field("A_max", "Largest entry", "Largest absolute entry", "1"),
+)
+
+SIMULATED_ENTRY = (
+    Field("A_max", "Largest entry", "Largest absolute entry. Needed only by "
+          "the solvers that simulate the matrix, which is where it enters", "1"),
 )
 
 NEWTON_RECORD = (
@@ -229,7 +239,14 @@ def _simplex_route(shape: Shape, rule: str = "steepest-edge") -> Route:
     )
 
 
-def _ipm_route(shape: Shape) -> Route:
+def _ipm_route() -> Route:
+    # No problem shape here, unlike the simplex route beside it.  A Newton
+    # system states its own dimension, which is what the cost reads; the
+    # program's column and row counts never reach it.  Declaring them anyway
+    # would make every log carry a vertex count for nothing, and would have the
+    # route predict an ``m`` that is not the dimension solved -- an interior
+    # point method presolves redundant rows away, and a maximum-flow model has
+    # one by construction.
     return Route(
         key="quantum-interior-point",
         label="Quantum interior point",
@@ -239,9 +256,7 @@ def _ipm_route(shape: Shape) -> Route:
         target="IPM/mnes",
         unit=Unit.CYCLES,
         per_record=NEWTON_RECORD,
-        per_instance=GRAPH if shape else (),
         chosen=(PRECISION[0],),
-        shape=shape,
         note="A lower bound under deliberately generous assumptions: one "
              "oracle call per cycle, no amplification overhead, convergence in "
              "a single step. The readout dominates.",
@@ -249,7 +264,7 @@ def _ipm_route(shape: Shape) -> Route:
 
 
 def _lp_routes(shape: Shape) -> Tuple[Route, ...]:
-    return (_simplex_route(shape), _ipm_route(shape))
+    return (_simplex_route(shape), _ipm_route())
 
 
 # ---------------------------------------------------------------------------
@@ -287,7 +302,7 @@ PROBLEMS: Tuple[Problem, ...] = (
                      "generous -- a cycle usually holds many gates.",
             ),
             _simplex_route(flow_shape),
-            _ipm_route(flow_shape),
+            _ipm_route(),
         ),
     ),
     Problem(
@@ -376,18 +391,19 @@ PROBLEMS: Tuple[Problem, ...] = (
                          "quantum state rather than as numbers",
                 target=target,
                 unit=Unit.QUERIES,
-                per_record=SOLVER_RECORD,
+                per_record=SOLVER_RECORD + (SIMULATED_ENTRY if simulates else ()),
                 chosen=(PRECISION[0],),
                 note=note,
             )
-            for key, label, target, note in (
-                ("qsvt", "Singular value transformation", "QLS-QSVT",
+            for key, label, target, simulates, note in (
+                ("qsvt", "Singular value transformation", "QLS-QSVT", False,
                  "Lowest query count across every dataset in the comparison."),
-                ("chebyshev", "Chebyshev polynomials", "QLS-Chebyshev",
+                ("chebyshev", "Chebyshev polynomials", "QLS-Chebyshev", False,
                  "Close behind, and the one the interior point work adopts."),
                 ("fourier", "Fourier series", "QLS-Fourier/via-qubitization",
+                 True,
                  "About an order of magnitude dearer, but simpler to build."),
-                ("hhl", "HHL", "HHL",
+                ("hhl", "HHL", "HHL", True,
                  "The famous one, and orders of magnitude more expensive: its "
                  "cost scales as one over the precision where the others "
                  "scale as its logarithm."),
