@@ -414,8 +414,20 @@ class _Reader:
                                   else value)
             self.lower_stated[column] = True
         elif kind == "FX":
-            self.lower[column] = value
-            self.upper[column] = value
+            # The infinity convention applies here too, and it is the one place
+            # it matters most: fixing a column *at* 1e30 is exactly the "quietly
+            # bound an unbounded column" the rule exists to prevent, only worse,
+            # because it pins the variable rather than merely capping it.
+            if value >= _INFINITE:
+                self.lower[column] = 0.0 if not self.lower_stated[column] \
+                    else self.lower[column]
+                self.upper[column] = None
+            elif value <= -_INFINITE:
+                self.lower[column] = _MINUS_INFINITY
+                self.upper[column] = None
+            else:
+                self.lower[column] = value
+                self.upper[column] = value
             self.lower_stated[column] = True
         elif kind == "FR":
             self.lower[column] = _MINUS_INFINITY

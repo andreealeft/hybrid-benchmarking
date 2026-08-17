@@ -115,7 +115,7 @@ def hhl_queries(d: float, kappa: float, epsilon: float, norm_x: float,
     inner = simulation_queries(d, norm_max, hhl_time(kappa, epsilon), epsilon)
     p0 = 1.0 / (4.0 * kappa ** 2)
     p = norm_x ** 2 / (4.0 * kappa ** 2)
-    return 2.0 * qaa_overhead(p=min(p, 1.0), p0=p0) * inner
+    return 2.0 * qaa_overhead(p=min(p, 1.0), p0=min(p0, p)) * inner
 
 
 # ---------------------------------------------------------------------------
@@ -153,7 +153,7 @@ def fourier_queries(d: float, kappa: float, epsilon: float, norm_x: float,
     alpha = fourier_alpha(kappa, epsilon)
     p0 = 1.0 / alpha ** 2
     p = norm_x ** 2 / alpha ** 2
-    return qaa_overhead(p=min(p, 1.0), p0=p0) * inner
+    return qaa_overhead(p=min(p, 1.0), p0=min(p0, p)) * inner
 
 
 def oaa_rounds(alpha: float) -> float:
@@ -259,7 +259,7 @@ def chebyshev_queries(d: float, kappa: float, epsilon: float,
     alpha = chebyshev_alpha(d, y, epsilon)
     p0 = 1.0 / alpha ** 2
     p = norm_x ** 2 / alpha ** 2
-    return 8.0 * j0 * qaa_overhead(p=min(p, 1.0), p0=p0)
+    return 8.0 * j0 * qaa_overhead(p=min(p, 1.0), p0=min(p0, p))
 
 
 def binkowski_chebyshev_queries(sparsity: float, kappa: float, epsilon: float,
@@ -457,7 +457,7 @@ QLS_QSVT = single(
     summary="Inverse via singular value transformation with a matrix-inversion "
             "polynomial applied to a block encoding.",
     citation=_QSVT,
-    built_from=("P_b", "QSP", "QAA"),
+    built_from=("P_b", "QAA"),
     costs={
         Unit.QUERIES: Cost(
             expr=QSVT_EXPR,

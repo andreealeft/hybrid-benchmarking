@@ -219,7 +219,10 @@ _k_max_search = sp.ceiling(
 QSEARCH_EXPR = _sum_form(_theta_search, sp.sqrt(S.X), _k_max_search, half=True)
 
 _theta_qaa = sp.asin(sp.sqrt(S.p))
-QAA_EXPR = _sum_form(_theta_qaa, sp.sqrt(1 / S.p0), sp.oo, half=False)
+# The half applies here too. The expression is what a reader sees and the
+# kernel is what evaluates, so a displayed form without it printed a formula
+# worth twice the number printed beside it.
+QAA_EXPR = _sum_form(_theta_qaa, sp.sqrt(1 / S.p0), sp.oo, half=HALF_ROUND_COUNT)
 
 
 # --------------------------------------------------------------------------

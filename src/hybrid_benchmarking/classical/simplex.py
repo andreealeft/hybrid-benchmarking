@@ -19,6 +19,12 @@ quantity, and the cost is increasing in it, so the total stays a bound
 favourable to the quantum side.  Using an exact ``kappa_2`` here would produce a
 larger number that is not the published one and not a lower bound either.
 
+**d is the larger of the two sparsities, not the column maximum.**  The
+thesis's list of iteration-related measures names the column maximum; taking it
+literally makes the normalisation below come out false whenever a row is denser
+than every column, which a maximum-flow program manages at any vertex of degree
+four.  See :func:`sparsity`.
+
 **A_1 and A_max are not the norms of the basis.**  ``SimplexIter`` operates on a
 normalised matrix, so the thesis lower-bounds Lemma 7's two norms by
 ``||A_B||_1 / (d ||A_B||_max)`` and ``1 / d`` respectively, and those are what go
@@ -48,8 +54,8 @@ is stated over.
 Two further things about this run rather than about the quantities.  The
 iteration that discovers optimality is not logged, because it has no entering
 column and so no ``u``, and a record with two of its seven fields undefined is
-worse than a record fewer; that makes the total an understatement by one
-optimality test.  And the first phase is logged along with the second, marked by
+worse than a record fewer.  That happens once per phase, so a complete two-phase
+solve understates by two optimality tests.  And the first phase is logged along with the second, marked by
 a ``phase`` column, because the solver the thesis instrumented has a first phase
 too -- but its search is over a wider program than the ``n`` recorded here, so
 those records understate as well.  Both are recorded as assumptions on the cost
@@ -72,8 +78,8 @@ IMPLEMENTATION = ("a revised simplex with steepest-edge pricing, this "
 #: Below this a number is zero.  The standard forms built here have entries of
 #: modest size, and the quantities this decides -- which columns improve, which
 #: components of the pivot direction are positive -- are counts that go straight
-#: into a search's marked-element count, so the threshold is a logged quantity
-#: in its own right.
+#: into a search's marked-element count, so it is recorded on every run rather
+#: than left as a constant someone would have to come here to find.
 TOLERANCE = 1e-9
 
 #: Consecutive degenerate pivots before falling back on Bland's rule, which
@@ -83,13 +89,6 @@ _BLAND_AFTER = 50
 
 
 def _column_sparsity(basis_matrix: np.ndarray) -> int:
-    """Most non-zeros in any column of the basis.
-
-    The thesis's iteration-related measures name this one: the maximum number of
-    non-zeros in the columns of ``A_B``.  The row maximum is logged separately,
-    since the Hermitian dilation a quantum linear solver actually acts on is as
-    sparse as the larger of the two.
-    """
     return int(np.max(np.count_nonzero(basis_matrix, axis=0)))
 
 
@@ -97,27 +96,59 @@ def _row_sparsity(basis_matrix: np.ndarray) -> int:
     return int(np.max(np.count_nonzero(basis_matrix, axis=1)))
 
 
+def sparsity(basis_matrix: np.ndarray) -> int:
+    """The larger of the row and column maxima, and it has to be the larger.
+
+    The thesis's list of iteration-related measures names the column maximum,
+    and taking it literally would be wrong here -- not as a matter of taste but
+    because it makes the normalisation the same section states come out false.
+
+    Those bounds are ``||A_hat||_1 >= ||A_B||_1 / (d ||A_B||max)`` and
+    ``||A_hat||max >= 1/d``, and both rest on ``||A_B||_2 <= d ||A_B||max``.
+    What actually holds is ``||A||_2 <= sqrt(d_col d_row) ||A||max``, so the
+    divisor has to be at least the geometric mean of the two sparsities; the
+    column maximum alone is below it whenever a row is denser than every column.
+    Then ``1/d`` is *above* the true normalised largest entry rather than below
+    it, the cost is increasing in both norms, and a number that calls itself a
+    lower bound is an over-estimate.
+
+    That is not hypothetical.  A maximum-flow program has three non-zeros in
+    every arc column and one per incident arc in every conservation row, so any
+    vertex of degree four or more inverts the two: on a thirty-relay network
+    fifty-six of a hundred and twenty-one bases violate the bound, and the total
+    lands sixteen per cent above what the convention it declares would give.
+
+    The larger of the two is also the honest sparsity for the other place ``d``
+    is used -- as the sparsity of the Hermitian matrix a quantum linear solver
+    acts on, which for a matrix that is not symmetric is the dilation, whose
+    rows are the original's rows and its columns.  :mod:`.linsystem` reached the
+    same reading independently, and now they agree.
+    """
+    return max(_column_sparsity(basis_matrix), _row_sparsity(basis_matrix))
+
+
 def _record(basis_matrix: np.ndarray, inverse: np.ndarray, direction: np.ndarray,
             rows: int, phase: int) -> Dict[str, Any]:
     """One iteration's worth of log, with every convention above applied."""
     kappa_1 = float(np.linalg.norm(basis_matrix, 1)
                     * np.linalg.norm(inverse, 1))
-    sparsity = _column_sparsity(basis_matrix)
+    density = sparsity(basis_matrix)
     norm_1 = float(np.linalg.norm(basis_matrix, 1))
     norm_max = float(np.max(np.abs(basis_matrix)))
 
     return {
         # what the route consumes
         "kappa": max(1.0, kappa_1 / rows),
-        "d": sparsity,
-        "A_1": norm_1 / (sparsity * norm_max),
-        "A_max": 1.0 / sparsity,
+        "d": density,
+        "A_1": norm_1 / (density * norm_max),
+        "A_max": 1.0 / density,
         "t": int(np.count_nonzero(direction > TOLERANCE)),
         "u_norm": float(np.linalg.norm(direction, 2)),
         # what it was computed from, so none of the above is a bare assertion
         "kappa_1": kappa_1,
         "A_B_1": norm_1,
         "A_B_max": norm_max,
+        "d_columns": _column_sparsity(basis_matrix),
         "d_rows": _row_sparsity(basis_matrix),
         "phase": phase,
     }
@@ -248,13 +279,21 @@ class _State:
             "A_1 and A_max are the normalised lower bounds ||A_B||_1 / "
             "(d ||A_B||_max) and 1 / d, since SimplexIter runs on a normalised "
             "matrix; the raw norms are in the log under their own names",
-            "d is the largest number of non-zeros in a column of the basis, "
-            "which is the smaller of the two sparsity readings",
+            "d is the larger of the row and column sparsities of the basis. "
+            "The thesis's list names the column maximum, but the normalisation "
+            "it states in the same section needs the larger, and taking the "
+            "column maximum makes A_1 and A_max over-estimates rather than the "
+            "lower bounds they are declared to be. Both readings are logged, "
+            "as d_columns and d_rows",
             "the iteration that establishes optimality is not logged, having "
-            "no entering column, so the total omits one optimality test",
+            "no entering column; that happens once per phase, so a complete "
+            "two-phase solve omits two optimality tests",
             "the first phase is logged alongside the second, but over the "
             "instance's own column count rather than the widened one it "
             "actually searches",
+            "a component of the pivot direction counts as positive above "
+            "{:g}; t is a marked-element count, so that threshold is part of "
+            "the number".format(TOLERANCE),
         ]
         if self.used_bland:
             assumptions.append(

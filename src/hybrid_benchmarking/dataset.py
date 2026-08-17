@@ -417,9 +417,21 @@ def origin(data: Dataset) -> Optional[Provenance]:
     if not stated:
         return None
 
-    status = str(stated.get("status", "complete"))
+    status = str(stated.get("status", "complete")).strip().lower()
     truncated = status == "truncated"
     assumptions = []
+    if status not in ("complete", "truncated"):
+        # A run that failed can still have written records -- an infeasible
+        # program logs the iterations of its first phase before discovering
+        # there is no second one -- and `hb log` writes the file whatever
+        # happened. Costing it would put the lemmas' LOWER label on a solve
+        # that did not take place, with nothing anywhere saying so.
+        raise FormatError(
+            "this log records a classical run that {}: {}. There is no cost to "
+            "give it -- the records are of a solve that did not happen".format(
+                status, stated.get("reason", "did not finish")
+            )
+        )
     if truncated:
         assumptions.append(
             "the classical run was cut off after {} of an unfinished solve, so "

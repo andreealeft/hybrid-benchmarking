@@ -173,10 +173,22 @@ LP_SHAPE = (
 )
 
 SIMPLEX_RECORD = (
-    Field("kappa", "Condition number", "Of the basis at this iteration", "10"),
-    Field("d", "Sparsity", "Most non-zeros in any row or column", "4"),
-    Field("A_1", "1-norm", "Largest absolute column sum of the basis", "3"),
-    Field("A_max", "Largest entry", "Largest absolute entry of the basis", "1"),
+    # These four are not the raw quantities their names suggest, and a log
+    # filled in with the raw ones is costed under a different normalisation
+    # without anything failing. The conventions are the thesis's own; see
+    # classical/simplex.py, which writes exactly these.
+    Field("kappa", "Condition number",
+          "Of the basis. GLPK's kappa_1 = ||A_B||_1 ||A_B^-1||_1 divided by m "
+          "and floored at one, per (4.33) -- not the exact condition number",
+          "10"),
+    Field("d", "Sparsity",
+          "Largest number of non-zeros in any row or column of the basis, "
+          "whichever is larger", "4"),
+    Field("A_1", "1-norm",
+          "Of the normalised basis: ||A_B||_1 / (d ||A_B||_max), not the raw "
+          "column sum", "1"),
+    Field("A_max", "Largest entry",
+          "Of the normalised basis: 1/d, not the raw largest entry", "0.25"),
     # Lemma 10 defines this one, and defines it as the number of positive
     # components of u = A_B^-1 A_k.  It is not the improving-column count: that
     # marks Lemma 24's search over the n - m non-basic columns, it routinely
@@ -201,8 +213,12 @@ SIMPLEX_RECORD = (
 # for, which is the opposite of what checking a log is for.
 SOLVER_RECORD = (
     Field("kappa", "Condition number", "Of this system", "10"),
-    Field("d", "Sparsity", "Most non-zeros in any row", "4"),
-    Field("x_norm", "Solution norm", "Norm of the solution vector", "1"),
+    Field("d", "Sparsity",
+          "Most non-zeros in any row or column, whichever is larger -- the "
+          "sparsity of the Hermitian matrix a quantum solver acts on", "4"),
+    Field("x_norm", "Solution norm",
+          "Norm of the solution, for a matrix scaled to unit spectral norm and "
+          "a right-hand side of unit norm, so it lies between 1 and kappa", "1"),
 )
 
 SIMULATED_ENTRY = (
@@ -402,7 +418,7 @@ PROBLEMS: Tuple[Problem, ...] = (
                  "Close behind, and the one the interior point work adopts."),
                 ("fourier", "Fourier series", "QLS-Fourier/via-qubitization",
                  True,
-                 "About an order of magnitude dearer, but simpler to build."),
+                 "Twenty to sixty times dearer, but simpler to build."),
                 ("hhl", "HHL", "HHL", True,
                  "The famous one, and orders of magnitude more expensive: its "
                  "cost scales as one over the precision where the others "

@@ -10,7 +10,7 @@ The shortest useful thing you can do needs no data at all:
 import hybrid_benchmarking as hb
 
 hb.get("QSearch").evaluate(X=1_000_000, t=1)
-# <Cost 1411.13 iterations -- exact, analytic -- after Boyer-Brassard-Hoyer-Tapp
+# <Cost 1411.14 iterations -- exact, analytic -- after Boyer-Brassard-Hoyer-Tapp
 #  schedule; Lemma 6 of the thesis -- assuming the number of marked elements t
 #  is known>
 ```
@@ -40,7 +40,7 @@ Cade-search                           -          -          -          -        
 CanEnterNFN                         yes          -          -          -          -          -
 CanEnterNFP                         yes          -          -          -          -          -
 CtrlU                               yes          -          -          -          -          -
-Dinic                               yes          -        yes          -          -          -
+Dinic                               yes          -          -          -          -          -
 FindColumn/steepest-edge            yes          -          -          -          -          -
 FindColumn/dantzig                  yes          -          -          -          -          -
 FindColumn/random                   yes          -          -          -          -          -
@@ -83,12 +83,13 @@ SimplexIter/dantzig                 yes          -          -          -        
 SimplexIter/random                  yes          -          -          -          -          -
 Tomography                            -          -          -          -        yes          -
 VTAA                                  -          -          -          -          -          -
-qBFS                                yes          -        yes          -          -          -
+qBFS                                yes          -          -          -          -          -
 ```
 
 Which units a routine offers is not a maintained table — it is whichever cost
-formulas exist. The linear solvers show no gate count because no gate formula
-exists for one until an oracle implementation is fixed; the oracles themselves
+formulas exist. The four query-costed solvers show no gate count because no gate
+formula exists for one until an oracle implementation is fixed -- QLS-Fourier
+has one only because `via-berry` fixes that; the oracles themselves
 show nothing at all, which is the honest answer rather than a missing entry.
 
 ### Reproducing the published comparison
@@ -101,10 +102,10 @@ for name in ("HHL", "QLS-Fourier", "QLS-Chebyshev", "QLS-QSVT"):
 ```
 
 ```
-HHL             9.26e+16
-QLS-Fourier     1.39e+09
-QLS-Chebyshev   6.03e+07
-QLS-QSVT        2.28e+07
+HHL             4.63e+16
+QLS-Fourier     6.97e+08
+QLS-Chebyshev   3.02e+07
+QLS-QSVT        1.14e+07
 ```
 
 HHL orders of magnitude above the rest and excluded on that basis; Chebyshev and
@@ -257,8 +258,7 @@ pip install -e ".[dev]"
 python -m pytest
 ```
 
-Python 3.9 or newer. sympy for the cost algebra and numpy for the instrumented
-classical solvers, which import it themselves — the registry, the costs and the
-interface do not, so everything except running an instance works without it. The
-server is standard library, so a Python installation really is the only
-prerequisite.
+Python 3.9 or newer. Both sympy and numpy are installed. numpy is imported only
+by the instrumented classical solvers, so reading formulas, composing analyses
+and costing a log you already have all work on a machine where it is absent —
+there are tests for that. The server is standard library.

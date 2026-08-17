@@ -39,6 +39,7 @@ from hybrid_benchmarking.classical.lp import (
     vertex_cover,
 )
 from hybrid_benchmarking.classical.simplex import _record, solve
+from hybrid_benchmarking.classical.simplex import sparsity as simplex_sparsity
 from hybrid_benchmarking.instances import Graph
 from hybrid_benchmarking.instances.mps import read as read_mps
 from hybrid_benchmarking.problems import clique_shape, cover_shape
@@ -251,3 +252,76 @@ class TestWhenItCannotFinish:
         run = solve(standard_form(model), Budget(60))
         assert run.status is Status.FAILED
         assert "infeasible" in run.reason
+
+
+class TestTheSparsityTheNormalisationNeeds:
+    """``d`` has to make ``||A||_2 <= d ||A||_max`` true, or the normalised
+    norms logged beside it are over-estimates wearing a lower bound's label.
+
+    The thesis's list of measures names the column maximum. That reading is
+    safe only while no row is denser than every column, and a maximum-flow
+    program breaks it at any vertex of degree four.
+    """
+
+    @staticmethod
+    def _random(rows, columns, seed):
+        state = np.random.RandomState(seed)
+        matrix = state.randn(rows, columns)
+        matrix[state.rand(rows, columns) < 0.6] = 0.0
+        matrix[0, 0] = matrix[0, 0] or 1.0  # never entirely zero
+        return matrix
+
+    @pytest.mark.parametrize("seed", range(25))
+    def test_the_inequality_holds_for_the_sparsity_we_log(self, seed):
+        matrix = self._random(6, 9, seed)
+        assert np.linalg.norm(matrix, 2) <= (
+            simplex_sparsity(matrix) * np.abs(matrix).max() + 1e-12)
+
+    def test_the_column_maximum_alone_does_not_hold_it(self):
+        # A row denser than every column: one full row, three singletons.
+        matrix = np.array([[1., 1., 1., 1.], [1., 0, 0, 0],
+                           [0, 1., 0, 0], [0, 0, 1., 0]])
+        columns_only = int(np.max(np.count_nonzero(matrix, axis=0)))
+        largest = np.abs(matrix).max()
+        assert np.linalg.norm(matrix, 2) > columns_only * largest
+        assert np.linalg.norm(matrix, 2) <= simplex_sparsity(matrix) * largest
+
+    def test_it_is_the_larger_of_the_two_readings(self):
+        matrix = np.array([[1., 1., 1.], [1., 0, 0]])
+        assert simplex_sparsity(matrix) == 3  # the row maximum here
+        assert simplex_sparsity(matrix.T) == 3  # and the column maximum there
+
+    def test_both_readings_stay_in_the_log(self):
+        run = solve(standard_form(vertex_cover(CYCLE_5)), Budget(60))
+        for entry in run.records:
+            assert entry["d"] == max(entry["d_columns"], entry["d_rows"])
+
+    def test_a_maximum_flow_program_is_where_this_bites(self):
+        # Arc columns have three non-zeros; a conservation row has one per
+        # incident arc. Any vertex of degree four inverts the two.
+        from hybrid_benchmarking.classical.lp import maximum_flow
+        from hybrid_benchmarking.instances import Network
+
+        arcs = [(0, i + 1, 1.0) for i in range(6)] + \
+               [(i + 1, 7, 1.0) for i in range(6)]
+        net = Network(name="star", source="", layout="dimacs-max", vertices=8,
+                      arcs=tuple(arcs), source_vertex=0, sink_vertex=7)
+        run = solve(standard_form(maximum_flow(net)), Budget(60))
+        assert any(e["d_rows"] > e["d_columns"] for e in run.records)
+
+
+class TestThePivotingRuleIsPartOfTheCost:
+    def test_a_rule_the_route_does_not_cost_is_refused(self):
+        # Running Dantzig and pricing it with the steepest-edge formula would
+        # log one algorithm and cost another, with nothing saying so.
+        from hybrid_benchmarking.classical import GenerationError, generate
+
+        with pytest.raises(GenerationError, match="steepest-edge"):
+            generate(CYCLE_5, "vertex-cover", "quantum-simplex", Budget(60),
+                     rule="dantzig")
+
+    def test_the_rule_the_route_does_cost_runs(self):
+        from hybrid_benchmarking.classical import generate
+
+        assert generate(CYCLE_5, "vertex-cover", "quantum-simplex", Budget(60),
+                        rule="steepest-edge").run.records

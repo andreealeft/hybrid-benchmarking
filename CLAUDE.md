@@ -84,9 +84,11 @@ src/hybrid_benchmarking/
   instances/      Readers for the files people have — DIMACS, Pisinger,
                   Matrix Market, MPS. Standard library only, and they import
                   nothing from the rest of the library
-  classical/      The solvers we instrument to produce a log: Dinic, a revised
-                  simplex, an interior point method, a linear solve. numpy
-                  lives here and nowhere else
+  classical/      What runs to produce a log: Dinic, a revised simplex, an
+                  interior point method, a linear solve, and knapsack's
+                  read-only route; plus budget.py (how a run ends) and
+                  generate.py (file to log to cost). numpy lives here only
+  static/         The one page the interface serves, with no external resources
   web.py, cli.py  Interface and command line — clients, holding no logic
   routines/       The registry itself, one module per family
 ```
@@ -103,9 +105,9 @@ the reader sees, the kernel is what evaluates.
   nothing — someone offline must get the same tool. There is a test for that.
 - Tests state what the mathematics claims, not what the code happens to do.
   The strongest ones assert relationships between results: that quantum search
-  is truncated amplification times one half, that a hand-assembled
-  `SimplexIter` equals the registered one, that Lemma 16 and Binkowski's
-  Lemma 1 agree and stop agreeing under the rejected reading.
+  *is* truncated amplification, now that the disputed half applies to both, that
+  a hand-assembled `SimplexIter` equals the registered one, and that Lemma 16
+  and Binkowski's Lemma 1 agree and stop agreeing under the rejected reading.
 - Commit messages explain why, in prose. No bullet lists of files changed.
 - Andreea prefers open discussion to multiple-choice questions, and asked for
   coding decisions to be made without checking in. Surface anything that
@@ -113,7 +115,7 @@ the reader sees, the kernel is what evaluates.
 
 ## Producing the logs, not just asking for them
 
-The loop is closed: `hb run <instance-file>` reads the file, runs the classical
+The loop is closed: `hybrid-benchmarking run <instance-file>` reads the file, runs the classical
 algorithm here under a budget, writes the log, and costs it. A log arriving from
 somewhere else takes the path it always took — this generates one, it does not
 replace the format.
@@ -125,6 +127,11 @@ They are set out at length in `classical/simplex.py`; in short:
 - **κ is GLPK's**, `max(1, κ₁/m)` with `κ₁ = ‖A_B‖₁‖A_B⁻¹‖₁` from (4.33), not
   the exact condition number. An exact κ₂ would be larger *and* no longer a
   bound.
+- **`d` is the larger of the row and column sparsities**, though §4.6.2's list
+  names the column maximum. Taking the column maximum makes the normalisation
+  below come out false whenever a row is denser than every column — which a
+  max-flow program manages at any vertex of degree four — and then `A_1` and
+  `A_max` are over-estimates rather than the lower bounds they claim to be.
 - **A_1 and A_max are the normalised lower bounds** `‖A_B‖₁/(d‖A_B‖max)` and
   `1/d`, because SimplexIter runs on a normalised matrix. The raw norms are
   logged beside them so the convention is reversible.
@@ -146,12 +153,19 @@ structural and should stay:
   which is a lower bound for a reason unrelated to the lemmas'. It is a status
   carried in the log file, not a warning in a terminal.
 
-Two things left open, each surfaced rather than decided:
+Three things left open, each surfaced rather than decided:
 
 - **`SimplexIter/random` reuses one `t` for two different searches** — Lemma
   24's over the `n−m` columns and Lemma 10's over the `m` components of `u`.
   Harmless today because every registered route uses steepest edge. Fixing it
   means a second symbol in the routines layer.
+- **`IPM/mnes` does not use the `QLS-Chebyshev` entry, though its docstring
+  says it does.** `routines/qipm.py` imports `chebyshev_terms` and never calls
+  it; `newton_system_cycles` inlines a solver degree with `log2(2/ε)` where
+  Lemma 16 has `log2(dκ/ε)`. At `d=50, κ=100, ε=1e-3` that is 104 713 against
+  151 061 — a factor of 0.69 on the dominant term. Either the paper's inner
+  solver genuinely differs from Lemma 16 and the docstring's "the same registry
+  entry" is wrong, or the formula is. Not guessed at; needs the paper.
 - **The interior point route's κ is the unmodified normal-equation system's.**
   Binkowski's "modified" form was not to hand; a diagonal equilibration is
   logged beside it as `kappa_equilibrated`, and it is *not* reliably smaller, so
@@ -178,4 +192,4 @@ Complete: 44 routines / 51 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade boundary, the
 composition layer, the problem-first entry point, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 659 tests.
+interface and a CLI. 734 tests.

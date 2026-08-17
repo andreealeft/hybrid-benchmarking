@@ -172,7 +172,18 @@ def _run_simplex(problem: str, instance, route: Route, budget: Budget,
     except ModelError as error:
         raise GenerationError(str(error))
 
-    run = solve(form, budget, options.get("rule", "steepest-edge"))
+    # The pivoting rule is part of the cost, not a preference: the route names
+    # SimplexIter/steepest-edge, and running a different rule would log the
+    # iterations of one algorithm and price them with another's formula. It is
+    # honoured only where the target agrees with it.
+    rule = options.get("rule", "steepest-edge")
+    if not route.target.endswith("/" + rule):
+        raise GenerationError(
+            "this route costs {}, so a run under the {} rule would be logging "
+            "one algorithm and pricing it as another".format(route.target, rule)
+        )
+
+    run = solve(form, budget, rule)
     if route.shape is not None:
         predicted = route.shape(_instance_shape(instance))
         for name in ("n", "m"):

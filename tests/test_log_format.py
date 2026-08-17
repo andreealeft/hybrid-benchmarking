@@ -168,3 +168,58 @@ class TestGatheringAFieldFromEveryRecord:
         data = hb.Dataset(records=({"nothing": 0},),
                           instance={"vertices": 100, "layers": [1, 3]})
         assert not check(route, data)
+
+
+class TestALogOfARunThatDidNotHappen:
+    """A failed classical run can still have written records.
+
+    An infeasible program logs the iterations of its first phase before it
+    discovers there is no second one, and ``hybrid-benchmarking log --output``
+    writes the file whatever happened. Costing it would put the lemmas' LOWER
+    label on a solve that never took place, with nothing in the bound, the
+    derivation or the assumptions saying so -- which is the failure this whole
+    library is arranged around.
+    """
+
+    FAILED = {"status": "failed", "implementation": "a test",
+              "reason": "the program is infeasible"}
+
+    def _log(self, **generated):
+        return hb.Dataset(
+            records=({"kappa": 3.0, "d": 4, "A_1": 1.0, "A_max": 0.25,
+                      "t": 2, "u_norm": 1.4},),
+            instance={"n": 200, "m": 50, "c_max": 1.0},
+            generated=generated,
+        )
+
+    def test_it_is_refused_rather_than_costed(self):
+        route = hb.get_route("linear-programming", "quantum-simplex")
+        with pytest.raises(FormatError, match="did not happen"):
+            hb.run(route, self._log(**self.FAILED), CHOSEN)
+
+    def test_the_reason_the_run_gave_is_repeated_back(self):
+        route = hb.get_route("linear-programming", "quantum-simplex")
+        with pytest.raises(FormatError, match="infeasible"):
+            hb.run(route, self._log(**self.FAILED), CHOSEN)
+
+    @pytest.mark.parametrize("written", ["TRUNCATED", "Truncated", " truncated "])
+    def test_the_status_is_read_however_it_is_spelt(self, written):
+        # A hand-edited or third-party generated block should not lose the
+        # caveat to a capital letter.
+        route = hb.get_route("linear-programming", "quantum-simplex")
+        report = hb.run(route, self._log(status=written, implementation="a test",
+                                         records=1), CHOSEN)
+        assert report["bound"] == "lower bound"
+        assert any("cut off" in note for note in report["assumptions"])
+
+    def test_a_complete_run_is_unaffected(self):
+        route = hb.get_route("linear-programming", "quantum-simplex")
+        report = hb.run(route, self._log(status="complete",
+                                         implementation="a test"), CHOSEN)
+        assert report["total"] > 0
+
+    def test_an_unrecognised_status_is_refused_rather_than_assumed_complete(self):
+        route = hb.get_route("linear-programming", "quantum-simplex")
+        with pytest.raises(FormatError):
+            hb.run(route, self._log(status="interrupted",
+                                    implementation="a test"), CHOSEN)

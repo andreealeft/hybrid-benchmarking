@@ -213,3 +213,61 @@ class TestCommandLine:
     def test_badly_formed_parameters_are_rejected(self):
         with pytest.raises(SystemExit, match="name=value"):
             main(["cost", "QSearch", "-p", "X"])
+
+
+class TestTheDependencyPromise:
+    """numpy is for the instrumented solvers, and only for those.
+
+    The interface, the registry and the cost algebra are supposed to work with
+    a bare Python and sympy -- ``web.py`` says as much, and said there was a
+    test for it before there was one. The promise is worth guarding rather than
+    dropping: it is what lets someone read a formula, compose an analysis and
+    cost a log they already have on a machine where numpy will not build.
+    """
+
+    def test_importing_the_library_does_not_import_numpy(self):
+        import subprocess
+        import sys
+
+        # A fresh interpreter, because numpy is long since imported in this one.
+        probe = (
+            "import sys; import hybrid_benchmarking as hb; import "
+            "hybrid_benchmarking.web as w; hb.get('QSearch').evaluate(X=100, t=1); "
+            "w.catalogue(); w.problems(); "
+            "print('numpy' in sys.modules)"
+        )
+        out = subprocess.run([sys.executable, "-c", probe], capture_output=True,
+                             text=True, check=True).stdout.strip()
+        assert out == "False", "importing the library pulled numpy in"
+
+    def test_costing_a_log_you_already_have_does_not_import_numpy(self):
+        import subprocess
+        import sys
+
+        probe = (
+            "import sys; import hybrid_benchmarking as hb; "
+            "d = hb.Dataset(records=({'kappa': 3.0, 'd': 4, 'A_1': 1.0, "
+            "'A_max': 0.25, 't': 2, 'u_norm': 1.4},), "
+            "instance={'n': 200, 'm': 50, 'c_max': 1.0}); "
+            "r = hb.run(hb.get_route('linear-programming', 'quantum-simplex'), d, "
+            "{'epsilon': 1e-3, 'delta': 1e-3}); "
+            "assert r['total'] > 0; print('numpy' in sys.modules)"
+        )
+        out = subprocess.run([sys.executable, "-c", probe], capture_output=True,
+                             text=True, check=True).stdout.strip()
+        assert out == "False"
+
+    def test_running_an_instance_is_where_numpy_arrives(self):
+        # The other half of the promise: it is a real dependency of the thing it
+        # is a dependency of, so the split is not a fiction.
+        import subprocess
+        import sys
+
+        probe = (
+            "import sys, hybrid_benchmarking as hb; "
+            "hb.generate_from_file('tests/fixtures/tiny.clq', 'vertex-cover', "
+            "'quantum-simplex'); print('numpy' in sys.modules)"
+        )
+        out = subprocess.run([sys.executable, "-c", probe], capture_output=True,
+                             text=True, check=True).stdout.strip()
+        assert out == "True"

@@ -224,8 +224,8 @@ def parse_max_flow(text: str, name: str = "", source: str = "") -> Network:
             "no flow to maximise".format(sink_at, sink_node + 1)
         )
 
-    _believe("node", declared_nodes, largest, problem_at, False)
     _believe("arc", declared_arcs, len(arcs), problem_at, True)
+    _believe("node", declared_nodes, largest, problem_at, True)
 
     return Network(
         name=name,
@@ -323,8 +323,8 @@ def parse_graph(text: str, name: str = "", source: str = "") -> Graph:
             "line anywhere, so it is not a DIMACS edge list"
         )
 
-    _believe("node", declared_nodes, largest, problem_at, False)
     _believe("edge", declared_edges, written, problem_at, True)
+    _believe("node", declared_nodes, largest, problem_at, True)
 
     return Graph(
         name=name,
@@ -450,6 +450,15 @@ def _believe(
     Small disagreements are the normal state of collected DIMACS files and are
     resolved by trusting the data.  An order of magnitude is not a stale count;
     see the module docstring for why that is refused instead.
+
+    Both directions are checked, for node counts as well as arc counts.  A
+    header may legitimately declare more nodes than any arc mentions -- isolated
+    vertices exist -- so this direction was once left unchecked, and a one-arc
+    file declaring a billion nodes was read as a billion-vertex network.  That
+    is not a wrong number so much as an unusable one: the vertex count is the
+    search space of every quantum breadth-first sweep, and the classical run
+    tries to allocate an adjacency list per vertex before anything is costed.
+    A tenfold margin leaves room for a graph that really is mostly isolated.
     """
     if seen > declared * _TOLERANCE and seen > _TOLERANCE:
         raise InstanceError(

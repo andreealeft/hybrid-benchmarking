@@ -16,7 +16,12 @@ N = sp.Symbol("N", positive=True, integer=True)
 """Dimension of the linear system / size of the state space."""
 
 d = sp.Symbol("d", positive=True, integer=True)
-"""Sparsity: maximum number of non-zero entries in any row or column."""
+"""Sparsity: most non-zero entries in any row or column, whichever is larger.
+
+Both, not either: it is the sparsity of the Hermitian matrix a quantum linear
+solver acts on, and for a matrix that is not symmetric that is the dilation,
+whose rows are the original's rows and its columns.
+"""
 
 kappa = sp.Symbol("kappa", positive=True)
 """Condition number of the matrix."""
@@ -25,7 +30,11 @@ norm_A_max = sp.Symbol("A_max", positive=True)
 """Largest absolute entry of the matrix."""
 
 norm_A_1 = sp.Symbol("A_1", positive=True)
-"""Induced 1-norm: the largest absolute column sum."""
+"""Induced 1-norm: the largest absolute column sum.
+
+Of the *normalised* matrix wherever the quantum simplex is concerned; the
+instrumented run divides by ``d ||A||_max`` before logging it.
+"""
 
 norm_x = sp.Symbol("x_norm", positive=True)
 """Norm of the solution vector, which sets the true success probability."""

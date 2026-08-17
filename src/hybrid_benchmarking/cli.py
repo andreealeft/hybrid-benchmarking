@@ -402,7 +402,11 @@ def _command_template(args: argparse.Namespace) -> int:
     if not route:
         raise SystemExit("name a route as problem/route, not {!r}".format(
             args.route))
-    print(template(get_route(problem, route), "json" if args.json else "csv"))
+    # No default shape here: a route whose record holds a list cannot be
+    # written as a column, so the shape is the route's own unless one is asked
+    # for by name. Handing out a file this library cannot read back is worse
+    # than handing out none.
+    print(template(get_route(problem, route), "json" if args.json else ""))
     return 0
 
 

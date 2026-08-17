@@ -428,7 +428,7 @@ QTGSearch = single(
     summary="Maximum finding around the tree generator: repeated amplitude "
             "amplification against a rising profit threshold.",
     citation=_CHAPTER_6,
-    built_from=("QTG", "QAA", "QMaxSearch"),
+    built_from=("QTG", "QAA"),
     costs={
         Unit.GATES: _cost(
             sp.Function("G_QMF")(S.capacity, S.profit_bound), Unit.GATES,

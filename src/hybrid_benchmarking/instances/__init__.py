@@ -11,9 +11,11 @@ so a wrong count here cannot become a plausible gate count elsewhere -- it
 becomes a graph with the wrong number of edges, which the tests catch.  They are
 standard-library only: numpy enters one step later, with the solvers.
 
-Every reader offers the same two entry points, ``parse(text, name, source)`` and
-``read(path)``, and raises :class:`InstanceError` on anything it cannot read
-rather than guessing.  Guessing is the failure mode that matters here: a
+Every reader offers ``parse(text, name, source)`` and ``read(path)``, except
+:mod:`.dimacs`, which reads two unrelated formats and so names them:
+``parse_max_flow`` / ``read_max_flow`` and ``parse_graph`` / ``read_graph``.  All
+of them raise :class:`InstanceError` on anything they cannot read rather than
+guessing.  Guessing is the failure mode that matters here: a
 knapsack layout misread by one column still produces numbers.
 """
 
@@ -52,8 +54,9 @@ class Instance:
     name: str
     #: Where it was read from, for the log to cite.
     source: str
-    #: Which reader produced it: ``dimacs-max``, ``dimacs-edge``, ``pisinger``,
-    #: ``matrix-market``, ``mps``.
+    #: Which reader produced it, and in which of its layouts: ``dimacs-max``,
+    #: ``dimacs-edge``, ``pisinger``, ``martello-toth``, ``matrix-market``,
+    #: ``mps``.
     layout: str
 
     def describe(self) -> str:
@@ -177,7 +180,8 @@ class LinearProgram(Instance):
     lower: Tuple[float, ...] = ()
     #: Upper bound per column, ``None`` for infinite.
     upper: Tuple[Optional[float], ...] = ()
-    #: True where an INTORG/INTEND marker declared the column integer.  The
+    #: True where the file declared the column integer -- by an INTORG/INTEND
+    #: marker, or by a ``BV``, ``LI`` or ``UI`` bound, which imply it.  The
     #: relaxation is what gets solved; the flag is kept so the log can say so.
     integer: Tuple[bool, ...] = ()
     maximise: bool = False

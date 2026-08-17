@@ -15,10 +15,11 @@ it and is here confirmed rather than restated.
 One column is a decision made without the source to hand.  The construction is
 Binkowski's "modified" normal equations, and a diagonal rescaling of a system
 leaves its dimension and density alone but not its condition number -- which the
-cost is quadratic in.  So both are logged, the route consumes the unmodified and
-larger one, and there is a test that it is the larger, because being wrong in
-the expensive direction is the safe way to be wrong and it should stay that way
-until someone checks the paper.
+cost is quadratic in.  So both are logged and the route consumes the unmodified
+one -- not because it is the safer number, since equilibration lowers it on a
+vertex cover and raises it on an independent set and there is a test for exactly
+that, but because inventing a modification the source may not mean is worse than
+declaring which reading was taken.
 """
 
 from __future__ import annotations

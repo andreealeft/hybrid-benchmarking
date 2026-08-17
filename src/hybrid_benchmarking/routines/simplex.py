@@ -34,10 +34,6 @@ from .linsolve import fourier_gates
 
 _NANNICINI = "Nannicini's quantum simplex; Chapter 4 and Appendix A of the thesis"
 
-#: Below this many non-basic columns the pivoting sums are evaluated exactly.
-#: Above it they still are -- there is no approximation here -- but the cost is
-#: linear in the column count, so large instances take a noticeable moment.
-_SUM_WARN_AT = 200_000
 
 
 def _solver(epsilon: float, v: Dict[str, float]) -> float:

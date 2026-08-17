@@ -142,7 +142,11 @@ def _pattern_sparsity(matrix: np.ndarray) -> int:
     diagonal holds, and counting numerically would need a tolerance whose choice
     would then be a logged quantity in its own right.
     """
-    occupied = (matrix != 0).astype(np.int8)
+    # Counted in a width that cannot wrap. An int8 product accumulates in
+    # int8, so two rows sharing a multiple of 256 columns would come out as
+    # structurally disjoint -- and d enters the cycle count as gamma = d kappa
+    # with gamma squared inside it, so the understatement is not small.
+    occupied = (matrix != 0).astype(np.int64)
     return int(np.max(np.count_nonzero(occupied @ occupied.T, axis=1)))
 
 
