@@ -138,6 +138,26 @@
   .drop { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; }
   .drop:hover { color: var(--warn); }
   .op { font-family: var(--mono); color: var(--faint); margin: 0 0 .6rem; }
+  .route {
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0; background: var(--surface);
+    padding: .9rem 1.1rem; margin-bottom: .7rem; cursor: pointer;
+  }
+  .route[aria-pressed="true"] { background: var(--accent-soft); }
+  .route h4 { margin: 0 0 .3rem; font-size: .95rem; }
+  .route p { margin: 0 0 .4rem; color: var(--muted); font-size: .87rem; max-width: 70ch; }
+  .route .model { color: var(--warn); font-size: .82rem; margin: 0; }
+  .caution {
+    border-left: 3px solid var(--warn); background: var(--warn-soft);
+    padding: .8rem 1rem; margin: 0 0 1.2rem; font-size: .87rem; max-width: 70ch;
+  }
+  textarea {
+    font-family: var(--mono); font-size: .8rem; width: 100%; min-height: 7rem;
+    padding: .6rem; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 4px; resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .sub { color: var(--faint); font-size: .8rem; font-family: var(--mono); }
 </style>
 </head>
 <body>
@@ -145,8 +165,9 @@
   <h1>hybrid-benchmarking</h1>
   <p>Quantum subroutines and what they cost. Nothing leaves this machine.</p>
   <div class="tabs" id="modes" style="margin-left:auto">
-    <button data-mode="browse" aria-pressed="true">Browse</button>
+    <button data-mode="problems" aria-pressed="true">Problems</button>
     <button data-mode="build" aria-pressed="false">Build</button>
+    <button data-mode="browse" aria-pressed="false">Subroutines</button>
   </div>
 </header>
 
@@ -157,6 +178,7 @@
   </nav>
   <article id="detail"><p class="none">Loading the registry…</p></article>
   <article id="builder" hidden></article>
+  <article id="problems"><p class="none">Loading…</p></article>
 </main>
 
 <script>
@@ -534,17 +556,147 @@ async function runComposition() {
     </div><pre>${esc(res.snippet)}</pre>`;
 }
 
+/* --------------------------------------------------------------- problems */
+
+let PROBLEMS = [], problem = null, route = null, logText = "";
+
+async function boot_problems() {
+  PROBLEMS = await (await fetch("/api/problems")).json();
+  drawProblemList();
+  pickProblem(PROBLEMS[0].key);
+}
+
+function drawProblemList() {
+  $("list").innerHTML = PROBLEMS.map(p => `
+    <li><button data-problem="${esc(p.key)}"
+        aria-current="${p.key === (problem && problem.key)}"
+        style="display:block">
+      <span style="font-family:var(--sans);color:inherit">${esc(p.label)}</span>
+      <span style="display:block;font-size:.74rem">${esc(p.technical)}</span>
+    </button></li>`).join("");
+  $("list").querySelectorAll("button").forEach(b =>
+    b.onclick = () => pickProblem(b.dataset.problem));
+}
+
+async function pickProblem(key) {
+  problem = await (await fetch("/api/problem/" + key)).json();
+  route = null; logText = "";
+  drawProblemList();
+  drawProblem();
+}
+
+function drawProblem() {
+  const p = problem;
+  let html = `<h2>${esc(p.label)}</h2>
+    <p class="sub">${esc(p.technical)}</p>
+    <p class="summary">${esc(p.blurb)}</p>`;
+
+  if (p.incomparable) html += `<div class="caution"><b>These routes are not
+    comparable with one another.</b> Each rests on a different cost model and a
+    different set of assumptions, so the numbers answer different questions.
+    Read each with the note attached to it.</div>`;
+
+  html += `<h3>Ways to attack it</h3>` + p.routes.map(r => `
+    <div class="route" data-route="${esc(r.key)}" aria-pressed="${r === route}">
+      <h4>${esc(r.label)} <span class="pill">${esc(r.unit_label)}</span></h4>
+      <p><b>${esc(r.classical)}</b> solves this classically. The quantum version
+         replaces ${esc(r.replaces)}.</p>
+      <p class="model">${esc(r.note)}</p>
+    </div>`).join("");
+
+  html += `<div id="routebody"></div>`;
+  $("problems").innerHTML = html;
+  $("problems").querySelectorAll(".route").forEach(el => el.onclick = () => {
+    route = problem.routes.find(r => r.key === el.dataset.route);
+    drawProblem();
+  });
+  if (route) drawRoute();
+}
+
+async function drawRoute() {
+  const r = route;
+  const tpl = await (await fetch(
+    `/api/template/${problem.key}/${r.key}?${r.per_record.some(f => !f.example.startsWith("[")) ? "csv" : "json"}`)).text();
+
+  let html = `<h3>What to log</h3>
+    <p class="meta">Run ${esc(r.classical)} on your instance with logging, and
+      record ${r.whole_run ? "the run" : "one row per iteration"} in this shape.
+      Every column is named below.</p>
+    <pre>${esc(tpl)}</pre>`;
+
+  html += `<h3>Your log</h3>
+    <form id="logform">
+      <div class="field">
+        <label for="logpath">file</label>
+        <input id="logpath" name="path" placeholder="/path/to/your-log.csv">
+      </div>
+      <p class="meta" style="margin:0">Read where it sits — nothing is uploaded,
+        the server is on this machine. Or paste it:</p>
+      <textarea id="logtext" placeholder="paste a log here instead"></textarea>`;
+
+  if (r.chosen.length) html += r.chosen.map(f => `
+      <div class="field"><label for="ch_${f.name}">${esc(f.label)}</label>
+        <input id="ch_${f.name}" name="${esc(f.name)}" value="${esc(f.example)}"
+               title="${esc(f.help)}"></div>`).join("");
+
+  html += `<div class="actions"><button class="primary" type="submit">Cost this run</button></div>
+    </form><div id="logout"></div>`;
+
+  document.getElementById("routebody").innerHTML = html;
+  $("logform").onsubmit = (e) => { e.preventDefault(); runLog(); };
+}
+
+async function runLog() {
+  const chosen = {};
+  route.chosen.forEach(f => {
+    const el = document.getElementById("ch_" + f.name);
+    if (el && el.value.trim()) chosen[f.name] = el.value;
+  });
+  const res = await (await fetch("/api/problem/run", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      problem: problem.key, route: route.key, chosen,
+      path: $("logpath").value.trim(), text: $("logtext").value,
+    }),
+  })).json();
+
+  if (res.error) {
+    $("logout").innerHTML = `<div class="result bad"><b>Cannot cost this</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+  $("logout").innerHTML = `
+    <div class="result">
+      <div class="value">${res.total.toPrecision(6)}<small>${esc(res.unit_label)}</small></div>
+      <p class="meta" style="margin:.4rem 0 0">
+        ${res.whole_run ? "for the whole run" :
+          `summed over ${res.records} iterations · largest single one
+           ${res.largest.toPrecision(4)}`}</p>
+      <p class="meta" style="margin:.2rem 0 0">${esc(res.provenance)}</p>
+      ${res.warnings.map(w => `<p class="warn">⚠ ${esc(w)}</p>`).join("")}
+    </div>
+    <p class="model" style="color:var(--warn);font-size:.85rem">${esc(res.note)}</p>
+    <h3>The same run, as code</h3><pre>${esc(res.snippet)}</pre>`;
+}
+
 $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
-  const build = b.dataset.mode === "build";
+  const mode = b.dataset.mode;
   $("modes").querySelectorAll("button").forEach(x =>
     x.setAttribute("aria-pressed", String(x === b)));
-  document.querySelector("nav").hidden = build;
-  $("detail").hidden = build;
-  $("builder").hidden = !build;
-  if (build && !spec) boot_build();
+  document.querySelector("nav").hidden = mode === "build";
+  $("detail").hidden = mode !== "browse";
+  $("builder").hidden = mode !== "build";
+  $("problems").hidden = mode !== "problems";
+  $("filter").hidden = mode !== "browse";
+  if (mode === "build" && !spec) boot_build();
+  if (mode === "browse") { drawList(); if (!current) select("QSearch"); }
+  if (mode === "problems") drawProblemList();
 });
 
+$("detail").hidden = true;
+$("filter").hidden = true;
 boot();
+boot_problems();
 </script>
 </body>
 </html>

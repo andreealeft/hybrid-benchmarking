@@ -26,6 +26,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .compose import build, code, describe, entries, fillings_for
 from .cost import Cost, UnitMismatch, ValidityWarning
+from .dataset import Dataset, FormatError
+from .dataset import check as check_log
+from .dataset import load as load_log
+from .dataset import run as run_log
+from .dataset import template as log_template
+from .problems import PROBLEMS, Route, get_problem, get_route
 from .provenance import Unit
 from .registry import Implementation, Routine, all_routines, get
 
@@ -94,6 +100,95 @@ def catalogue() -> List[Dict[str, Any]]:
         }
         for r in all_routines()
     ]
+
+
+def _field_data(f) -> Dict[str, Any]:
+    return {"name": f.name, "label": f.label, "help": f.help,
+            "example": f.example}
+
+
+def _route_data(route: Route) -> Dict[str, Any]:
+    return {
+        "key": route.key,
+        "label": route.label,
+        "classical": route.classical,
+        "replaces": route.replaces,
+        "sentence": route.describe(),
+        "target": route.target,
+        "unit": route.unit.name,
+        "unit_label": str(route.unit),
+        "note": route.note,
+        "per_record": [_field_data(f) for f in route.per_record],
+        "per_instance": [_field_data(f) for f in route.per_instance],
+        "chosen": [_field_data(f) for f in route.chosen],
+        "whole_run": bool(route.collects) or not route.per_record,
+    }
+
+
+def problems() -> List[Dict[str, Any]]:
+    """Every problem the library can cost, under the name people use."""
+    return [
+        {
+            "key": p.key,
+            "label": p.label,
+            "technical": p.technical,
+            "blurb": p.blurb,
+            "routes": [_route_data(r) for r in p.routes],
+        }
+        for p in PROBLEMS
+    ]
+
+
+def problem_detail(key: str) -> Dict[str, Any]:
+    problem = get_problem(key)
+    return {
+        "key": problem.key,
+        "label": problem.label,
+        "technical": problem.technical,
+        "blurb": problem.blurb,
+        "routes": [_route_data(r) for r in problem.routes],
+        "incomparable": len(problem.routes) > 1,
+    }
+
+
+def cost_from_log(problem: str, route_key: str, chosen: Dict[str, Any],
+                  path: str = "", text: str = "") -> Dict[str, Any]:
+    """Cost a logged classical run.
+
+    The file is read where it sits.  Nothing is uploaded -- the server and the
+    file are on the same machine, which is the whole point of running this
+    locally.
+    """
+    route = get_route(problem, route_key)
+    if path:
+        data = load_log(path)
+    elif text.strip():
+        suffix = ".json" if text.lstrip().startswith("{") else ".csv"
+        import tempfile
+
+        with tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False) as tmp:
+            tmp.write(text)
+            temporary = tmp.name
+        data = load_log(temporary)
+    else:
+        raise FormatError("give a path to a log, or paste one")
+
+    values = {name: _coerce(raw) for name, raw in (chosen or {}).items()
+              if str(raw).strip()}
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", ValidityWarning)
+        result = run_log(route, data, values)
+    result["warnings"] = [str(w.message) for w in caught]
+    result["source"] = data.source
+    result["snippet"] = (
+        "import hybrid_benchmarking as hb\n\n"
+        "route = hb.get_route({!r}, {!r})\n"
+        "data = hb.load({!r})\n"
+        "hb.run(route, data, {!r})".format(
+            problem, route_key, path or "your-log.csv", values
+        )
+    )
+    return result
 
 
 def why_not(routine: Routine, unit: Unit) -> str:
@@ -245,6 +340,24 @@ class _Handler(BaseHTTPRequestHandler):
             return self._send(200, page, "text/html; charset=utf-8")
         if self.path == "/api/routines":
             return self._json(catalogue())
+        if self.path == "/api/problems":
+            return self._json(problems())
+        if self.path.startswith("/api/problem/"):
+            try:
+                return self._json(problem_detail(self.path.rsplit("/", 1)[-1]))
+            except KeyError as error:
+                return self._fail(error, 404)
+        if self.path.startswith("/api/template/"):
+            rest = self.path[len("/api/template/"):]
+            spec, _, fmt = rest.partition("?")
+            problem_key, _, route_key = spec.partition("/")
+            try:
+                route = get_route(problem_key, route_key)
+            except KeyError as error:
+                return self._fail(error, 404)
+            kind = "json" if "json" in fmt else "csv"
+            return self._send(200, log_template(route, kind).encode("utf-8"),
+                              "text/plain; charset=utf-8")
         if self.path == "/api/entries":
             return self._json(entries())
         if self.path.startswith("/api/fillings/"):
@@ -271,7 +384,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path not in ("/api/evaluate", "/api/compose",
-                             "/api/compose/evaluate"):
+                             "/api/compose/evaluate", "/api/problem/run"):
             return self._send(404, b"not found", "text/plain; charset=utf-8")
         length = int(self.headers.get("Content-Length", 0))
         try:
@@ -283,6 +396,12 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(evaluate(
                     request["path"], request.get("unit"),
                     request.get("values", {}),
+                ))
+            if self.path == "/api/problem/run":
+                return self._json(cost_from_log(
+                    request["problem"], request["route"],
+                    request.get("chosen", {}), request.get("path", ""),
+                    request.get("text", ""),
                 ))
             if self.path == "/api/compose":
                 return self._json(describe(request["spec"]))
