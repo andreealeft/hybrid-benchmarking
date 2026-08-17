@@ -1,0 +1,11 @@
+c A header written before the last two edges were appended: it says six
+c vertices and four edges, the file holds eight edges on eight vertices.
+p edge 6 4
+e 1 2
+e 2 3
+e 3 4
+e 4 5
+e 5 6
+e 6 7
+e 7 8
+e 8 1

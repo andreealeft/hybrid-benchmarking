@@ -1,0 +1,7 @@
+c A triangle on 1, 2, 3 with 4 hanging off 3.
+c Each edge written once, the way most clique files write them.
+p edge 4 4
+e 1 2
+e 1 3
+e 2 3
+e 3 4

@@ -31,11 +31,14 @@ from .registry import (
     single,
 )
 from .compose import build as compose, code as compose_code, describe as compose_describe
-from .dataset import Dataset, FormatError, load, run, template
+from .dataset import Dataset, FormatError, load, render, run, template, write
 from .problems import PROBLEMS, Problem, Route, get_problem, get_route
 from .validity import Condition, Validity
 from . import symbols
 from . import routines  # registers everything  # noqa: F401
+from .instances import Instance, InstanceError
+from .instances import read as read_instance
+from .classical import Budget, Generated, GenerationError, generate, generate_from_file
 
 __version__ = "0.1.0.dev0"
 
@@ -51,8 +54,13 @@ __all__ = [
     "UnitMismatch",
     "Validity",
     "ValidityWarning",
+    "Budget",
     "Dataset",
     "FormatError",
+    "Generated",
+    "GenerationError",
+    "Instance",
+    "InstanceError",
     "PROBLEMS",
     "Problem",
     "Route",
@@ -60,11 +68,16 @@ __all__ = [
     "all_routines",
     "capability_table",
     "exact",
+    "generate",
+    "generate_from_file",
     "get",
     "lower_bound",
     "names",
+    "read_instance",
     "register",
+    "render",
     "single",
+    "write",
     "compose",
     "compose_code",
     "compose_describe",

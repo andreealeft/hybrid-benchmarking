@@ -1,0 +1,8 @@
+c An arc out of node 0.  DIMACS numbers nodes from 1, so this file counts
+c from somewhere else and every vertex in it would land one place too low.
+p max 4 3
+n 1 s
+n 4 t
+a 0 2 3
+a 2 4 2
+a 1 4 1

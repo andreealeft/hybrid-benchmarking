@@ -1,0 +1,9 @@
+%%MatrixMarket matrix array real general
+% Three rows, two columns, written column by column and without indices.
+3 2
+1.0
+0.0
+3.0
+-2.5
+4.0
+0.0

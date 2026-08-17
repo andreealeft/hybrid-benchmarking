@@ -1,0 +1,8 @@
+c An edge list carrying weights, with the header shouted, as some
+c collections write it.  The weights have nowhere to go in an unweighted
+c graph and are dropped.
+P EDGES 5 4
+E 1 2 7
+e 2 3 0.5
+e 3 4 -2
+e 4 5 12

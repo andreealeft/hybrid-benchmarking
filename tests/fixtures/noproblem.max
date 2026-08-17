@@ -1,0 +1,5 @@
+c A network whose problem line was lost, so nothing states how big it is.
+n 1 s
+n 3 t
+a 1 2 4
+a 2 3 4

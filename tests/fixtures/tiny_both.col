@@ -1,0 +1,14 @@
+c The same graph as tiny.clq, written the other way collections write it:
+c both directions of every edge, spelled 'p col', with one edge repeated and
+c one self-loop, both of which an undirected graph cannot hold.
+p col 4 4
+e 1 2
+e 2 1
+e 1 3
+e 3 1
+e 2 3
+e 3 2
+e 3 4
+e 4 3
+e 2 1
+e 3 3

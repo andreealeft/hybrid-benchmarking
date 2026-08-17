@@ -1,0 +1,7 @@
+%%MatrixMarket matrix array real general
+% A right-hand side, as the collections ship them beside the matrix.
+4 1
+1.0
+0.0
+-2.0
+3.5

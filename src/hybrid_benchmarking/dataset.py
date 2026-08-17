@@ -25,6 +25,14 @@ sizes, a vector of item values::
 :func:`template` prints the exact columns a given route needs, so the format is
 never something to guess at.  Nothing here is uploaded: the interface runs on
 the same machine as the file and reads it in place.
+
+A log this library generated itself carries one thing more: :attr:`Dataset
+.generated`, saying which classical implementation produced it and whether that
+run finished.  It travels in the file -- a ``generated`` block in JSON, a
+``# generated:`` header line in CSV -- so a log that was cut off after fifty
+iterations still says so a week later, when the number it produced is being read
+next to one that was not.  A log written by hand simply has none, and everything
+here behaves exactly as it did before.
 """
 
 from __future__ import annotations
@@ -38,6 +46,10 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from .compose import build
 from .problems import Field as Descriptor
 from .problems import Route
+from .provenance import Bound, Derivation, Provenance
+
+#: Prefix of the CSV comment line carrying :attr:`Dataset.generated`.
+_GENERATED = "# generated:"
 
 
 @dataclass(frozen=True)
@@ -47,6 +59,10 @@ class Dataset:
     records: Tuple[Dict[str, Any], ...] = ()
     instance: Dict[str, Any] = field(default_factory=dict)
     source: str = ""
+    #: Present only when this library generated the log: the classical
+    #: implementation that ran, whether it finished, and what it cost to find
+    #: out.  See :mod:`.classical`.
+    generated: Dict[str, Any] = field(default_factory=dict)
 
     def __len__(self) -> int:
         return len(self.records)
@@ -126,10 +142,27 @@ def _load_json(text: str, source: str) -> Dataset:
     records = payload.get("records", [])
     if not isinstance(records, list):
         raise FormatError("'records' must be a list")
-    return Dataset(tuple(records), dict(payload.get("instance", {})), source)
+    return Dataset(tuple(records), dict(payload.get("instance", {})), source,
+                   dict(payload.get("generated", {})))
+
+
+def _generated_from_comments(text: str) -> Dict[str, Any]:
+    """The ``# generated:`` header of a log this library wrote, if there is one."""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("#"):
+            continue
+        if stripped.startswith(_GENERATED):
+            try:
+                payload = json.loads(stripped[len(_GENERATED):].strip())
+            except json.JSONDecodeError:
+                return {}
+            return payload if isinstance(payload, dict) else {}
+    return {}
 
 
 def _load_csv(text: str, source: str) -> Dataset:
+    generated = _generated_from_comments(text)
     rows = list(csv.DictReader(
         line for line in text.splitlines()
         if line.strip() and not line.lstrip().startswith("#")
@@ -153,7 +186,79 @@ def _load_csv(text: str, source: str) -> Dataset:
         {name: value for name, value in record.items() if name not in constant}
         for record in records
     )
-    return Dataset(varying, instance, source)
+    return Dataset(varying, instance, source, generated)
+
+
+def is_flat(data: Dataset) -> bool:
+    """Whether every value is a scalar, and so whether CSV can hold this log."""
+    return not any(
+        isinstance(value, (list, dict))
+        for record in tuple(data.records) + (data.instance,)
+        for value in record.values()
+    )
+
+
+def render(data: Dataset, route: Optional[Route] = None) -> str:
+    """A generated log, as the text that goes in the file.
+
+    CSV where every value is a scalar, JSON where one of them is a list -- which
+    is not a preference but a fact about the route: Dinic logs the sizes of a
+    sweep's layers, and that is not a column.  Either way the header carries
+    :attr:`Dataset.generated`, so the file remembers how the run that produced
+    it went.
+    """
+    if is_flat(data):
+        return _render_csv(data, route)
+    return _render_json(data)
+
+
+def _render_json(data: Dataset) -> str:
+    payload: Dict[str, Any] = {}
+    if data.generated:
+        payload["generated"] = data.generated
+    payload["instance"] = dict(data.instance)
+    payload["records"] = [dict(record) for record in data.records]
+    return json.dumps(payload, indent=2) + "\n"
+
+
+def _render_csv(data: Dataset, route: Optional[Route]) -> str:
+    columns: List[str] = []
+    for record in data.records:
+        for name in record:
+            if name not in columns:
+                columns.append(name)
+    for name in data.instance:
+        if name not in columns:
+            columns.append(name)
+
+    lines = []
+    if data.generated:
+        lines.append("{} {}".format(_GENERATED,
+                                    json.dumps(data.generated, sort_keys=True)))
+    if route is not None:
+        explained = {f.name: f.help for f in route.per_record + route.per_instance}
+        lines += ["# {} -- {}".format(name, explained[name])
+                  for name in columns if name in explained]
+    lines.append(",".join(columns))
+    for record in data.records:
+        values = dict(data.instance)
+        values.update(record)
+        lines.append(",".join(_text(values.get(name, "")) for name in columns))
+    return "\n".join(lines) + "\n"
+
+
+def _text(value: Any) -> str:
+    if isinstance(value, float):
+        return repr(value)
+    return str(value)
+
+
+def write(data: Dataset, path: str, route: Optional[Route] = None) -> str:
+    """Write a generated log where the user can see it, and hand back the path."""
+    location = Path(path).expanduser()
+    location.parent.mkdir(parents=True, exist_ok=True)
+    location.write_text(render(data, route))
+    return str(location)
 
 
 def _number(text: str) -> Any:
@@ -214,6 +319,48 @@ def parameters_for(route: Route, record: Dict[str, Any],
     return values
 
 
+def origin(data: Dataset) -> Optional[Provenance]:
+    """What the log itself says about where its numbers came from.
+
+    A hand-written log says nothing, and this returns ``None`` -- the cost keeps
+    exactly the provenance its lemmas give it.  A log this library generated says
+    which classical implementation ran and whether it finished, and both belong
+    on the answer: the numbers are :class:`~.provenance.Derivation.LOGGED` rather
+    than analytic, and a run that was cut off is a lower bound for a reason that
+    has nothing to do with the lemmas being lower bounds.
+    """
+    stated = data.generated
+    if not stated:
+        return None
+
+    status = str(stated.get("status", "complete"))
+    truncated = status == "truncated"
+    assumptions = []
+    if truncated:
+        assumptions.append(
+            "the classical run was cut off after {} of an unfinished solve, so "
+            "this counts only what was logged and understates the whole solve "
+            "-- a lower bound for a second reason, unrelated to the lemmas"
+            .format(_iterations(stated))
+        )
+    for note in stated.get("assumptions", ()):
+        assumptions.append(str(note))
+
+    return Provenance.of(
+        bound=Bound.LOWER if truncated else Bound.EXACT,
+        derivation=Derivation.LOGGED,
+        source=str(stated.get("implementation", "an instrumented classical run")),
+        assumptions=assumptions,
+    )
+
+
+def _iterations(stated: Dict[str, Any]) -> str:
+    count = stated.get("records")
+    if count is None:
+        return "part"
+    return "{} iteration{}".format(count, "" if count == 1 else "s")
+
+
 def run(route: Route, data: Dataset,
         chosen: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Cost a logged run.
@@ -229,6 +376,7 @@ def run(route: Route, data: Dataset,
 
     cost = build({"routine": route.target, "unit": route.unit.name})
     wanted = set(cost.parameters)
+    source = origin(data)
 
     def call(values: Dict[str, Any]) -> Any:
         return cost.evaluate(**{k: v for k, v in values.items() if k in wanted})
@@ -238,35 +386,45 @@ def run(route: Route, data: Dataset,
         values = parameters_for(route, {}, data, chosen)
         values[parameter] = [record[source_field] for record in data.records]
         evaluated = call(values)
-        return _report(route, [evaluated.value], evaluated, whole_run=True)
+        return _report(route, [evaluated.value], evaluated, True, data, source)
 
     if not route.per_record:
         evaluated = call(parameters_for(route, {}, data, chosen))
-        return _report(route, [evaluated.value], evaluated, whole_run=True)
+        return _report(route, [evaluated.value], evaluated, True, data, source)
 
     per_record: List[float] = []
     last = None
     for record in data.records:
         last = call(parameters_for(route, record, data, chosen))
         per_record.append(last.value)
-    return _report(route, per_record, last, whole_run=False)
+    return _report(route, per_record, last, False, data, source)
 
 
-def _report(route: Route, values: Sequence[float], sample,
-            whole_run: bool) -> Dict[str, Any]:
+def _report(route: Route, values: Sequence[float], sample, whole_run: bool,
+            data: Dataset, source: Optional[Provenance]) -> Dict[str, Any]:
     total = float(sum(values))
+    provenance = sample.provenance
+    if source is not None:
+        provenance = provenance.combine(source)
     return {
         "route": route.key,
         "unit": route.unit.name,
         "unit_label": str(route.unit),
         "total": total,
         "records": len(values),
+        #: What the classical run wrote down, which is not the same as the
+        #: number of values summed: a route that costs the run as a whole
+        #: evaluates once over every record at once.
+        "logged_records": len(data.records),
         "largest": max(values) if values else 0.0,
         "mean": total / len(values) if values else 0.0,
         "per_record": [float(v) for v in values],
         "whole_run": whole_run,
-        "bound": str(sample.provenance.bound),
-        "provenance": sample.provenance.describe(),
-        "assumptions": list(sample.provenance.assumptions),
+        "bound": str(provenance.bound),
+        "derivation": str(provenance.derivation),
+        "provenance": provenance.describe(),
+        "assumptions": list(provenance.assumptions),
+        "generated": dict(data.generated),
+        "status": str(data.generated.get("status", "")) if data.generated else "",
         "note": route.note,
     }
