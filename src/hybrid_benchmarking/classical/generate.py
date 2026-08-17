@@ -174,16 +174,38 @@ def _instance_shape(instance) -> Dict[str, Any]:
     return {}
 
 
-for _problem in ("vertex-cover", "independent-set", "clique"):
-    _runner(_problem, "quantum-simplex", Graph)(
+def _run_ipm(problem: str, instance, route: Route, budget: Budget,
+             options: Dict[str, Any]) -> Run:
+    """The same linear program, attacked from the inside instead.
+
+    Shares the standard form with the simplex route deliberately: the two routes
+    through a problem are meant to be two ways at one program, and building the
+    program twice would be two ways at two programs.
+    """
+    from .ipm import solve
+    from .lp import ModelError, model_for, standard_form
+
+    try:
+        form = standard_form(model_for(instance, problem))
+    except ModelError as error:
+        raise GenerationError(str(error))
+
+    run = solve(form, budget)
+    run.instance.update(_instance_shape(instance))
+    return run
+
+
+for _problem, _type in (("vertex-cover", Graph), ("independent-set", Graph),
+                        ("clique", Graph),
+                        ("linear-programming", LinearProgram)):
+    _runner(_problem, "quantum-simplex", _type)(
         (lambda key: lambda instance, route, budget, options:
             _run_simplex(key, instance, route, budget, options))(_problem)
     )
-
-_runner("linear-programming", "quantum-simplex", LinearProgram)(
-    lambda instance, route, budget, options:
-        _run_simplex("linear-programming", instance, route, budget, options)
-)
+    _runner(_problem, "quantum-interior-point", _type)(
+        (lambda key: lambda instance, route, budget, options:
+            _run_ipm(key, instance, route, budget, options))(_problem)
+    )
 
 
 def supported() -> Tuple[Tuple[str, str], ...]:
