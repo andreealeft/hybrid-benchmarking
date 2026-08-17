@@ -108,6 +108,29 @@ def _run_knapsack(instance: Knapsack, route: Route, budget: Budget,
     return solve(instance, budget)
 
 
+def _run_linear_system(instance: Matrix, route: Route, budget: Budget,
+                       options: Dict[str, Any]) -> Run:
+    """One system, solved once; which solver is costed changes nothing here.
+
+    The four quantum solvers differ in how they reach the matrix, not in what
+    they need to know about it, so the same log serves all four -- which is
+    what makes comparing them on one instance a comparison rather than four
+    separate measurements.
+    """
+    from .linsystem import solve
+
+    right = options.get("rhs") or None
+    if isinstance(right, str):
+        from ..instances.matrixmarket import read_vector
+
+        right = read_vector(right)
+    return solve(instance, budget, right)
+
+
+for _key in ("qsvt", "chebyshev", "fourier", "hhl"):
+    _runner("linear-systems", _key, Matrix)(_run_linear_system)
+
+
 def _run_simplex(problem: str, instance, route: Route, budget: Budget,
                  options: Dict[str, Any]) -> Run:
     """Build the linear program this problem makes of the instance, then pivot.

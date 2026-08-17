@@ -237,6 +237,7 @@ def _generate(args: argparse.Namespace, path: str):
 
     return generate_from_file(
         path, args.problem or "", args.route or "", Budget(args.budget),
+        rhs=getattr(args, "rhs", None) or "",
     )
 
 
@@ -414,6 +415,8 @@ def _add_instance_arguments(parser: argparse.ArgumentParser) -> None:
                         help="seconds the classical run may take per instance "
                              "(default %(default).0f)")
     parser.add_argument("-o", "--output", help="where to keep the log")
+    parser.add_argument("--rhs", help="a Matrix Market vector to use as the "
+                                      "right-hand side of a linear system")
 
 
 def build_parser() -> argparse.ArgumentParser:
