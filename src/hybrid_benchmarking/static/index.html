@@ -618,7 +618,34 @@ async function drawRoute() {
   const tpl = await (await fetch(
     `/api/template/${problem.key}/${r.key}?${r.per_record.some(f => !f.example.startsWith("[")) ? "csv" : "json"}`)).text();
 
-  let html = `<h3>What to log</h3>
+  let html = "";
+
+  if (r.generated) html += `<h3>Start from an instance file</h3>
+    <p class="meta">Point at a network, a knapsack, a matrix or a model and
+      ${esc(r.classical)} runs here, instrumented, to produce the log below.
+      Nothing is uploaded and nothing is installed — the file is read where it
+      sits. The log is what gets costed, and you see it before the number.</p>
+    <form id="genform">
+      <div class="field">
+        <label for="genpath">file</label>
+        <input id="genpath" name="instance" placeholder="/path/to/instance.max">
+      </div>
+      <div class="field">
+        <label for="genbudget">seconds</label>
+        <input id="genbudget" name="budget" value="300"
+               title="How long the classical run may take. A run cut off part
+                      way still produces a log, marked as one.">
+      </div>`
+      + r.chosen.map(f => `
+      <div class="field"><label for="gen_${f.name}">${esc(f.label)}</label>
+        <input id="gen_${f.name}" name="${esc(f.name)}" value="${esc(f.example)}"
+               title="${esc(f.help)}"></div>`).join("")
+      + `<div class="actions">
+           <button class="primary" type="submit">Run it and cost it</button>
+         </div>
+    </form><div id="genout"></div>`;
+
+  html += `<h3>${r.generated ? "Or log it yourself" : "What to log"}</h3>
     <p class="meta">Run ${esc(r.classical)} on your instance with logging, and
       record ${r.whole_run ? "the run" : "one row per iteration"} in this shape.
       Every column is named below.</p>
@@ -644,6 +671,60 @@ async function drawRoute() {
 
   document.getElementById("routebody").innerHTML = html;
   $("logform").onsubmit = (e) => { e.preventDefault(); runLog(); };
+  if (r.generated)
+    $("genform").onsubmit = (e) => { e.preventDefault(); runInstance(); };
+}
+
+function costHtml(res) {
+  return `<div class="result">
+      <div class="value">${res.total.toPrecision(6)}<small>${esc(res.unit_label)}</small></div>
+      <p class="meta" style="margin:.4rem 0 0">
+        ${res.whole_run ? "for the whole run" :
+          `summed over ${res.records} iterations · largest single one
+           ${res.largest.toPrecision(4)}`}</p>
+      <p class="meta" style="margin:.2rem 0 0">${esc(res.provenance)}</p>
+      ${(res.warnings || []).map(w => `<p class="warn">⚠ ${esc(w)}</p>`).join("")}
+    </div>
+    <p class="model" style="color:var(--warn);font-size:.85rem">${esc(res.note || "")}</p>
+    <h3>The same run, as code</h3><pre>${esc(res.snippet)}</pre>`;
+}
+
+async function runInstance() {
+  const chosen = {};
+  route.chosen.forEach(f => {
+    const el = document.getElementById("gen_" + f.name);
+    if (el && el.value.trim()) chosen[f.name] = el.value;
+  });
+  $("genout").innerHTML = `<p class="meta">running ${esc(route.classical)}…</p>`;
+
+  const res = await (await fetch("/api/problem/generate", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      problem: problem.key, route: route.key, chosen,
+      instance: $("genpath").value.trim(),
+      budget: parseFloat($("genbudget").value) || 300,
+    }),
+  })).json();
+
+  if (res.error && !res.log) {
+    $("genout").innerHTML = `<div class="result bad"><b>Cannot run this</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+
+  // The log first, always. Skipping past it to the number would make this an
+  // oracle, which is the one thing the whole tool is arranged not to be.
+  let html = `<p class="meta">${esc(res.instance)} — ${esc(res.implementation)}</p>
+    <p class="meta">${esc(res.status)} in ${res.elapsed}s`
+    + (Object.keys(res.result || {}).length ? " · " + Object.entries(res.result)
+        .map(([k, v]) => esc(k.replace(/_/g, " ") + " " + v)).join(" · ") : "")
+    + `</p>`;
+  if (res.advice) html += `<p class="warn">${esc(res.advice)}</p>`;
+  if (res.handoff) html += `<p class="warn">${esc(res.handoff)}</p>`;
+  html += `<h3>The log this produced</h3><pre>${esc(res.log)}</pre>`;
+  if (res.error) html += `<div class="result bad"><p class="warn">${esc(res.error)}</p></div>`;
+  else html += costHtml(res);
+  $("genout").innerHTML = html;
 }
 
 async function runLog() {
@@ -665,18 +746,7 @@ async function runLog() {
       <p class="warn">${esc(res.error)}</p></div>`;
     return;
   }
-  $("logout").innerHTML = `
-    <div class="result">
-      <div class="value">${res.total.toPrecision(6)}<small>${esc(res.unit_label)}</small></div>
-      <p class="meta" style="margin:.4rem 0 0">
-        ${res.whole_run ? "for the whole run" :
-          `summed over ${res.records} iterations · largest single one
-           ${res.largest.toPrecision(4)}`}</p>
-      <p class="meta" style="margin:.2rem 0 0">${esc(res.provenance)}</p>
-      ${res.warnings.map(w => `<p class="warn">⚠ ${esc(w)}</p>`).join("")}
-    </div>
-    <p class="model" style="color:var(--warn);font-size:.85rem">${esc(res.note)}</p>
-    <h3>The same run, as code</h3><pre>${esc(res.snippet)}</pre>`;
+  $("logout").innerHTML = costHtml(res);
 }
 
 $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {

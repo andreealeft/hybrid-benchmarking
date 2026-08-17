@@ -81,6 +81,12 @@ src/hybrid_benchmarking/
   compose.py      Assemble routines: fill a slot, add, multiply
   problems.py     Seven problems under friendly names, and routes through them
   dataset.py      The log format: records from an instrumented classical run
+  instances/      Readers for the files people have — DIMACS, Pisinger,
+                  Matrix Market, MPS. Standard library only, and they import
+                  nothing from the rest of the library
+  classical/      The solvers we instrument to produce a log: Dinic, a revised
+                  simplex, an interior point method, a linear solve. numpy
+                  lives here and nowhere else
   web.py, cli.py  Interface and command line — clients, holding no logic
   routines/       The registry itself, one module per family
 ```
@@ -105,23 +111,60 @@ the reader sees, the kernel is what evaluates.
   coding decisions to be made without checking in. Surface anything that
   changes the *science*; decide the rest.
 
+## Producing the logs, not just asking for them
+
+The loop is closed: `hb run <instance-file>` reads the file, runs the classical
+algorithm here under a budget, writes the log, and costs it. A log arriving from
+somewhere else takes the path it always took — this generates one, it does not
+replace the format.
+
+The instrumented quantities are the expensive part, and each has a reading that
+is wrong and still produces a gate count that sums and plots like a right one.
+They are set out at length in `classical/simplex.py`; in short:
+
+- **κ is GLPK's**, `max(1, κ₁/m)` with `κ₁ = ‖A_B‖₁‖A_B⁻¹‖₁` from (4.33), not
+  the exact condition number. An exact κ₂ would be larger *and* no longer a
+  bound.
+- **A_1 and A_max are the normalised lower bounds** `‖A_B‖₁/(d‖A_B‖max)` and
+  `1/d`, because SimplexIter runs on a normalised matrix. The raw norms are
+  logged beside them so the convention is reversible.
+- **t is the positive components of `u = A_B⁻¹A_k`** — Lemma 10 says so — not
+  the improving-column count, which marks Lemma 24's search over the `n−m`
+  columns and routinely exceeds `m`.
+
+Everything a run decides that a reader could not reconstruct lands on the cost's
+provenance rather than in a docstring, via `Run.assumptions`. Two of these are
+structural and should stay:
+
+- **Our solvers are not the published ones.** Costs from a generated log carry
+  `Derivation.LOGGED` and the implementation's name, and the totals will not
+  match the published figures. A route whose inputs are the instance rather than
+  a measurement — the knapsack circuits — declares itself `ANALYTIC` instead,
+  because a caveat that is not true costs as much as a missing one.
+- **A truncated run is still data.** The budget is checked between iterations so
+  a cut-off solve keeps its partial log; the total then understates the solve,
+  which is a lower bound for a reason unrelated to the lemmas'. It is a status
+  carried in the log file, not a warning in a terminal.
+
+Three things left open, each surfaced rather than decided:
+
+- **`SimplexIter/random` reuses one `t` for two different searches** — Lemma
+  24's over the `n−m` columns and Lemma 10's over the `m` components of `u`.
+  Harmless today because every registered route uses steepest edge. Fixing it
+  means a second symbol in the routines layer.
+- **The interior point route's κ is the unmodified normal-equation system's.**
+  Binkowski's "modified" form was not to hand; a diagonal equilibration is
+  logged beside it as `kappa_equilibrated`, and it is *not* reliably smaller, so
+  there is no safe choice here — only a stated one. See `classical/ipm.py`.
+- **Maximum flow as a linear program is not generated.** `flow_shape` predicts
+  `n = 2E`, and a circulation formulation with conservation at all `V` vertices
+  needs the return arc, giving `2E + 1`. Dinic covers the problem; the LP routes
+  through it would need that discrepancy settled first.
+
 ## Where it stands
 
 Complete: 44 routines / 51 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade boundary, the
-composition layer, the problem-first entry point, the log format, a local web
-interface and a CLI. 313 tests.
-
-Not done, and the next piece of work: **the tool cannot yet produce the logs it
-asks for.** Users have a graph or a knapsack instance, not a condition number.
-Closing that loop means reading instance files and running the classical
-algorithm ourselves, instrumented, on the user's machine — generating the log
-rather than replacing it, and showing it to them.
-
-Two things to hold onto when that lands:
-
-- Our Python simplex is not GLPK. Logged κ and improving-column counts depend
-  on the implementation, so results will differ from the published figures. Say
-  so: `Derivation.LOGGED` exists for this and nothing uses it yet.
-- A truncated run is still data. Cutting a solve off after N iterations gives a
-  cost that is a lower bound for a *second*, unrelated reason. Record it.
+composition layer, the problem-first entry point, the log format, instance
+readers and instrumented classical solvers for every problem but one, a local
+web interface and a CLI. 640 tests.

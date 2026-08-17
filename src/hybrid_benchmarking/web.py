@@ -107,9 +107,24 @@ def _field_data(f) -> Dict[str, Any]:
             "example": f.example}
 
 
-def _route_data(route: Route) -> Dict[str, Any]:
+def _generatable() -> frozenset:
+    """Which routes this machine can produce a log for, rather than only cost.
+
+    Imported here rather than at the top because the classical solvers pull in
+    numpy, and the promise that the registry and this interface work with a bare
+    Python and sympy is one there is a test for.
+    """
+    from .classical import supported
+
+    return frozenset(supported())
+
+
+def _route_data(route: Route, problem_key: str = "") -> Dict[str, Any]:
     return {
         "key": route.key,
+        #: True when pointing at an instance file is enough -- the classical
+        #: run happens here and the log is produced rather than asked for.
+        "generated": (problem_key, route.key) in _generatable(),
         "label": route.label,
         "classical": route.classical,
         "replaces": route.replaces,
@@ -133,7 +148,7 @@ def problems() -> List[Dict[str, Any]]:
             "label": p.label,
             "technical": p.technical,
             "blurb": p.blurb,
-            "routes": [_route_data(r) for r in p.routes],
+            "routes": [_route_data(r, p.key) for r in p.routes],
         }
         for p in PROBLEMS
     ]
@@ -146,7 +161,7 @@ def problem_detail(key: str) -> Dict[str, Any]:
         "label": problem.label,
         "technical": problem.technical,
         "blurb": problem.blurb,
-        "routes": [_route_data(r) for r in problem.routes],
+        "routes": [_route_data(r, problem.key) for r in problem.routes],
         "incomparable": len(problem.routes) > 1,
     }
 
@@ -189,6 +204,65 @@ def cost_from_log(problem: str, route_key: str, chosen: Dict[str, Any],
         )
     )
     return result
+
+
+def cost_from_instance(problem: str, route_key: str, path: str,
+                       chosen: Dict[str, Any],
+                       budget: Optional[float] = None) -> Dict[str, Any]:
+    """Run the classical algorithm here, then cost what it wrote down.
+
+    The other half of :func:`cost_from_log`, and the half that makes the panel
+    usable by someone who has a network rather than a condition number.  It
+    hands back the log as well as the count, because the log is the artefact and
+    skipping past it would turn this into an oracle.
+
+    Like everything else here, the file is read where it sits and the run
+    happens on this machine.
+    """
+    from .classical import Budget, GenerationError, generate_from_file
+    from .classical.budget import DEFAULT_SECONDS
+    from .classical import cost as cost_generated
+    from .dataset import render
+    from .instances import InstanceError
+
+    try:
+        generated = generate_from_file(
+            path, problem, route_key, Budget(budget or DEFAULT_SECONDS)
+        )
+    except (InstanceError, GenerationError) as error:
+        raise FormatError(str(error))
+
+    payload: Dict[str, Any] = {
+        "instance": generated.instance.describe(),
+        "layout": generated.instance.layout,
+        "implementation": generated.run.implementation,
+        "status": str(generated.run.status),
+        "elapsed": round(generated.run.elapsed, 3),
+        "result": generated.run.result or {},
+        "advice": generated.run.advice(),
+        "handoff": generated.run.handoff,
+        "log": render(generated.data, generated.route),
+    }
+    if not generated.run.usable:
+        payload["error"] = generated.run.reason or generated.run.advice()
+        return payload
+
+    values = {name: _coerce(raw) for name, raw in (chosen or {}).items()
+              if str(raw).strip()}
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", ValidityWarning)
+        report = cost_generated(generated, values)
+    report["warnings"] = [str(w.message) for w in caught]
+    report["snippet"] = (
+        "import hybrid_benchmarking as hb\n\n"
+        "generated = hb.generate_from_file({!r}, {!r}, {!r})\n"
+        "print(hb.render(generated.data, generated.route))\n"
+        "hb.classical.cost(generated, {!r})".format(
+            path, problem, route_key, values
+        )
+    )
+    payload.update(report)
+    return payload
 
 
 def why_not(routine: Routine, unit: Unit) -> str:
@@ -384,7 +458,8 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path not in ("/api/evaluate", "/api/compose",
-                             "/api/compose/evaluate", "/api/problem/run"):
+                             "/api/compose/evaluate", "/api/problem/run",
+                             "/api/problem/generate"):
             return self._send(404, b"not found", "text/plain; charset=utf-8")
         length = int(self.headers.get("Content-Length", 0))
         try:
@@ -396,6 +471,12 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(evaluate(
                     request["path"], request.get("unit"),
                     request.get("values", {}),
+                ))
+            if self.path == "/api/problem/generate":
+                return self._json(cost_from_instance(
+                    request["problem"], request["route"],
+                    request.get("instance", ""), request.get("chosen", {}),
+                    request.get("budget"),
                 ))
             if self.path == "/api/problem/run":
                 return self._json(cost_from_log(

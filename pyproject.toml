@@ -14,6 +14,10 @@ keywords = ["quantum algorithms", "hybrid benchmarking", "resource estimation"]
 
 dependencies = [
     "sympy>=1.11",
+    # Only the instrumented classical solvers need it, and they import it
+    # themselves -- the registry, the cost algebra and the interface do not,
+    # so the offline promise survives an installation without it.
+    "numpy>=1.20",
 ]
 
 [project.optional-dependencies]

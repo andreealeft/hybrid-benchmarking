@@ -111,6 +111,61 @@ HHL orders of magnitude above the rest and excluded on that basis; Chebyshev and
 QSVT below 10^8; Fourier an order above them; QSVT lowest — the qualitative
 result of chapter 5, from an independent reimplementation.
 
+## Starting from a file rather than from a number
+
+Everything above starts with a condition number. Nobody has one. What people
+have is a file — a DIMACS network, a knapsack instance, a matrix, an MPS model —
+and the numbers the lemmas want only exist once a classical solver has been
+instrumented and run.
+
+So the tool runs it, here, on your machine:
+
+```sh
+hybrid-benchmarking run instances/gnutella.max
+```
+
+```
+gnutella: 6301 vertices, 20777 arcs, 0 to 6300
+Dinic's algorithm, this library's own pure-Python implementation -- not the
+solver any published figure used
+  complete in 3.2s, 41 records
+
+the log this produced:
+  instance: {"vertices": 6301}
+  {"layers": [1, 10, 78, 412, ...]}
+  ...
+  -o PATH to keep it; it is the input everything below is from
+
+1.83e+11 gates
+  lower bound, logged from a classical run -- after Lefterovici, Lelakowski and
+  Perk ... ; Dinic's algorithm, this library's own pure-Python implementation
+```
+
+The log is generated, not skipped. It is written, shown, and then costed exactly
+as a log you produced yourself would be — and if you already have one, nothing
+about your path changed. `log` stops after the log; `batch` does a directory and
+tabulates; the same thing is a form in the browser panel.
+
+Two things follow from running it ourselves, and both are attached to every
+number rather than mentioned here:
+
+- **These are not the published runs.** The thesis instrumented GLPK; this is a
+  few hundred lines of numpy. Condition numbers and improving-column counts
+  depend on the implementation, so totals will differ from the published
+  figures. Costs derived this way carry `Derivation.LOGGED` and the name of what
+  actually ran.
+- **A run that was cut off is still data.** Every instance gets a budget,
+  checked between iterations so a cut-off run keeps its partial log. The records
+  are real and each is costed exactly as it would have been; what is missing is
+  the rest of the solve, which makes the total a lower bound *for a second
+  reason* unrelated to the lemmas being lower bounds. That is a status on the
+  log, not a warning in a terminal, and it survives being read back a week
+  later.
+
+Instance readers are standard-library only and import nothing from the rest of
+the library, so a mistake in one produces a graph with the wrong number of edges
+rather than a plausible gate count.
+
 ## Three ideas the code is built around
 
 **Every count knows what it is.** A cost carries its unit, how tight it is
@@ -196,6 +251,8 @@ pip install -e ".[dev]"
 python -m pytest
 ```
 
-Python 3.9 or newer. The only runtime dependency is sympy; the interface is
-served by the standard library, so a Python installation really is the only
+Python 3.9 or newer. sympy for the cost algebra and numpy for the instrumented
+classical solvers, which import it themselves — the registry, the costs and the
+interface do not, so everything except running an instance works without it. The
+server is standard library, so a Python installation really is the only
 prerequisite.

@@ -164,9 +164,20 @@ SIMPLEX_RECORD = (
     Field("d", "Sparsity", "Most non-zeros in any row or column", "4"),
     Field("A_1", "1-norm", "Largest absolute column sum of the basis", "3"),
     Field("A_max", "Largest entry", "Largest absolute entry of the basis", "1"),
-    Field("t", "Improving columns", "How many columns could enter", "5"),
+    # Lemma 10 defines this one, and defines it as the number of positive
+    # components of u = A_B^-1 A_k.  It is not the improving-column count: that
+    # marks Lemma 24's search over the n - m non-basic columns, it routinely
+    # exceeds m, and here it would mark more elements than the list being
+    # searched holds -- which the validity domain refuses outright.  Under the
+    # steepest-edge rule this route targets, nothing else consumes t at all.
+    Field("t", "Positive pivot components",
+          "How many components of the pivot direction are positive. Lemma 10 "
+          "searches the basis for one of them, so this is a count out of m -- "
+          "not the number of columns that could enter", "5"),
     Field("c_max", "Largest cost", "Largest absolute objective coefficient", "2"),
-    Field("u_norm", "Pivot norm", "Norm of the pivot direction", "1.5"),
+    Field("u_norm", "Pivot norm",
+          "Norm of the pivot direction of the entering column, ||A_B^-1 A_k||",
+          "1.5"),
 )
 
 SOLVER_RECORD = (
