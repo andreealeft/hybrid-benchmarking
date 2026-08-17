@@ -30,6 +30,9 @@ from .registry import (
     register,
     single,
 )
+from .compose import build as compose, code as compose_code, describe as compose_describe
+from .dataset import Dataset, FormatError, load, run, template
+from .problems import PROBLEMS, Problem, Route, get_problem, get_route
 from .validity import Condition, Validity
 from . import symbols
 from . import routines  # registers everything  # noqa: F401
@@ -48,6 +51,11 @@ __all__ = [
     "UnitMismatch",
     "Validity",
     "ValidityWarning",
+    "Dataset",
+    "FormatError",
+    "PROBLEMS",
+    "Problem",
+    "Route",
     "all_implementations",
     "all_routines",
     "capability_table",
@@ -57,5 +65,13 @@ __all__ = [
     "names",
     "register",
     "single",
+    "compose",
+    "compose_code",
+    "compose_describe",
+    "get_problem",
+    "get_route",
+    "load",
+    "run",
     "symbols",
+    "template",
 ]

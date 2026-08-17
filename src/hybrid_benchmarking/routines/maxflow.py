@@ -11,9 +11,17 @@ qBFS calls quantum search repeatedly instead.  Every vertex in a layer has to
 be found -- missing one yields an incomplete layered graph and the wrong
 maximum flow -- so the relevant cost is finding *all* marked elements, not one.
 
-Unlike the simplex, this construction fixes a schedule, so it has a cycle count
-as well as a gate count.  It buys that with two assumptions worth keeping in
-view: one qubit per vertex, and a phase oracle implemented in a single gate.
+Unlike the simplex, this construction is explicit enough to schedule, so Lemma 1
+counts *cycles*: a Grover iteration over a one-qubit-per-vertex register takes
+``2|L|`` of them.  The paper then assumes one cycle costs one gate and reports a
+gate count, which is what its comparison against classical breadth-first search
+uses.
+
+So this entry reports **gates**, and only gates.  Offering a cycle count beside
+it would imply two independent results where there is one number wearing two
+labels -- the conversion is an assumption, not a second derivation, and it is
+recorded as one.  :func:`grover_cycles` remains available as what Lemma 1
+actually establishes.
 """
 
 from __future__ import annotations
@@ -35,7 +43,8 @@ _SOURCE = "Lefterovici, Lelakowski and Perk, quantum breadth-first search for " 
 _ASSUMPTIONS = (
     "one qubit per vertex",
     "the phase oracle is implemented in a single gate",
-    "one cycle is implemented by exactly one gate",
+    "gates are obtained from the cycle count of Lemma 1 by assuming one cycle "
+    "costs exactly one gate",
 )
 
 
@@ -98,12 +107,8 @@ qBFS = single(
     citation=_SOURCE,
     built_from=("QSearchAll",),
     costs={
-        Unit.CYCLES: _cost(
-            Unit.CYCLES, lambda v: qbfs_cost(v["X"], v["layers"]), ("layers",),
-        ),
         Unit.GATES: _cost(
             Unit.GATES, lambda v: qbfs_cost(v["X"], v["layers"]), ("layers",),
-            "gates follow from cycles only because one cycle is one gate",
         ),
     },
 )
@@ -115,12 +120,8 @@ Dinic = single(
     citation=_SOURCE,
     built_from=("qBFS",),
     costs={
-        Unit.CYCLES: _cost(
-            Unit.CYCLES, lambda v: dinic_cost(v["X"], v["phases"]), ("phases",),
-        ),
         Unit.GATES: _cost(
             Unit.GATES, lambda v: dinic_cost(v["X"], v["phases"]), ("phases",),
-            "gates follow from cycles only because one cycle is one gate",
         ),
     },
 )

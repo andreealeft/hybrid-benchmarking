@@ -79,22 +79,28 @@ class TestDinic:
     def test_bigger_graphs_cost_more(self):
         assert qbfs_cost(3000, self.LAYERS) > qbfs_cost(300, self.LAYERS)
 
-    def test_it_offers_gates_and_cycles_and_they_agree(self):
-        """Only because the paper assumes one cycle is one gate -- which is
-        recorded on the gate count rather than left implicit."""
+    def test_it_reports_gates_only(self):
+        """Lemma 1 counts cycles, but the paper converts to gates by assuming
+        one cycle costs one gate, and reports gates.  Offering both would
+        imply two independent results where there is one number wearing two
+        labels, so only the reported quantity is registered -- with the
+        conversion recorded as the assumption it is."""
         routine = hb.get("Dinic")
-        gates = routine.evaluate(Unit.GATES, X=300, phases=self.PHASES)
-        cycles = routine.evaluate(Unit.CYCLES, X=300, phases=self.PHASES)
-        assert gates.value == pytest.approx(cycles.value)
-        assert any("one cycle is one gate" in a
-                   for a in gates.provenance.assumptions)
-        assert not any("one cycle is one gate" in a
-                       for a in cycles.provenance.assumptions)
+        assert routine.units == (Unit.GATES,)
+        cost = routine.evaluate(Unit.GATES, X=300, phases=self.PHASES)
+        assert any("one cycle costs exactly one gate" in a
+                   for a in cost.provenance.assumptions)
+
+    def test_the_cycle_count_lemma_is_still_available(self):
+        """What Lemma 1 actually establishes, separate from the conversion."""
+        from hybrid_benchmarking.routines.maxflow import grover_cycles
+
+        assert grover_cycles(150) == 300
 
     def test_the_logged_layer_sizes_are_the_input(self):
         assert "phases" in hb.get("Dinic").parameters
         with pytest.raises(ValueError, match="missing parameters: phases"):
-            hb.get("Dinic").evaluate(Unit.CYCLES, X=300)
+            hb.get("Dinic").evaluate(Unit.GATES, X=300)
 
 
 class TestInteriorPointReadout:
