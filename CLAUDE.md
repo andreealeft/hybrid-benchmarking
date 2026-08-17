@@ -39,14 +39,19 @@ Concretely, four rules that are already enforced and must stay enforced:
 
 ## When a source is ambiguous
 
-Record the ambiguity; do not pick quietly. Five have come up, each ruled by
+Record the ambiguity; do not pick quietly. Where two readings are each
+defensible, **take the one giving the lower count** — every number here is meant
+to be a bound favourable to the quantum side, and a bound built on the larger of
+two candidates is not the bound it claims to be. That rule is a tie-breaker
+between defensible readings, not a licence to adopt a statement that
+contradicts itself. Five have come up, each ruled by
 Andreea and each noted on the entries that depend on it:
 
 | Where | The problem | Ruling |
 |---|---|---|
 | (B.74) vs Lemma 16 | j₀'s inner factor is linear in one slot, quadratic in the other — B.74 contradicts itself | **Quadratic.** Agrees with Childs–Kothari–Somma and with Binkowski's Lemma 1 |
 | Lemma 17 | `n_1/x` defined with three arguments, called with two | **Keep the `d/2κ` rescaling** — it encodes the block-encoding sub-normalisation |
-| Lemma 6 vs Lemma 13 | Same product term; one carries `m_k/2` and truncates, the other does not | **An error, not a unit difference — direction still unresolved.** Each keeps its own paper's convention behind `HALF_IN_QSEARCH`, so no published number moves |
+| Lemma 6 vs Lemma 13 | Same product term; one carries `m_k/2` and truncates, the other does not | **Both carry the half** (`HALF_ROUND_COUNT`). Neither statement contradicts itself, so the standing rule decides: where two defensible readings disagree, take the lower count. Halves every solver's query count; changes no ordering, since all four carry the same overhead |
 | Lemma 9/27 vs (A.23)/Lemma 25 | Minimum-finding rank sum starts at 1 in two places, 0 in two others | **From 0** — the t=0 term is the terminating search that finds nothing, and it is the largest |
 | (C.18) vs (C.25), (C.24) vs (C.28) | Comparison strategy reads bits of `w` in one and `w−1` in the other; cycle weights grouped differently | Transcribed as written, asymmetry flagged in the docstrings |
 

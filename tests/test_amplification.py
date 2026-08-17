@@ -23,15 +23,15 @@ from hybrid_benchmarking.routines.amplification import (
 
 class TestOneGeneric:
     def test_search_is_truncated_amplification(self):
-        """Quantum search is amplification, truncated, times one half.
+        """Quantum search is amplification with a round budget.
 
-        The two published statements differ only in the round budget and in a
-        factor that reflects counting Grover iterations rather than
-        applications of the amplified algorithm.
+        The two published statements differ only in that budget, now that the
+        disputed factor of one half is applied to both -- being the smaller of
+        two defensible readings.
         """
         for length, marked in [(64, 1), (1024, 1), (4096, 7), (10_000, 3)]:
             assert qsearch_iterations(length, marked) == pytest.approx(
-                0.5 * rounds(
+                rounds(
                     p=marked / length,
                     p0=1 / length,
                     k_max=qsearch_k_max(length),
@@ -66,7 +66,19 @@ class TestScaling:
         assert qaa_overhead(0.5, 0.5) < qaa_overhead(0.01, 0.01)
 
     def test_certain_success_needs_one_application(self):
+        """The factor of one half scales a round's budget, and a certain
+        success draws no round -- it runs the algorithm once."""
         assert qaa_overhead(1.0, 1.0) == 1.0
+
+    def test_the_disputed_half_applies_to_both_statements(self):
+        """Where two defensible readings disagree, the lower count wins."""
+        assert qaa_overhead(0.01, 0.01) == pytest.approx(
+            0.5 * rounds(0.01, 0.01, half=False)
+        )
+        assert qsearch_iterations(1000, 1) == pytest.approx(
+            0.5 * rounds(p=1 / 1000, p0=1 / 1000,
+                         k_max=qsearch_k_max(1000), half=False)
+        )
 
     def test_a_looser_bound_never_helps(self):
         """The lower bound only caps how far the schedule may grow.

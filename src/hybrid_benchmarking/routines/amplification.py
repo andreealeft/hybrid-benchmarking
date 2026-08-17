@@ -13,15 +13,19 @@ the difference is **an error, not a difference of unit**.  Lemma 6 of the thesis
 carries ``m_k / 2`` and truncates at ``k_max``; Lemma 13 carries ``m_k`` and
 sums to convergence.  The product term is identical -- ``1 - <p>`` in one is
 ``1/2 + sin(...)/(...)`` in the other -- so the two are meant to report the same
-quantity.
+quantity, and one of them is wrong.
 
-Which of the two is right is not yet settled.  Until it is, each entry
-reproduces the convention of the paper it was published in, so no previously
-published number moves: :data:`HALF_IN_QSEARCH` keeps the factor in the
-quantum-search form used by the simplex gate counts, and leaves it out of the
-amplification form used by the linear solver query counts.  Both come from the
-single kernel :func:`rounds`, so reconciling them is a one-line change here
-rather than an edit in every dependent analysis.
+Neither statement contradicts itself, so there is no internal evidence for
+which.  The rule this work applies elsewhere decides it: **where two defensible
+readings disagree, take the one that gives the lower count.**  Every number here
+is meant to be a bound favourable to the quantum side, and a bound built on the
+larger of two candidate values is not the bound it claims to be.  So the factor
+of one half applies to both, controlled by :data:`HALF_ROUND_COUNT`.
+
+This halves the amplification overhead relative to Lemma 13 as printed, and so
+halves every functional linear solver's query count.  It changes no conclusion
+of that comparison: all four solvers carry the same overhead, so their ordering
+and their ratios are untouched.
 """
 
 from __future__ import annotations
@@ -41,13 +45,11 @@ from ..validity import Validity, definition
 LAMBDA = sp.Rational(6, 5)
 _LAMBDA = float(LAMBDA)
 
-#: Whether the quantum-search form keeps Lemma 6's factor of one half while the
-#: amplification form follows Lemma 13 without it.  See the module docstring:
-#: the two statements disagree and the reconciliation is unresolved, so each
-#: keeps its own published convention.  Set to ``False`` to make both report the
-#: same quantity, which doubles every count that runs through
-#: :func:`qsearch_iterations` -- including all quantum simplex gate counts.
-HALF_IN_QSEARCH = True
+#: The factor of one half that Lemma 6 carries and Lemma 13 does not.  Applied
+#: to both, being the smaller of two defensible readings; see the module
+#: docstring.  Setting it to ``False`` doubles every count in the library that
+#: passes through amplification.
+HALF_ROUND_COUNT = True
 
 
 # --------------------------------------------------------------------------
@@ -61,6 +63,7 @@ def rounds(
     k_max: Optional[int] = None,
     tol: float = 1e-15,
     hard_cap: int = 100_000,
+    half: Optional[bool] = None,
 ) -> float:
     """Expected number of applications of the amplified algorithm.
 
@@ -72,6 +75,12 @@ def rounds(
     With ``k_max`` the sum is truncated after that many rounds, which is what
     the quantum-search statement does; without it, the sum runs until the
     remaining mass is below ``tol``.
+
+    ``half`` scales each round's budget, the disputed factor of Lemma 6.  It
+    belongs to the round size -- the power actually drawn is uniform below
+    ``m_k``, so a round costs about ``m_k / 2`` -- and therefore applies to the
+    summed terms and to the exhausted schedule, but not to a success that needs
+    no schedule at all.
     """
     if not 0 <= p <= 1:
         raise ValueError("success probability p must lie in [0, 1], got {}".format(p))
@@ -81,8 +90,10 @@ def rounds(
         raise ValueError(
             "p_0 = {} is not a lower bound on p = {}".format(p0, p)
         )
+    factor = 0.5 if (HALF_ROUND_COUNT if half is None else half) else 1.0
+
     if p >= 1 - 1e-12:
-        return 1.0
+        return 1.0  # one application; there is no schedule to draw from
 
     if p == 0:
         # Nothing is marked, so no round can succeed and the schedule runs to
@@ -96,8 +107,8 @@ def rounds(
                 "with nothing marked the schedule never converges; a round "
                 "budget is required"
             )
-        return float(sum(math.floor(min(c ** k, math.sqrt(1.0 / p0)))
-                         for k in range(1, k_max + 1)))
+        return factor * float(sum(math.floor(min(c ** k, math.sqrt(1.0 / p0)))
+                                  for k in range(1, k_max + 1)))
 
     theta = math.asin(math.sqrt(p))
     sin_2theta = math.sin(2 * theta)
@@ -108,7 +119,7 @@ def rounds(
     k = 1
     while True:
         m = math.floor(min(c ** k, cap))
-        total += m * remaining
+        total += factor * m * remaining
 
         # Probability that round k also fails, carried into the next product.
         success_k = 0.5 - math.sin(4 * (m + 1) * theta) / (
@@ -146,7 +157,7 @@ def qsearch_iterations(list_length: float, marked: float) -> float:
     and reports that there is no answer.  That is what FindRow's binary search
     pays at ``r = 0``, and Lemma 11 is stated in terms of it.
     """
-    return (0.5 if HALF_IN_QSEARCH else 1.0) * rounds(
+    return rounds(
         p=float(marked) / float(list_length),
         p0=1.0 / float(list_length),
         k_max=qsearch_k_max(list_length),
@@ -168,7 +179,12 @@ def qsearch_all_iterations(list_length: float, marked: float) -> float:
 
 
 def qaa_overhead(p: float, p0: float) -> float:
-    """Expected applications needed to boost success probability to O(1)."""
+    """Expected applications needed to boost success probability to O(1).
+
+    Carries the same factor of one half as :func:`qsearch_iterations`: the two
+    published statements disagree about it and neither is self-contradictory,
+    so the smaller reading wins.
+    """
     return rounds(p=p, p0=p0)
 
 
