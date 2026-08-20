@@ -282,6 +282,10 @@ def detect(path: Union[str, Path]) -> str:
     if lowered.startswith("%%matrixmarket"):
         return "matrix-market"
 
+    numeric = _numeric_family(head)
+    if numeric:
+        return numeric
+
     for line in head.splitlines():
         stripped = line.strip()
         if not stripped:
@@ -302,9 +306,63 @@ def detect(path: Union[str, Path]) -> str:
             continue  # a comment in several of these formats; keep looking
 
     raise InstanceError(
-        "cannot tell what {} is; name it .max, .clq, .mtx, .mps or .kp, or "
-        "pass the format explicitly".format(location.name)
+        "cannot tell what {} is; name it .max, .clq, .mtx, .mps, .kp, .qkp or "
+        ".mdkp, or say which format it is outright".format(location.name)
     )
+
+
+def _numeric_family(head: str) -> str:
+    """Tell the three all-but-numeric knapsack layouts apart, or say nothing.
+
+    The benchmark sets for these ship as ``.txt``, which is no help at all, so
+    the extension cannot decide and the shape of the opening has to.  Each of
+    the three opens differently enough to be recognised without reading further:
+
+    * a ``problem NAME`` marker anywhere near the top belongs to the
+      multidimensional set's second layout, which is the only one that names its
+      instances;
+    * an opening line of nothing but numbers is the multidimensional set's
+      counted layout -- one number is a problem count, two are a dimension and
+      an item count;
+    * an opening line that is a name, followed by a line holding one number, is
+      a quadratic knapsack: the name, then the item count;
+    * a name followed by ``n <count>`` is Pisinger's 0-1 layout.
+
+    Anything else returns the empty string and lets :func:`detect` refuse, which
+    is the point.  A knapsack read as the wrong knapsack does not fail -- it
+    produces an instance of the wrong size and a gate count to match.
+    """
+    lines = [line.strip() for line in head.splitlines()]
+    meaningful = [line for line in lines
+                  if line and not line.startswith(("*", "%", "#"))]
+    if not meaningful:
+        return ""
+
+    for line in lines[:60]:
+        words = line.split()
+        if len(words) >= 2 and words[0].lower() == "problem":
+            return "multidimensional-knapsack"
+
+    first = meaningful[0].split()
+    if all(_is_number(word) for word in first):
+        return "multidimensional-knapsack" if len(first) in (1, 2) else ""
+
+    if len(meaningful) < 2:
+        return ""
+    second = meaningful[1].split()
+    if len(second) == 1 and _is_number(second[0]):
+        return "quadratic-knapsack"
+    if len(second) == 2 and second[0].lower() == "n" and _is_number(second[1]):
+        return "pisinger"
+    return ""
+
+
+def _is_number(word: str) -> bool:
+    try:
+        float(word)
+    except ValueError:
+        return False
+    return True
 
 
 def read(path: Union[str, Path], layout: str = "") -> Instance:

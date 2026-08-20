@@ -312,13 +312,28 @@ The menu shows the names. It does not show which problem each one is underneath
 in the data, and it is still on every cost's provenance, which is the one place
 it must never be dropped.
 
-Two families are new and have no instance reader yet, so they are costed from
-values typed into the form rather than from a file: `quadratic-knapsack` and
-`multidimensional-knapsack`. Their pair bonuses are **bonuses only** — the
-circuit has a gate where a pair earns something together and none where it costs
-something, so a negative one is refused rather than counted. That refusal
-matters more than it looks: the position of the lowest set bit of a negative
-number is a perfectly good integer, and the count would otherwise come back.
+Two families are new: `quadratic-knapsack` and `multidimensional-knapsack`.
+Both read files now — Billionnet–Soutif for the first, OR-Library for the second
+— and both sets ship as `.txt`, so `detect` tells the three all-but-numeric
+knapsack layouts apart by the shape of their opening rather than by extension;
+`--layout` names one outright where that is not enough.
+
+Their pair bonuses are **bonuses only**. The circuit has a gate where a pair
+earns something together and none where it costs something, so a negative one is
+refused rather than counted — and that refusal matters more than it looks, since
+the lowest set bit of a negative number is a perfectly good integer and the count
+would otherwise come back.
+
+**The positive-integer rule blocks most of both published sets**, and this is
+worth a decision rather than a shrug. A zero profit or weight has no lowest set
+bit, so it is refused at the file rather than surprising someone in a gate
+count. But the quadratic set's density thins its *linear* coefficients too, so
+only the full-density files parse; and of OR-Library's multidimensional sets,
+`mknap1` and 44 of `mknap2`'s 48 problems carry zero costs, leaving only the 270
+Chu–Beasley instances — none of which states an optimum. What a zero-valued item
+should cost is the open question: nothing, since its layer has nothing to add,
+or a full-width addition, which is what Sören's 0-1 code counts for a zero
+summand. It changes counts either way.
 
 ## The QTG search, and where the square root lives
 
@@ -400,4 +415,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1512 tests.
+interface and a CLI. 1626 tests.
