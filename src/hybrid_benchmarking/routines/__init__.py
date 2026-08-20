@@ -14,8 +14,9 @@ from . import knapsack  # noqa: F401
 from . import maxflow  # noqa: F401
 from . import qipm  # noqa: F401
 from . import cade  # noqa: F401
+from . import qkp  # noqa: F401
 
 __all__ = [
     "oracles", "amplification", "standard", "hamsim", "linsolve", "simplex", "knapsack",
-    "maxflow", "qipm", "cade",
+    "maxflow", "qipm", "cade", "qkp",
 ]

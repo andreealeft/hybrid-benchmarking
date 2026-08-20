@@ -74,6 +74,8 @@ QPE                                 yes          -          -          -        
 QSearch                               -          -          -        yes          -          -
 QSearchAll                            -          -          -        yes          -          -
 QTG                                 yes          -        yes          -          -          -
+QTG-multidimensional                yes          -        yes          -          -          -
+QTG-quadratic                       yes          -        yes          -          -          -
 QTGSearch                           yes          -        yes          -          -          -
 RedCost                             yes          -          -          -          -          -
 SignEstNFN                          yes          -          -          -          -          -

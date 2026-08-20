@@ -167,3 +167,12 @@ the ``n - m`` non-basic columns and routinely exceeds ``m``.  The instrumented
 GLPK the thesis ran logs both, under ``candidate_columns`` and
 ``u_positive_elements``, and feeds each to its own lemma.
 """
+
+
+# --- knapsack variants ------------------------------------------------------
+
+dimensions = sp.Symbol("dimensions", positive=True, integer=True)
+"""Weight dimensions in a multidimensional knapsack: the number of capacities."""
+
+items = sp.Symbol("items", positive=True, integer=True)
+"""Items in a knapsack instance, which is the path register's width."""

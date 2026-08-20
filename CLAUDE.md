@@ -298,6 +298,46 @@ random probing when ARPACK does not converge, which underestimated `κ` by 8× a
 11.5× on two instances of ours — his `κ` is a lower bound by construction, ours
 is exact.
 
+## The knapsack variants
+
+`arXiv:2503.22325` (Wilkening, Lefterovici, Binkowski, Funck, Perk, Karimov,
+Fekete, Osborne) extends the tree generator to the quadratic and
+multidimensional knapsack problems. They are **separate entries with separate
+counts** — `QTG-quadratic` and `QTG-multidimensional` — not a parameterisation
+of `QTG`. Different circuits, different instances; only the primitives are
+shared, because those really are the same gates.
+
+The paper prints one closed form, the multidimensional qubit count
+`n + Σ|cᵢ| + |P| + max(n, Σ|cᵢ| + 1, |P|)`, which is reproduced as written. It
+gives the gate and cycle counts structurally only — "rather straight-forward as
+the QTG for the QKP effectively arises from the QTG for the KP plus additional
+doubly-controlled profit additions" — and **its simulator is not published**:
+Zenodo 16895828 and `SoerenWilkening/QTG_0-1Knapsack` are the *0-1* code, and
+the `CBQS-*` repositories belong to a different paper. So three constants are
+derived from Appendix C's own rules and named on every cost:
+
+- a **doubly-controlled addition** is a singly-controlled one plus two Toffolis,
+  computing and uncomputing the conjunction of its controls in the shared
+  ancilla register — the cheapest reading of "multi-controlled gates share one
+  ancilla register";
+- the **dimensions of a multidimensional instance run in parallel**, their
+  registers being disjoint, so the cycle count takes the deepest dimension where
+  the gate count takes the sum;
+- **feasibility across dimensions** is a balanced Toffoli tree over the `d`
+  flags: `d − 1` gates, `2⌈log₂ d⌉` cycles.
+
+One convention that is not pedantry: a pair's profit is what it earns **in
+total**. The paper's matrix is symmetric and its objective sums ordered pairs,
+so a pair earns `p_{mm'} + p_{m'm}` while the circuit adds once per unordered
+pair. The count depends on the position of the lowest set bit, so a factor of
+two moves it. A full symmetric matrix and its upper triangle are both accepted
+and agree.
+
+Not implemented: the further parallelisation the paper describes for the
+quadratic profits, `O(log₂(n²))` layers of pairwise additions giving `O(log₂ n)`
+depth. It is stated asymptotically, with no constants to transcribe, and it is
+the cheaper of the two — so these entries are the dearer form.
+
 ## Where it stands
 
 Complete: 44 routines / 51 implementations, all of Appendices A, B and C, the
