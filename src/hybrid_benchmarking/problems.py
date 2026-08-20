@@ -76,13 +76,23 @@ class Route:
 
 @dataclass(frozen=True)
 class Problem:
-    """A real task, under the name someone would recognise."""
+    """A real task, under the name someone would recognise.
+
+    Many of these are the same problem wearing different clothes.  Siting
+    satellites and siting charging stations are both a quadratic knapsack, and
+    someone who has one of them does not want to be told that before they can
+    get a number.  So the *family* is what owns the routes, the shapes and the
+    fields, and a problem is a name and a story attached to one -- which is why
+    there are seventy of these and nine families.
+    """
 
     key: str
     label: str
     technical: str
     blurb: str
     routes: Tuple[Route, ...]
+    #: The problem underneath, which decides how it is solved and costed.
+    family: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -246,6 +256,49 @@ IPM_PRECISION = (
 )
 
 
+KNAPSACK_INSTANCE = (
+    Field("profits", "Values", "What each item is worth, as a list",
+          "[6, 2, 1, 2]"),
+    Field("weights", "Costs", "What each item costs, as a list", "[2, 2, 1, 5]"),
+    Field("capacity", "Budget", "Total cost you can afford", "7"),
+    Field("profit_bound", "Value ceiling",
+          "Any upper bound on the best achievable value", "11"),
+)
+
+QUADRATIC_INSTANCE = KNAPSACK_INSTANCE + (
+    Field("pair_profits", "Pair bonuses",
+          "What each pair earns *in addition* when both are chosen, as "
+          "{\"(i, j)\": value}. Bonuses only -- a pair that costs you "
+          "something when both are chosen is not something this circuit has a "
+          "gate for", '{"(0, 1)": 6}'),
+)
+
+MULTIDIMENSIONAL_INSTANCE = (
+    Field("profits", "Values", "What each item is worth, as a list",
+          "[6, 2, 1, 2]"),
+    Field("weights", "Costs",
+          "What each item costs in each dimension: one list per dimension",
+          "[[2, 2, 1, 5], [3, 1, 4, 2]]"),
+    Field("capacities", "Budgets", "One budget per dimension, as a list",
+          "[7, 6]"),
+    Field("profit_bound", "Value ceiling",
+          "Any upper bound on the best achievable value", "11"),
+)
+
+
+def knapsack_shape(data: Dict[str, float]) -> Dict[str, float]:
+    """How many items there are, which nobody should have to count."""
+    profits = data.get("profits") or []
+    return {"items": len(profits)}
+
+
+def multidimensional_shape(data: Dict[str, float]) -> Dict[str, float]:
+    """Items and dimensions, both read off the lists that were supplied."""
+    profits = data.get("profits") or []
+    weights = data.get("weights") or []
+    return {"items": len(profits), "dimensions": len(weights)}
+
+
 # ---------------------------------------------------------------------------
 # routes shared by every problem that becomes a linear program
 # ---------------------------------------------------------------------------
@@ -302,147 +355,372 @@ def _lp_routes(shape: Shape) -> Tuple[Route, ...]:
 # the problems
 # ---------------------------------------------------------------------------
 
-PROBLEMS: Tuple[Problem, ...] = (
-    Problem(
-        key="maximum-flow",
-        label="Routing as much as possible through a network",
-        technical="Maximum flow",
-        blurb="Pipes, cables, roads or shipping lanes with limited capacity: "
-              "how much can travel from a source to a destination at once? "
-              "It also turns up inside scheduling and matching problems.",
-        routes=(
-            Route(
-                key="quantum-bfs",
-                label="Quantum breadth-first search",
-                classical="Dinic's algorithm",
-                replaces="the breadth-first sweep that layers the network, "
-                         "with quantum search for each layer's vertices",
-                target="Dinic",
-                unit=Unit.GATES,
-                collects=("layers", "phases"),
-                renames={"vertices": "X"},
-                per_instance=(GRAPH[0],),
-                per_record=(
-                    Field("layers", "Layer sizes",
-                          "Vertices in each layer of this sweep, as a list",
-                          "[1, 3, 5, 2]"),
-                ),
-                note="The circuit is explicit enough to schedule, so the "
-                     "derivation counts cycles; the gate count follows by "
-                     "assuming one cycle costs one gate. That assumption is "
-                     "generous -- a cycle usually holds many gates.",
-            ),
-            _simplex_route(flow_shape),
-            _ipm_route("mnes"),
-            _ipm_route("oss"),
+def _quadratic_route() -> Route:
+    return Route(
+        key="tree-generator",
+        label="Quantum tree generator",
+        classical="An exact solver for the quadratic knapsack",
+        replaces="the whole search, with a quantum state that superposes "
+                 "feasible choices weighted towards profitable ones, amplified "
+                 "towards the best",
+        target="QTG-quadratic",
+        unit=Unit.CYCLES,
+        per_instance=QUADRATIC_INSTANCE,
+        shape=knapsack_shape,
+        note="The pair bonuses must be positive. The circuit has a gate for a "
+             "pair that earns something together and none for a pair that "
+             "costs something, so a story about interference or cannibalisation "
+             "is not one this counts.",
+    )
+
+
+def _multidimensional_route() -> Route:
+    return Route(
+        key="tree-generator",
+        label="Quantum tree generator",
+        classical="An exact solver for the multidimensional knapsack",
+        replaces="the whole search, with a quantum state that superposes "
+                 "feasible choices weighted towards profitable ones, amplified "
+                 "towards the best",
+        target="QTG-multidimensional",
+        unit=Unit.CYCLES,
+        per_instance=MULTIDIMENSIONAL_INSTANCE,
+        shape=multidimensional_shape,
+        note="Every budget is checked at once: a choice survives only where it "
+             "fits in all of them. The dimensions act on separate registers, "
+             "so they cost gates in proportion to their number but far fewer "
+             "cycles.",
+    )
+
+
+def _knapsack_route() -> Route:
+    return Route(
+        key="tree-generator",
+        label="Quantum tree generator search",
+        classical="COMBO, the state-of-the-art dynamic programming solver",
+        replaces="the whole search, with a quantum state that superposes "
+                 "feasible packings weighted towards profitable ones, "
+                 "amplified towards the best",
+        target="QTG",
+        unit=Unit.CYCLES,
+        per_instance=KNAPSACK_INSTANCE,
+        note="The only route here whose cost depends on the actual numbers "
+             "rather than on problem size: where the ones sit in each value's "
+             "binary representation changes the circuit.",
+    )
+
+
+def _solver_routes() -> Tuple[Route, ...]:
+    return tuple(
+        Route(
+            key=key, label=label,
+            classical="A direct factorisation, or an iterative method such as "
+                      "conjugate gradient",
+            replaces="the whole solve, preparing the solution as a quantum "
+                     "state rather than as numbers",
+            target=target, unit=Unit.QUERIES,
+            per_record=SOLVER_RECORD + (SIMULATED_ENTRY if simulates else ()),
+            chosen=(PRECISION[0],), note=note,
+        )
+        for key, label, target, simulates, note in (
+            ("qsvt", "Singular value transformation", "QLS-QSVT", False,
+             "Lowest query count across every dataset in the comparison."),
+            ("chebyshev", "Chebyshev polynomials", "QLS-Chebyshev", False,
+             "Close behind, and the one the interior point work adopts."),
+            ("fourier", "Fourier series", "QLS-Fourier/via-qubitization", True,
+             "Twenty to sixty times dearer, but simpler to build."),
+            ("hhl", "HHL", "HHL", True,
+             "The famous one, and orders of magnitude more expensive: its cost "
+             "scales as one over the precision where the others scale as its "
+             "logarithm."),
+        )
+    )
+
+
+#: What each family is, underneath: the routes it offers and the technical
+#: problem it really is.  Everything a route needs -- the fields, the shape, the
+#: units -- belongs here, so that adding a seventieth friendly name costs a line
+#: of prose rather than a copy of a route.
+FAMILIES: Dict[str, Tuple[str, Tuple[Route, ...]]] = {
+    "maximum-flow": ("Maximum flow", (
+        Route(
+            key="quantum-bfs", label="Quantum breadth-first search",
+            classical="Dinic's algorithm",
+            replaces="the breadth-first sweep that layers the network, with "
+                     "quantum search for each layer's vertices",
+            target="Dinic", unit=Unit.GATES,
+            collects=("layers", "phases"), renames={"vertices": "X"},
+            per_instance=(GRAPH[0],),
+            per_record=(Field("layers", "Layer sizes",
+                              "Vertices in each layer of this sweep, as a list",
+                              "[1, 3, 5, 2]"),),
+            note="The circuit is explicit enough to schedule, so the derivation "
+                 "counts cycles; the gate count follows by assuming one cycle "
+                 "costs one gate. That assumption is generous -- a cycle "
+                 "usually holds many gates.",
         ),
-    ),
-    Problem(
-        key="vertex-cover",
-        label="Covering a network with as few sites as possible",
-        technical="Minimum vertex cover",
-        blurb="Placing cameras, sensors or guards so that every connection is "
-              "watched by at least one of them, using as few as you can.",
-        routes=_lp_routes(cover_shape),
-    ),
-    Problem(
-        key="independent-set",
-        label="Choosing as many mutually compatible items as possible",
-        technical="Maximum independent set",
-        blurb="Picking the largest group of things that do not conflict -- "
-              "non-interfering transmitters, non-clashing bookings, "
-              "compatible machines.",
-        routes=_lp_routes(cover_shape),
-    ),
-    Problem(
-        key="clique",
-        label="Finding the largest fully connected group",
-        technical="Maximum clique",
-        blurb="The biggest set of items that are all pairwise related: a "
-              "tightly knit community, a set of mutually compatible parts.",
-        routes=_lp_routes(clique_shape),
-    ),
-    Problem(
-        key="linear-programming",
-        label="Allocating limited resources",
-        technical="Linear programming",
-        blurb="Production planning, blending, logistics, staffing -- anything "
-              "where a linear objective meets linear constraints. If you "
-              "already have a model in MPS or LP format, this is your entry.",
-        routes=_lp_routes(None),
-    ),
-    Problem(
-        key="knapsack",
-        label="Packing the most value under a budget",
-        technical="0-1 knapsack",
-        blurb="Choosing which items to take when each has a value and a cost "
-              "and the total cost is capped: cargo loading, project "
-              "selection, capital budgeting.",
-        routes=(
-            Route(
-                key="tree-generator",
-                label="Quantum tree generator search",
-                classical="COMBO, the state-of-the-art dynamic programming "
-                          "solver",
-                replaces="the whole search, with a quantum state that "
-                         "superposes feasible packings weighted towards "
-                         "profitable ones, amplified towards the best",
-                target="QTG",
-                unit=Unit.CYCLES,
-                per_instance=(
-                    Field("profits", "Values",
-                          "What each item is worth, as a list", "[6, 2, 1, 2]"),
-                    Field("weights", "Costs",
-                          "What each item costs, as a list", "[2, 2, 1, 5]"),
-                    Field("capacity", "Budget",
-                          "Total cost you can afford", "7"),
-                    Field("profit_bound", "Value ceiling",
-                          "Any upper bound on the best achievable value", "11"),
-                ),
-                note="The only route here whose cost depends on the actual "
-                     "numbers rather than on problem size: where the ones sit "
-                     "in each value's binary representation changes the "
-                     "circuit.",
-            ),
-        ),
-    ),
-    Problem(
-        key="linear-systems",
-        label="Solving a large system of equations, or a physical field",
-        technical="Linear systems and discretised PDEs",
-        blurb="Steady-state temperature, electrostatic potential, structural "
-              "load -- anything that discretises into a large sparse system. "
-              "Also the step every method above outsources to a solver.",
-        routes=tuple(
-            Route(
-                key=key,
-                label=label,
-                classical="A direct factorisation, or an iterative method "
-                          "such as conjugate gradient",
-                replaces="the whole solve, preparing the solution as a "
-                         "quantum state rather than as numbers",
-                target=target,
-                unit=Unit.QUERIES,
-                per_record=SOLVER_RECORD + (SIMULATED_ENTRY if simulates else ()),
-                chosen=(PRECISION[0],),
-                note=note,
-            )
-            for key, label, target, simulates, note in (
-                ("qsvt", "Singular value transformation", "QLS-QSVT", False,
-                 "Lowest query count across every dataset in the comparison."),
-                ("chebyshev", "Chebyshev polynomials", "QLS-Chebyshev", False,
-                 "Close behind, and the one the interior point work adopts."),
-                ("fourier", "Fourier series", "QLS-Fourier/via-qubitization",
-                 True,
-                 "Twenty to sixty times dearer, but simpler to build."),
-                ("hhl", "HHL", "HHL", True,
-                 "The famous one, and orders of magnitude more expensive: its "
-                 "cost scales as one over the precision where the others "
-                 "scale as its logarithm."),
-            )
-        ),
-    ),
+    ) + _lp_routes(flow_shape)),
+    "vertex-cover": ("Minimum vertex cover", _lp_routes(cover_shape)),
+    "independent-set": ("Maximum independent set", _lp_routes(cover_shape)),
+    "clique": ("Maximum clique", _lp_routes(clique_shape)),
+    "linear-programming": ("Linear programming", _lp_routes(None)),
+    "knapsack": ("0-1 knapsack", (_knapsack_route(),)),
+    "quadratic-knapsack": ("0-1 quadratic knapsack", (_quadratic_route(),)),
+    "multidimensional-knapsack": ("0-1 multidimensional knapsack",
+                                  (_multidimensional_route(),)),
+    "linear-systems": ("Linear systems and discretised PDEs", _solver_routes()),
+}
+
+
+#: The names people actually use, and the story each one tells.  Several dozen
+#: of these are the same nine problems: siting satellites and siting charging
+#: stations are both a quadratic knapsack, and someone arriving with one of them
+#: should not have to know that to get a number.
+#:
+#: ``(key, family, label, blurb)``.
+_CATALOGUE: Tuple[Tuple[str, str, str, str], ...] = (
+    # ---- maximum flow ----------------------------------------------------
+    ("maximum-flow", "maximum-flow",
+     "Routing as much as possible through a network",
+     "Pipes, cables, roads or shipping lanes with limited capacity: how much "
+     "can travel from a source to a destination at once?"),
+    ("evacuation", "maximum-flow", "Getting everyone out in time",
+     "How many people an escape network can move away from a danger zone "
+     "before its corridors and stairwells saturate."),
+    ("supply-chain", "maximum-flow", "How much a supply chain can carry",
+     "Factories, depots and lanes with limited throughput: the most that can "
+     "reach the customer per week, and which link stops it going higher."),
+    ("shift-assignment", "maximum-flow", "Assigning people to shifts",
+     "Every worker can cover some shifts and not others. Filling as many "
+     "shifts as possible is a matching, and a matching is a flow."),
+    ("school-places", "maximum-flow", "Matching applicants to places",
+     "Students to schools, doctors to hospitals, applicants to slots -- as "
+     "many good pairings as the preferences and capacities allow."),
+    ("job-machines", "maximum-flow", "Putting jobs on the machines that fit",
+     "Each job runs on some machines and not others. How many can run at once."),
+    ("image-separation", "maximum-flow", "Separating an object from its background",
+     "Cutting an image into foreground and background as cheaply as possible "
+     "is a minimum cut, and a minimum cut is a maximum flow."),
+    ("project-prerequisites", "maximum-flow",
+     "Choosing projects when some need others first",
+     "Profitable projects with prerequisites: picking the best set that is "
+     "closed under what it depends on."),
+    ("weakest-link", "maximum-flow", "Finding a network's weakest link",
+     "Which few connections, if they failed, would cut the network in two -- "
+     "and how much capacity that costs."),
+    ("elimination", "maximum-flow", "Who can still win the league",
+     "Given the games left to play, whether a team is already out."),
+
+    # ---- 0-1 knapsack ----------------------------------------------------
+    ("knapsack", "knapsack", "Packing the most value under a budget",
+     "Choosing which items to take when each has a value and a cost and the "
+     "total cost is capped: cargo loading, project selection, capital "
+     "budgeting."),
+    ("capital-budgeting", "knapsack", "Which investments to fund",
+     "A fixed pot of money and more proposals than it covers. Which set "
+     "returns the most."),
+    ("release-planning", "knapsack", "What goes in the next release",
+     "Features with a value and an engineering cost, and a fixed number of "
+     "weeks before the ship date."),
+    ("ad-budget", "knapsack", "Where to spend an advertising budget",
+     "Placements with a price and an expected return, and a budget that will "
+     "not cover them all."),
+    ("cache-contents", "knapsack", "What to keep in a cache",
+     "Fixed storage, items of different sizes and different hit rates: what "
+     "earns its space."),
+    ("observing-night", "knapsack", "Which targets to observe tonight",
+     "One night of telescope time, each target needing a slot and returning "
+     "some scientific value."),
+    ("maintenance-backlog", "knapsack", "Which repairs to fund this year",
+     "A maintenance budget and a backlog longer than it: the set that "
+     "prevents the most failure."),
+
+    # ---- quadratic knapsack ----------------------------------------------
+    ("quadratic-knapsack", "quadratic-knapsack",
+     "Choosing things that are worth more together",
+     "Items with their own value and a bonus for each pair chosen together, "
+     "under a single budget. Coverage, synergy and reinforcement problems all "
+     "have this shape."),
+    ("satellite-siting", "quadratic-knapsack", "Which orbital slots to fill",
+     "Each satellite covers some ground on its own, and a pair covers more "
+     "between them than either does alone. Launch budget is finite."),
+    ("charging-stations", "quadratic-knapsack", "Where to put charging points",
+     "Each site serves its own neighbourhood; two sites on the same route "
+     "serve journeys neither could serve alone."),
+    ("sensor-overlap", "quadratic-knapsack", "Placing sensors that see more together",
+     "Cameras or detectors whose fields overlap, so a well-chosen pair covers "
+     "ground that neither alone would."),
+    ("cell-towers", "quadratic-knapsack", "Siting masts for continuous coverage",
+     "A mast covers its own cell; two adjacent masts give handover, so a call "
+     "survives the journey between them."),
+    ("depot-siting", "quadratic-knapsack", "Where to open depots",
+     "Each depot serves its own area, and two depots together serve routes "
+     "that run between them."),
+    ("store-network", "quadratic-knapsack", "Which shops to open",
+     "Each location draws its own custom, and nearby pairs reinforce a "
+     "catchment rather than splitting it."),
+    ("team-selection", "quadratic-knapsack", "Picking a team that works well together",
+     "Each person brings something; some pairs bring more than the sum of the "
+     "two. Headcount is capped."),
+    ("research-portfolio", "quadratic-knapsack", "Which projects to run together",
+     "Projects worth funding on their own, and worth more when they share "
+     "equipment, data or people."),
+    ("product-bundles", "quadratic-knapsack", "Which products to stock together",
+     "Each line sells; some pairs sell better side by side than apart."),
+    ("committee", "quadratic-knapsack", "Forming a committee",
+     "Members chosen for what they know, and for whose expertise combines "
+     "with whose."),
+
+    # ---- multidimensional knapsack ---------------------------------------
+    ("multidimensional-knapsack", "multidimensional-knapsack",
+     "Choosing under several limits at once",
+     "Every choice consumes some of each of several fixed resources, and all "
+     "of them must hold. Weight and volume, money and people, power and space."),
+    ("container-loading", "multidimensional-knapsack",
+     "Loading a container by weight and volume",
+     "Cargo that must fit both limits at once: heavy and small, light and "
+     "bulky, and the mix that carries the most value."),
+    ("cloud-packing", "multidimensional-knapsack", "Packing workloads onto a machine",
+     "Each service wants processor, memory and disk, and the host has a fixed "
+     "amount of each."),
+    ("multi-budget-portfolio", "multidimensional-knapsack",
+     "Choosing projects under money, people and time",
+     "Approving a slate when the constraint is not only the budget but also "
+     "the engineers and the calendar."),
+    ("menu-planning", "multidimensional-knapsack", "Planning meals within several limits",
+     "Calories, protein, salt and cost -- every one of them capped, and the "
+     "menu has to satisfy all of them together."),
+    ("production-run", "multidimensional-knapsack", "What to manufacture this quarter",
+     "Each product consumes several raw materials, and every stockpile is "
+     "finite."),
+    ("grant-allocation", "multidimensional-knapsack", "Which grants to award",
+     "Funds, supervisors and bench space are separate limits, and a proposal "
+     "needs all three."),
+    ("payload-selection", "multidimensional-knapsack", "What to put on the spacecraft",
+     "Instruments competing for mass, power and data rate at the same time."),
+    ("rack-filling", "multidimensional-knapsack", "Filling a data-centre rack",
+     "Power, cooling and rack units, each of which runs out on its own "
+     "schedule."),
+    ("commissioning-slate", "multidimensional-knapsack", "What to commission this season",
+     "Budget, studio days and the availability of people, all binding at once."),
+
+    # ---- vertex cover ----------------------------------------------------
+    ("vertex-cover", "vertex-cover", "Covering a network with as few sites as possible",
+     "Placing cameras, sensors or guards so that every connection is watched "
+     "by at least one of them, using as few as you can."),
+    ("camera-placement", "vertex-cover", "Watching every corridor",
+     "Cameras at junctions, so that every corridor between them is overlooked "
+     "by at least one."),
+    ("network-monitors", "vertex-cover", "Monitoring every link",
+     "Probes on routers so that every link in the network has a probe at one "
+     "end of it."),
+    ("checkpoints", "vertex-cover", "Where to put the checkpoints",
+     "Every route in or out has to pass at least one, and each one costs "
+     "money and delay."),
+    ("pipeline-inspection", "vertex-cover", "Inspecting every pipe",
+     "Inspection points at the junctions, chosen so that no length of pipe "
+     "goes unvisited."),
+    ("patch-priority", "vertex-cover", "Which machines to patch first",
+     "Securing every connection in a network by hardening as few of its "
+     "machines as possible."),
+
+    # ---- independent set -------------------------------------------------
+    ("independent-set", "independent-set",
+     "Choosing as many mutually compatible items as possible",
+     "Picking the largest group of things that do not conflict -- "
+     "non-interfering transmitters, non-clashing bookings, compatible "
+     "machines."),
+    ("transmitters", "independent-set", "Turning on as many transmitters as possible",
+     "Two transmitters too close on the same frequency interfere. How many "
+     "can run at once."),
+    ("booking-clashes", "independent-set", "Fitting in as many bookings as possible",
+     "Requests that overlap cannot both be granted. The most that can."),
+    ("compatible-machines", "independent-set", "Running as many machines as possible",
+     "Some pairs cannot run at the same time -- shared power, shared "
+     "extraction, shared floor. The largest set that can."),
+    ("spaced-seating", "independent-set", "Seating people apart",
+     "Seats too close together cannot both be used. How many people fit."),
+    ("ad-slots", "independent-set", "Placing as many adverts as possible",
+     "Placements that would clash with each other, and the most that can run "
+     "side by side."),
+
+    # ---- clique ----------------------------------------------------------
+    ("clique", "clique", "Finding the largest fully connected group",
+     "The biggest set of items that are all pairwise related: a tightly knit "
+     "community, a set of mutually compatible parts."),
+    ("community", "clique", "Finding a tightly knit group",
+     "The largest set of people in a network who all know one another."),
+    ("compatible-parts", "clique", "A set of parts that all fit together",
+     "Components that are pairwise compatible, and the biggest assembly you "
+     "can make from them."),
+    ("trading-group", "clique", "A group that all trade with each other",
+     "The largest set of parties with an existing relationship between every "
+     "pair."),
+    ("fragment-matching", "clique", "Molecular fragments that all fit",
+     "Pieces that are pairwise compatible, and the largest combination of "
+     "them."),
+
+    # ---- linear programming ----------------------------------------------
+    ("linear-programming", "linear-programming", "Allocating limited resources",
+     "Production planning, blending, logistics, staffing -- anything where a "
+     "linear objective meets linear constraints. If you already have a model "
+     "in MPS format, this is your entry."),
+    ("production-planning", "linear-programming", "How much of each thing to make",
+     "Lines, materials and hours that all run out, and a mix that earns the "
+     "most within them."),
+    ("blending", "linear-programming", "Mixing to a specification at least cost",
+     "Fuels, feeds and alloys: the cheapest blend that still meets every "
+     "requirement."),
+    ("logistics", "linear-programming", "Moving goods for the least cost",
+     "Sources, destinations and freight rates, and the cheapest way to meet "
+     "every demand."),
+    ("rostering", "linear-programming", "Covering the rota",
+     "Enough people on every shift, respecting rest and contracts, at the "
+     "lowest cost."),
+    ("energy-dispatch", "linear-programming", "Which generators to run",
+     "Meeting demand each hour from plants with different costs and limits."),
+    ("diet-problem", "linear-programming", "The cheapest adequate diet",
+     "The original linear program: nutritional requirements met for the least "
+     "money."),
+    ("revenue-management", "linear-programming", "How much to sell at each price",
+     "Fixed capacity, several fare classes, and the allocation that earns the "
+     "most."),
+
+    # ---- linear systems --------------------------------------------------
+    ("linear-systems", "linear-systems",
+     "Solving a large system of equations, or a physical field",
+     "Steady-state temperature, electrostatic potential, structural load -- "
+     "anything that discretises into a large sparse system. Also the step "
+     "every method above outsources to a solver."),
+    ("heat-distribution", "linear-systems", "Where the heat settles",
+     "The steady-state temperature across a component once it has stopped "
+     "changing."),
+    ("electrostatics", "linear-systems", "The field around a charged object",
+     "Potential across a region, given what sits on its boundary."),
+    ("structural-load", "linear-systems", "How a structure carries its load",
+     "Displacement and stress through a frame or a part under load."),
+    ("circuit-analysis", "linear-systems", "Voltages around a circuit",
+     "Node potentials in a network of resistors and sources."),
+    ("groundwater", "linear-systems", "How water moves underground",
+     "Pressure through porous rock, which is the same equation as the heat "
+     "one wearing different units."),
+    ("deblurring", "linear-systems", "Recovering a sharp image",
+     "Undoing a known blur, which is a large and badly conditioned system."),
+    ("least-squares", "linear-systems", "Fitting a model to data",
+     "The best fit in the least-squares sense, through the normal equations."),
 )
+
+
+PROBLEMS: Tuple[Problem, ...] = tuple(
+    Problem(key=key, label=label, technical=FAMILIES[family][0], blurb=blurb,
+            routes=FAMILIES[family][1], family=family)
+    for key, family, label, blurb in _CATALOGUE
+)
+
+
+def family_of(problem_key: str) -> str:
+    """The problem underneath the name, which is what decides how it is solved."""
+    return get_problem(problem_key).family
 
 
 _BY_KEY = {problem.key: problem for problem in PROBLEMS}

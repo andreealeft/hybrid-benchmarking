@@ -27,7 +27,7 @@ from ..dataset import write as write_log
 from ..instances import Graph, Instance, InstanceError, Knapsack, LinearProgram
 from ..instances import Matrix, Network
 from ..instances import read as read_instance
-from ..problems import Route, get_problem, get_route
+from ..problems import Route, family_of, get_problem, get_route
 from .budget import DEFAULT_SECONDS, Budget, Run, Status
 
 
@@ -88,6 +88,10 @@ _DESCRIBED: Dict[str, Tuple[str, str]] = {
 
 def accepts(problem: str, route: str) -> Tuple[str, str]:
     """What to hand this route, and what such a file is usually called."""
+    try:
+        problem = family_of(problem)
+    except KeyError:
+        pass
     wanted = _ACCEPTS.get((problem, route))
     if wanted is None:
         return "", ""
@@ -259,7 +263,7 @@ def generate(instance: Instance, problem: str = "", route: str = "",
     problem_key, route_key = _choose(instance, problem, route)
     chosen = get_route(problem_key, route_key)
 
-    runner = _RUNNERS.get((problem_key, route_key))
+    runner = _RUNNERS.get((family_of(problem_key), route_key))
     if runner is None:
         raise GenerationError(
             "no instrumented classical run for {}/{}; this tool can generate "

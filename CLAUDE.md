@@ -81,7 +81,7 @@ src/hybrid_benchmarking/
   registry.py     Routine -> Implementation -> costs; "Name/implementation"
   symbols.py      One canonical sympy symbol per quantity, shared everywhere
   compose.py      Assemble routines: fill a slot, add, multiply
-  problems.py     Seven problems under friendly names, and routes through them
+  problems.py     Nine families and the seventy-one names people use for them
   dataset.py      The log format: records from an instrumented classical run
   instances/      Readers for the files people have — DIMACS, Pisinger,
                   Matrix Market, MPS. Standard library only, and they import
@@ -298,6 +298,28 @@ random probing when ARPACK does not converge, which underestimated `κ` by 8× a
 11.5× on two instances of ours — his `κ` is a lower bound by construction, ours
 is exact.
 
+## Names, and the problems under them
+
+A problem in the interface is a **name and a story**; the *family* underneath
+owns the routes, the fields and the shapes. Siting satellites and siting
+charging points are one family with two names, and someone arriving with either
+should not have to learn that to get a number. So there are nine families and
+seventy-one names, and adding a seventy-second costs a line of prose rather than
+a copy of a route.
+
+The menu shows the names. It does not show which problem each one is underneath
+— that classification is what the catalogue exists to spare people. It is still
+in the data, and it is still on every cost's provenance, which is the one place
+it must never be dropped.
+
+Two families are new and have no instance reader yet, so they are costed from
+values typed into the form rather than from a file: `quadratic-knapsack` and
+`multidimensional-knapsack`. Their pair bonuses are **bonuses only** — the
+circuit has a gate where a pair earns something together and none where it costs
+something, so a negative one is refused rather than counted. That refusal
+matters more than it looks: the position of the lowest set bit of a negative
+number is a perfectly good integer, and the count would otherwise come back.
+
 ## The QTG search, and where the square root lives
 
 Checked against the original's driver, `_qtg_bindings.cpp::execute_q_max_search`.
@@ -376,6 +398,6 @@ the cheaper of the two — so these entries are the dearer form.
 
 Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
-composition layer, the problem-first entry point, the log format, instance
+composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 869 tests.
+interface and a CLI. 1512 tests.

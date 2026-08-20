@@ -180,7 +180,7 @@
 
 <main>
   <nav>
-    <input id="filter" type="search" placeholder="Filter routines" autocomplete="off">
+    <input id="filter" type="search" placeholder="Search" autocomplete="off">
     <ul id="list"></ul>
   </nav>
   <article id="detail"><p class="none">Loading the registry…</p></article>
@@ -347,7 +347,8 @@ async function run(copyOnly) {
     <h3>The same call, as code</h3><pre>${esc(res.snippet)}</pre>`;
 }
 
-$("filter").oninput = drawList;
+$("filter").oninput = () =>
+  ($("problems").hidden ? drawList() : drawProblemList());
 
 /* ------------------------------------------------------------------ build */
 
@@ -574,13 +575,16 @@ async function boot_problems() {
 }
 
 function drawProblemList() {
-  $("list").innerHTML = PROBLEMS.map(p => `
+  const needle = $("filter").value.toLowerCase();
+  const shown = PROBLEMS.filter(p =>
+    !needle || (p.label + " " + p.blurb).toLowerCase().includes(needle));
+  $("list").innerHTML = shown.map(p => `
     <li><button data-problem="${esc(p.key)}"
         aria-current="${p.key === (problem && problem.key)}"
         style="display:block">
       <span style="font-family:var(--sans);color:inherit">${esc(p.label)}</span>
-      <span style="display:block;font-size:.74rem">${esc(p.technical)}</span>
-    </button></li>`).join("");
+    </button></li>`).join("")
+    || `<li><p class="none">Nothing matches that.</p></li>`;
   $("list").querySelectorAll("button").forEach(b =>
     b.onclick = () => pickProblem(b.dataset.problem));
 }
@@ -595,7 +599,6 @@ async function pickProblem(key) {
 function drawProblem() {
   const p = problem;
   let html = `<h2>${esc(p.label)}</h2>
-    <p class="sub">${esc(p.technical)}</p>
     <p class="summary">${esc(p.blurb)}</p>`;
 
   if (p.incomparable) html += `<div class="caution"><b>These routes are not
@@ -775,7 +778,7 @@ $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
   $("detail").hidden = mode !== "browse";
   $("builder").hidden = mode !== "build";
   $("problems").hidden = mode !== "problems";
-  $("filter").hidden = mode !== "browse";
+  $("filter").hidden = !(mode === "browse" || mode === "problems");
   if (mode === "build" && !spec) boot_build();
   if (mode === "browse") { drawList(); if (!current) select("QSearch"); }
   if (mode === "problems") drawProblemList();

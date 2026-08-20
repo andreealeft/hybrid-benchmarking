@@ -127,7 +127,10 @@ def pairwise_terms(pairs: Mapping) -> Tuple[Tuple[int, int, int], ...]:
 
     A zero pairwise profit is not an addition.  The layer has nothing to add, so
     the circuit has no gate for it -- the doubly-controlled addition appears
-    "for each item ``m' < m`` such that ``p_{mm'} > 0``".
+    "for each item ``m' < m`` such that ``p_{mm'} > 0``".  A *negative* one is
+    refused rather than counted: strictly greater than zero is what the paper
+    says, and the position of the lowest set bit of a negative number is a
+    number this would otherwise happily return.
     """
     gathered: Dict[Tuple[int, int], int] = {}
     for key, value in dict(pairs).items():
@@ -139,6 +142,15 @@ def pairwise_terms(pairs: Mapping) -> Tuple[Tuple[int, int, int], ...]:
             )
         canonical = (max(first, second), min(first, second))
         gathered[canonical] = gathered.get(canonical, 0) + int(value)
+    for (first, second), value in sorted(gathered.items()):
+        if value < 0:
+            raise ValueError(
+                "the pair ({}, {}) is worth {}, and this circuit has no gate "
+                "for a pair that costs something when both are chosen. The "
+                "layer adds a profit where p > 0 and does nothing otherwise, "
+                "so a story about interference or cannibalisation is not one "
+                "these counts describe".format(second, first, value)
+            )
     return tuple(sorted((m, other, value)
                         for (m, other), value in gathered.items() if value))
 
