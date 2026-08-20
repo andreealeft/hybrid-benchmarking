@@ -208,7 +208,7 @@ The interior point routes default to **ε = 1e-1**, not 1e-3: Section IV-A puts
 ## Where it stands
 
 Complete: 44 routines / 51 implementations, all of Appendices A, B and C, the
-maximum-flow study, the interior point pipeline, the Cade boundary, the
+maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 796 tests.
+interface and a CLI. 830 tests.

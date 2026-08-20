@@ -1,8 +1,9 @@
-"""Quantum breadth-first search, interior point methods, and the Cade family.
+"""Quantum breadth-first search and interior point methods.
 
-Two further host algorithms and one deliberate boundary. The host algorithms
-are the real test of the abstraction: if adding them meant new plumbing rather
-than new lemmas, the design was wrong.
+Two further host algorithms, which are the real test of the abstraction: if
+adding them meant new plumbing rather than new lemmas, the design was wrong.
+The Cade boundary that used to live here has moved to ``test_cade.py``, where
+the counts it guards are now checked against QUBRABENCH.
 """
 
 from __future__ import annotations
@@ -152,35 +153,6 @@ class TestInteriorPointReadout:
             dimension=base["N"], sparsity=base["d"], kappa=base["kappa"],
             epsilon=base["epsilon"],
         )
-
-
-class TestTheCadeBoundary:
-    """The most important naming decision in the merge."""
-
-    def test_subroutine_calls_are_their_own_unit(self):
-        assert Unit.SUBROUTINE_CALLS is not Unit.QUERIES
-        assert str(Unit.SUBROUTINE_CALLS) == "subroutine calls"
-
-    def test_they_cannot_be_added_to_oracle_queries(self):
-        instrumented = exact(1, Unit.SUBROUTINE_CALLS)
-        analytic = exact(1, Unit.QUERIES)
-        with pytest.raises(UnitMismatch, match="cannot add"):
-            instrumented + analytic
-
-    def test_the_family_is_registered(self):
-        for name in ("Cade-search", "Cade-max", "Cade-amplitude",
-                     "Cade-linalg"):
-            assert hb.get(name).summary
-
-    def test_they_carry_no_formulas_because_they_are_measured(self):
-        """Their counts come from instrumenting a run. Registering an
-        invented formula would be worse than registering none."""
-        for name in ("Cade-search", "Cade-max"):
-            assert hb.get(name).units == ()
-
-    def test_the_distinction_is_stated_where_a_reader_will_meet_it(self):
-        assert "not" in hb.get("Cade-search").summary.lower()
-        assert "oracle" in hb.get("Cade-search").summary.lower()
 
 
 class TestTheAbstractionHeld:

@@ -134,3 +134,25 @@ clock_qubits_sym = sp.Symbol("n_c", positive=True, integer=True)
 
 inner_gates_2 = sp.Symbol("inner_gates_2", positive=True)
 """Gate cost of a second unitary, where a routine interferes two of them."""
+
+
+# --- instrumented counts in the manner of Cade et al. -----------------------
+# These reuse X and t deliberately: the search space and its marked elements
+# are the same quantities there as here, whatever the counting model.
+
+classical_budget = sp.Symbol("K", positive=True, integer=True)
+"""Classical queries allowed before the quantum part begins, in Cade's search."""
+
+failure = sp.Symbol("eta", positive=True)
+"""Upper bound on the probability that the quantum routine fails.
+
+Not a precision.  Cade's search and maximum finding are exact once they
+succeed, and this bounds how often they do not -- which is why it enters
+through a logarithm rather than through the amplitude.
+"""
+
+amplitude = sp.Symbol("a", positive=True)
+"""The squared amplitude an estimation routine is asked to resolve."""
+
+subnormalisation = sp.Symbol("alpha", positive=True)
+"""Block-encoding subnormalisation: the factor A is divided by to be encoded."""
