@@ -378,4 +378,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 866 tests.
+interface and a CLI. 869 tests.
