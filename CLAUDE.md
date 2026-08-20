@@ -298,6 +298,40 @@ random probing when ARPACK does not converge, which underestimated `κ` by 8× a
 11.5× on two instances of ours — his `κ` is a lower bound by construction, ours
 is exact.
 
+## The QTG search, and where the square root lives
+
+Checked against the original's driver, `_qtg_bindings.cpp::execute_q_max_search`.
+It accumulates, once per threshold segment,
+
+    (rounds + 2·iter)·C_QTG + iter·(C_mc(n−1) + C_comp(profit_qubits, P))
+
+where `rounds` counts amplification attempts and `iter` sums the Grover powers
+drawn. `QTGSearch` writes the same thing per drawn power — `(2j+1)·C_QTG +
+j·(zero + marker)` — and the two are the same sum, since `Σⱼ(2j+1) = 2·iter +
+rounds`. **The formulas agree exactly**; there is a test, because the two
+groupings look nothing alike.
+
+So the handoff is narrower than it looked: what is missing is not a formula but
+the *schedule*, and the schedule is genuinely random. `q_search` runs BBHT with
+`c = 6/5`, `m_l = ⌈(6/5)^l⌉`, and draws `j` uniformly from `{1..m_l}`; whether a
+round succeeds is decided by a simulated measurement against the amplified
+distribution. There is no closed form for `rounds` or `iter`.
+
+**The square root is in the classical tree generator**, `execute_ctg`, and it is
+exact: for the same drawn power `j`, the quantum applies the generator `2j+1`
+times while the classical emulation draws `4j²` samples. So the count of QTG
+applications is the square root of the count of classical samples, round for
+round, on the same schedule and the same random stream. That is what closes the
+handoff — instrument a classical tree-generator run, log per segment the
+attempt count, the sum of drawn powers, and the incumbent profit, and the cycle
+count above follows with no quantum simulation at all.
+
+Two cautions if that gets built. The original's `qtg_estimate_cycles` divides by
+an unexplained 10 and accumulates a prefix sum of prefix sums, so it is inflated
+relative to the driver's own expression — the analysis notebooks quietly drop
+the 10 and recompute. And its comparator is passed `P + 1` for cycles and `P`
+for gates, which ours does not distinguish.
+
 ## The knapsack variants
 
 `arXiv:2503.22325` (Wilkening, Lefterovici, Binkowski, Funck, Perk, Karimov,

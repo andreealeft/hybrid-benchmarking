@@ -12,6 +12,8 @@ import pytest
 import hybrid_benchmarking as hb
 from hybrid_benchmarking.provenance import Unit
 from hybrid_benchmarking.routines.knapsack import (
+    compare_gt_cycles,
+    compare_gt_gates,
     add_cycles,
     add_gates,
     compare_ge_cycles,
@@ -188,3 +190,42 @@ class TestThroughTheRegistry:
 
     def test_the_transform_takes_only_a_register_size(self):
         assert set(hb.get("QFT").parameters) == {"bits"}
+
+
+class TestTheSearchAgainstTheOriginalSimulator:
+    """``QTGSearch`` accumulates exactly what the original's driver accumulates.
+
+    Its ``execute_q_max_search`` adds, once per threshold segment,
+    ``(rounds + 2 iter) C_QTG + iter (C_mc(n-1) + C_comp(profit_qubits, P))``,
+    where ``rounds`` counts amplification attempts in that segment and ``iter``
+    sums the Grover powers drawn. This library writes the same thing per drawn
+    power, ``(2j + 1) C_QTG + j (zero + marker)``, and the two are the same sum:
+    ``sum_j (2j + 1) = 2 iter + rounds``. Worth pinning, because the two
+    groupings look nothing alike and only one of them is obviously the circuit.
+    """
+
+    SCHEDULE = [(8, [1, 3, 2]), (9, [1, 2])]
+
+    def _segmented(self, generator, zero, marker_of):
+        bits = register_size(INSTANCE["profit_bound"])
+        total = 0
+        for threshold, powers in self.SCHEDULE:
+            rounds, iterations = len(powers), sum(powers)
+            total += (rounds + 2 * iterations) * generator
+            total += iterations * (zero + marker_of(threshold, bits))
+        return total
+
+    def test_the_cycle_accumulation_matches_segment_for_segment(self):
+        assert qtg_search_cycles(schedule=self.SCHEDULE, **INSTANCE) == \
+            self._segmented(qtg_cycles(**INSTANCE),
+                            compare_zero_cycles(len(INSTANCE["profits"])),
+                            compare_gt_cycles)
+
+    def test_the_gate_accumulation_matches_too(self):
+        assert qtg_search_gates(schedule=self.SCHEDULE, **INSTANCE) == \
+            self._segmented(qtg_gates(**INSTANCE),
+                            compare_zero_gates(len(INSTANCE["profits"])),
+                            compare_gt_gates)
+
+    def test_a_segment_that_draws_nothing_costs_nothing(self):
+        assert qtg_search_cycles(schedule=[(8, [])], **INSTANCE) == 0
