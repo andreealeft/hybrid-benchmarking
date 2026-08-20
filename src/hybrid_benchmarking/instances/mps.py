@@ -62,7 +62,9 @@ ruled here rather than left to chance:
   logs; dropping zeros here would change a logged count without saying so.
 * **A missing ``RHS``/``RANGES`` set name.**  The name is optional in practice.
   A line carries one or two row/value pairs, so an odd number of fields means
-  the first is a set name and an even number means it is not.  ``BOUNDS`` is
+  the first is a set name and an even number means it is not.  (``COLUMNS`` is
+  not disambiguated this way and accepts any number of pairs, because files
+  every solver reads carry three.)  ``BOUNDS`` is
   disambiguated by looking the column name up instead, which is unambiguous
   because a bound on a column we never saw is an error either way.
 
@@ -288,9 +290,14 @@ class _Reader:
         if any(_unquote(field).upper() == "MARKER" for field in fields):
             self.marker(fields, number)
             return
-        if len(fields) not in (3, 5):
+        # Fixed-format MPS puts at most two pairs on a card, and this used to
+        # refuse a third. Solvers do not: HiGHS reads them, and an instance
+        # Binkowski's benchmark uses carries three. Refusing a file every
+        # solver accepts is a reader bug, not strictness -- so any odd field
+        # count is read as a column followed by that many pairs.
+        if len(fields) < 3 or len(fields) % 2 == 0:
             raise self.fail(
-                number, "a COLUMNS line is a column and one or two row/value "
+                number, "a COLUMNS line is a column followed by row/value "
                         "pairs, found {} fields".format(len(fields)))
 
         column = self.column_for(fields[0])

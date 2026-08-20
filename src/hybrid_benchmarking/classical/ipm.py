@@ -34,9 +34,11 @@ and where ``n - m < m`` the matrix ``F F'`` has a null space, so
 **The orthogonal subspace system** is equation (8): ``O = [-X A' , S V]``, of
 dimension ``n``, with ``V`` the null-space basis of (7) -- ``A_B^-1 A_N`` in the
 rows belonging to the basis columns and ``-I`` in the rest.  ``O`` is not
-symmetric, and footnote 2 says to read its sparsity and condition number off the
-Hermitian dilation, which shares both.  Its condition number is taken directly
-as ``sigma_max / sigma_min``.
+symmetric, and footnote 2 says to read it off the Hermitian dilation
+``[[0, O], [O*, 0]]``.  That dilation shares its sparsity and its condition
+number -- and *doubles its dimension*, which is the part it is easy to drop.
+The readout is tomography of a state in the dilated space, so the logged ``N``
+is ``2n``: the footnote applies to all three quantities, not to two of them.
 
 Two deliberate departures, both recorded on every cost:
 
@@ -55,6 +57,7 @@ matrix instead can only lower the count.  Both are logged.
 
 from __future__ import annotations
 
+import math
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -104,14 +107,57 @@ def independent_rows(matrix: np.ndarray,
 
 def choose_basis(matrix: np.ndarray,
                  tolerance: float = _RANK_TOLERANCE) -> List[int]:
-    """``m`` linearly independent columns of ``A``, in order.
+    """``m`` independent columns of ``A``, by column-pivoted QR.
 
     The paper finds these once by sparse QR and reuses them for both systems.
-    This does the same job by orthogonalising the columns; which independent set
-    comes out depends on the method, and both constructions are built on it, so
-    the choice is recorded rather than assumed away.
+    Which independent set comes out is not a detail: both constructions are
+    built on ``A_B``, and on a 120-by-400 program the difference between the
+    best and worst defensible choice was four orders of magnitude in the
+    condition number and nearly five in the cycle count -- far more than the
+    logarithm base, the sparsity convention and the estimator put together.
+
+    Taking the columns in index order, which is what orthogonalising them
+    greedily amounts to, lands at the ill-conditioned end of that range.  That
+    is the wrong end: the cost is quadratic in the condition number, so it
+    inflates a number whose whole purpose is to be a bound favourable to the
+    quantum side.  Pivoting on the largest remaining residual at each step is
+    what a QR with column pivoting does, it is what the paper's sparse QR is a
+    sparsity-aware version of, and it is a great deal better conditioned.
+
+    Householder rather than Gram-Schmidt for the same reason it is everywhere
+    else: the residual norms this pivots on are exactly what modified
+    Gram-Schmidt loses to cancellation on the matrices that matter.
     """
-    return independent_rows(matrix.T, tolerance)
+    work = np.array(matrix, dtype=float, copy=True)
+    rows, columns = work.shape
+    norms = np.einsum("ij,ij->j", work, work)
+    scale = float(np.sqrt(norms.max())) if columns else 0.0
+    order = list(range(columns))
+    chosen: List[int] = []
+
+    for step in range(min(rows, columns)):
+        pivot = step + int(np.argmax(norms[step:]))
+        if math.sqrt(max(norms[pivot], 0.0)) <= tolerance * max(1.0, scale):
+            break
+        order[step], order[pivot] = order[pivot], order[step]
+        work[:, [step, pivot]] = work[:, [pivot, step]]
+        norms[step], norms[pivot] = norms[pivot], norms[step]
+
+        column = work[step:, step]
+        sign = -1.0 if column[0] < 0 else 1.0
+        reflector = column.copy()
+        reflector[0] += sign * np.linalg.norm(column)
+        length = np.linalg.norm(reflector)
+        if length > 0:
+            reflector /= length
+            block = work[step:, step:]
+            block -= 2.0 * np.outer(reflector, reflector @ block)
+        # The trailing norms fall by the square of the row just eliminated.
+        norms[step + 1:] -= work[step, step + 1:] ** 2
+        np.maximum(norms[step + 1:], 0.0, out=norms[step + 1:])
+        chosen.append(order[step])
+
+    return chosen
 
 
 def _sparsity(matrix: np.ndarray) -> int:
@@ -190,9 +236,16 @@ def oss(matrix: np.ndarray, basis: List[int]) -> Dict[str, Any]:
     if smallest <= 0:
         return {"singular": True}
     return {
-        "N": columns,
+        # Twice the system's own dimension. O is not symmetric, and footnote 2
+        # says to read it off the Hermitian dilation [[0, O], [O*, 0]] -- which
+        # has the same sparsity and the same condition number, and twice the
+        # dimension. The readout is tomography of a state in the dilated space,
+        # so the dimension is the one that carries. The author's own code makes
+        # exactly this correction, in a commit that says so.
+        "N": 2 * columns,
         "d": _sparsity(system),
         "kappa": largest / smallest,
+        "dimension_undilated": columns,
         "sigma_max_O": largest,
         "sigma_min_O": smallest,
     }

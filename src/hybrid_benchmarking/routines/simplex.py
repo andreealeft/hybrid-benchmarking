@@ -103,12 +103,19 @@ def find_column_random(v: Dict[str, float]) -> float:
     """Lemma 24: entering column under a random pivoting rule.
 
     A single quantum search over the non-basic columns, with CanEnter as the
-    marker.
+    marker -- so the marked count is the number of columns that *could* enter,
+    those with negative reduced cost, and not the ``t`` of Lemma 10.  That one
+    marks a search over the ``m`` components of the pivot direction and would
+    be the wrong quantity here in both meaning and range.
+
+    The two were the same parameter until the instrumented GLPK settled it: it
+    logs ``candidate_columns`` and ``u_positive_elements`` separately and feeds
+    each to its own lemma.
     """
     epsilon = v["epsilon"]
     non_basic = v["n"] - v["m"]
     return (
-        qsearch_iterations(non_basic, v["t"])
+        qsearch_iterations(non_basic, v["t_improving"])
         * (50.0 * math.sqrt(6.0) * math.pi / (11.0 * epsilon) - 1.0)
         * _solver(0.1 * epsilon / math.sqrt(2.0), v)
     )
@@ -365,8 +372,10 @@ FindColumn = register(Routine(
             citation=_NANNICINI + " (Lemma 24)",
             built_from=("QSearch", "CanEnterNFN"),
             costs={Unit.GATES: _lower_bound(
-                _display(S.epsilon, S.n_vars, S.m_cons, S.t),
+                _display(S.epsilon, S.n_vars, S.m_cons, S.t_improving),
                 find_column_random,
+                "the marked count is the improving-column count of Lemma 24, "
+                "not the positive-component count of Lemma 10",
                 validity=_shape(),
             )},
         ),
@@ -397,7 +406,11 @@ FindRow = single(
     )},
 )
 
-_ITER_SYMBOLS = (S.epsilon, S.delta, S.n_vars, S.m_cons, S.t, S.c_max, S.u_norm)
+_ITER_SYMBOLS = (S.epsilon, S.delta, S.n_vars, S.m_cons, S.t, S.c_max,
+                 S.u_norm)
+#: The random rule searches the columns as well as the basis, so it needs both
+#: marked counts where the other two rules need only Lemma 10's.
+_RANDOM_SYMBOLS = _ITER_SYMBOLS + (S.t_improving,)
 
 SimplexIter = register(Routine(
     name="SimplexIter",
@@ -411,7 +424,8 @@ SimplexIter = register(Routine(
             built_from=("IsOptimal", "FindColumn/" + rule, "IsUnbounded",
                         "FindRow"),
             costs={Unit.GATES: _lower_bound(
-                _display(*_ITER_SYMBOLS),
+                _display(*(_RANDOM_SYMBOLS if rule == "random"
+                           else _ITER_SYMBOLS)),
                 (lambda r: (lambda v: simplex_iteration(v, r)))(rule),
                 validity=_shape(),
             )},

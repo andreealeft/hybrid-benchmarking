@@ -114,7 +114,8 @@ class TestRebuildingSomethingKnown:
     """
 
     PARAMS = dict(d=4, kappa=10.0, epsilon=1e-3, delta=1e-3, A_1=3.0,
-                  A_max=1.0, n=200, m=50, t=5, c_max=2.0, u_norm=1.5)
+                  A_max=1.0, n=200, m=50, t=5, c_max=2.0, u_norm=1.5,
+                  t_improving=40)
 
     def test_it_matches_the_registered_iteration(self):
         spec = {"op": "+", "terms": [

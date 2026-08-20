@@ -33,6 +33,9 @@ RULES = ("steepest-edge", "dantzig", "random")
 INSTANCE = dict(
     d=4, kappa=10.0, epsilon=1e-3, delta=1e-3, A_1=3.0, A_max=1.0,
     n=200, m=50, t=5, c_max=2.0, u_norm=1.5,
+    # Lemma 24's marked count, which is not Lemma 10's. It is a count out of
+    # n - m rather than out of m, so it is allowed to be the larger.
+    t_improving=40,
 )
 
 

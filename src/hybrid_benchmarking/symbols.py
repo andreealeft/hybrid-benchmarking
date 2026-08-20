@@ -156,3 +156,14 @@ amplitude = sp.Symbol("a", positive=True)
 
 subnormalisation = sp.Symbol("alpha", positive=True)
 """Block-encoding subnormalisation: the factor A is divided by to be encoded."""
+
+
+t_improving = sp.Symbol("t_improving", positive=True, integer=True)
+"""Columns with negative reduced cost: the marked count of Lemma 24's search.
+
+Not :data:`t`.  That one is the number of positive components of the pivot
+direction, which Lemma 10 searches the *basis* for; this one marks a search over
+the ``n - m`` non-basic columns and routinely exceeds ``m``.  The instrumented
+GLPK the thesis ran logs both, under ``candidate_columns`` and
+``u_positive_elements``, and feeds each to its own lemma.
+"""

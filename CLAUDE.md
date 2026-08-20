@@ -153,12 +153,8 @@ structural and should stay:
   which is a lower bound for a reason unrelated to the lemmas'. It is a status
   carried in the log file, not a warning in a terminal.
 
-Two things left open, each surfaced rather than decided:
+One thing left open, surfaced rather than decided:
 
-- **`SimplexIter/random` reuses one `t` for two different searches** — Lemma
-  24's over the `n−m` columns and Lemma 10's over the `m` components of `u`.
-  Harmless today because every registered route uses steepest edge. Fixing it
-  means a second symbol in the routines layer.
 - **The interior point route's numbers depend on which basis is chosen.** Both
   of Binkowski's systems are built on a set of `m` independent columns of `A`;
   the paper finds them by sparse QR, this finds them by orthogonalisation, and a
@@ -242,6 +238,65 @@ while this library follows it:
 This means the published Method 2 figures came from code that differs from the
 lemmas as printed. Worth knowing before comparing any number here with one from
 that paper.
+
+**simplex-benchmarks** (Method 1, plus the instrumented GLPK fork it points at)
+— the logged quantities agree almost everywhere. `κ = max(1, κ₁/m)` from
+`bfd_condest` is byte-for-byte our definition, floor and division included;
+`A_1` and `A_max` are the same two normalised expressions applied at the same
+two sites of the Berry bound (in their cost code rather than their logger);
+`u_norm` is the same Euclidean norm of the same column; `c_max` is the original
+objective and not the phase-1 penalty; both log phase 1 alongside phase 2;
+Lemmas 8 and 11 are identical constant for constant. It logs the *column*
+maximum for `d`, which is the divergence the ruling above already covers.
+
+Three things it settles, and three worth knowing about it:
+
+- **`t` for Lemma 24.** It logs `candidate_columns` and `u_positive_elements`
+  separately and feeds each to its own lemma. That closes the open question:
+  `FindColumn/random` now takes `t_improving`, and `SimplexIter/random` needs
+  both counts. The other two rules are unaffected.
+- **Lemma 10's `− 1`.** Ours has it, theirs does not; the printed lemma does.
+- **The pivot sum** starts at `t = 1` there and `t = 0` here, which is the
+  standing ruling; worth about 6.9× on their own fixture.
+- Its `qsearch.cpp` computes `1/(1<<(k-1))` in **integer** division, so
+  `nQ(t, L)` returns exactly 0.5 for every `t > 0` regardless of `t` or `L`
+  (intended: 23.75 at `t=1`, 2.01 at `t=42`, for `L=378`). `nQ(0, ·)` is
+  unaffected, which is why FindRow and IsOptimal escape. It suppresses their
+  steepest-edge total by about 12.9×.
+- Its `qlsa.py` opens `compute_lower_bound` with `kappa = 1`, overwriting the
+  logged condition number before any caller can use it. **The published Method 1
+  gate counts therefore do not depend on the condition number the study went to
+  the trouble of instrumenting.** On their own `dano3mip` fixture this is the
+  whole of the 10⁵–10⁷ gap between the two pipelines: forcing `κ = 1` on our
+  side too brings every subroutine to within a factor of 3 to 90.
+- Its final "logged because of optimality" record is emitted on a path where
+  `u` was never written, so that record's `u_norm` and `t` are recycled heap.
+
+**qipm** (Binkowski's own code) — the MNES construction, the canonical iterate,
+`κ` from `σ(F̄)`, the `n − m < m ⇒ λ_min = 1` shortcut, the cost formula's
+structure, the placement of the factor eight, and `ε = 1e-1` all agree exactly.
+The OSS matrices agree up to a sign on the null-space columns, which changes no
+singular value. Three differences, two now fixed here:
+
+- **The OSS readout dimension is `2n`, not `n`** — footnote 2's dilation applies
+  to the dimension as well as to `s` and `κ`, which his commit `33bbc70` says in
+  as many words. Fixed.
+- **The basis is chosen by column-pivoted QR**, as his sparse QR is a
+  sparsity-aware version of. Taking the columns in index order, which is what
+  our Gram-Schmidt amounted to, lands at the ill-conditioned end of a range
+  spanning four orders of magnitude in `κ(M̂)` — the wrong end, since the cost
+  is quadratic in it. Fixed; on random programs it lowers `κ(M̂)` by 30–350×.
+- His code uses natural logs where Lemma 1 and equation (10) print `log2`, as
+  qls-comparison does in its `j0`. Ours follows the printed lemma, so ours is
+  ×1.4427 per solve there. **Two independent codebases make the same
+  substitution**, which is worth weighing before assuming it is a slip.
+
+Still open on the qipm side: his pipeline runs HiGHS presolve before the
+standard form and ours does not, so our logged dimension is systematically
+larger on instances with removable structure; and his `σ_min` falls back to
+random probing when ARPACK does not converge, which underestimated `κ` by 8× and
+11.5× on two instances of ours — his `κ` is a lower bound by construction, ours
+is exact.
 
 ## Where it stands
 

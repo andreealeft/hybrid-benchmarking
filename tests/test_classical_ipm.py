@@ -130,8 +130,11 @@ class TestTheSystemsAreThePapersSystems:
         matrix = form.matrix[independent_rows(form.matrix)]
         rows, columns = matrix.shape
         basis = choose_basis(matrix)[:rows]
-        assert mnes(matrix, basis)["N"] == rows      # m-dimensional
-        assert oss(matrix, basis)["N"] == columns    # n-dimensional
+        assert mnes(matrix, basis)["N"] == rows          # m-dimensional
+        # The OSS is n-dimensional, but it is not symmetric, so footnote 2's
+        # Hermitian dilation is what the readout is over -- twice the size.
+        assert oss(matrix, basis)["dimension_undilated"] == columns
+        assert oss(matrix, basis)["N"] == 2 * columns
 
     def test_the_mnes_is_smaller_and_the_oss_is_feasible_by_construction(self):
         # Which is the trade the paper draws between them.
