@@ -8,6 +8,8 @@ the counts it guards are now checked against QUBRABENCH.
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 import hybrid_benchmarking as hb
@@ -176,3 +178,96 @@ class TestTheAbstractionHeld:
         for impl in hb.all_implementations():
             for cost in impl.costs.values():
                 assert cost.provenance.sources, impl.path
+
+
+class TestAgainstTheQuantumBreadthFirstSearchPaper:
+    """Checked against the paper's Lemmas 1 and 2 rather than our reading of them.
+
+    Three questions had been left open here, and the paper answers all three.
+
+    *What is searched.* Lemma 1 counts ``2|L|`` cycles per Grover iteration
+    "assuming one qubit per vertex", which had raised the worry that the search
+    space is ``2^V`` rather than ``V``. It is ``V``: the Methods section says
+    "we further record the total number of vertices in the original graph, which
+    corresponds to |L|", and Lemma 2's schedule caps at ``sqrt(|L|)``. The
+    register is one qubit per vertex; the list is the vertices.
+
+    *Whether the source's own layer is charged.* It is. The paper says QSearch
+    is applied "for each layer l containing t vertices out of |L| total
+    vertices", and the source sits in the layer at distance zero.
+
+    *Whether discovering an empty layer is charged.* It is not: a layer
+    containing no vertices is not one of the layers that sentence quantifies
+    over.
+
+    Lemma 2 also carries the disputed factor of one half explicitly, which is
+    the reading CLAUDE.md's ambiguity table settles on for both statements.
+    """
+
+    def test_a_grover_iteration_costs_two_cycles_per_vertex(self):
+        # Lemma 1: 1 + 1 + (2|L| - 3) + 1 = 2|L|.
+        from hybrid_benchmarking.routines.maxflow import grover_cycles
+
+        for vertices in (2, 5, 100):
+            assert grover_cycles(vertices) == 2 * vertices
+
+    def test_the_schedule_caps_at_the_square_root_of_the_list(self):
+        # Lemma 2: m_k = floor(min(lambda^k, sqrt(|L|))), so no round is ever
+        # longer than sqrt(|L|) -- which is a search over |L|, not over 2^|L|.
+        from hybrid_benchmarking.routines.amplification import (
+            LAMBDA,
+            qsearch_k_max,
+        )
+
+        length = 1000
+        cap = math.sqrt(length)
+        for k in range(1, qsearch_k_max(length) + 1):
+            assert math.floor(min(float(LAMBDA) ** k, cap)) <= cap
+
+    def test_the_round_budget_matches_lemma_2(self):
+        from hybrid_benchmarking.routines.amplification import qsearch_k_max
+
+        length = 1000
+        expected = math.ceil(
+            math.log(length / (2 * math.sqrt(length - 1))) / math.log(6 / 5)) + 4
+        assert qsearch_k_max(length) == expected
+
+    def test_finding_all_of_them_sums_over_a_shrinking_list(self):
+        # Lemma 2: N_Q(|L|, t) = sum_{i<t} n_Q(|L| - i, t - i).
+        from hybrid_benchmarking.routines.amplification import (
+            qsearch_all_iterations,
+            qsearch_iterations,
+        )
+
+        length, marked = 200, 5
+        assert qsearch_all_iterations(length, marked) == pytest.approx(
+            sum(qsearch_iterations(length - i, marked - i)
+                for i in range(marked)))
+
+    def test_the_gate_count_is_two_l_times_the_iteration_count(self):
+        # Equation (1): G_Q(|L|, t) = 2|L| N_Q(|L|, t), one cycle per gate.
+        from hybrid_benchmarking.routines.amplification import (
+            qsearch_all_iterations,
+        )
+        from hybrid_benchmarking.routines.maxflow import layer_cost
+
+        length, marked = 200, 5
+        assert layer_cost(length, marked) == pytest.approx(
+            2 * length * qsearch_all_iterations(length, marked))
+
+    def test_the_search_space_is_the_whole_graph_not_the_layer(self):
+        # "the total number of vertices in the original graph, which
+        # corresponds to |L|" -- so a layer of three in a graph of a thousand
+        # is a search over a thousand.
+        from hybrid_benchmarking.routines.maxflow import layer_cost
+
+        assert layer_cost(1000, 3) > layer_cost(10, 3)
+
+    def test_the_sources_own_layer_is_charged_and_an_empty_one_is_not(self):
+        from hybrid_benchmarking.routines.maxflow import layer_cost, qbfs_cost
+
+        # Layer zero holds the source alone, and is one of the layers.
+        assert qbfs_cost(100, [1, 4, 9]) == pytest.approx(
+            layer_cost(100, 1) + layer_cost(100, 4) + layer_cost(100, 9))
+        # A layer with nothing in it is not a layer.
+        assert qbfs_cost(100, [1, 4, 0, 9]) == qbfs_cost(100, [1, 4, 9])

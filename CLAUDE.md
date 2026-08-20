@@ -213,6 +213,17 @@ attributed rather than assumed.
 **QUBRABENCH** — all four `Cade-*` entries reproduce its functions to twelve
 digits, on seventeen reference points frozen in `tests/test_cade.py`.
 
+**The quantum breadth-first search paper** (`QBFS___MaxFlow-2.pdf`; note that
+`-4` contains an error) — clean, and it closes three questions an audit had left
+open. The search space is the graph's whole vertex count, not `2^V`: Lemma 1
+counts `2|L|` cycles per Grover iteration over a register of one qubit per
+vertex, while the Methods section records "the total number of vertices in the
+original graph, which corresponds to `|L|`" and Lemma 2 caps the schedule at
+`√|L|`. The source's own layer *is* charged — QSearch runs "for each layer `l`
+containing `t` vertices out of `|L|` total" — and an empty layer is not, not
+being one of those. Lemma 2 also carries the disputed factor of one half
+explicitly, agreeing with the ruling above.
+
 **qls-comparison** (`evaluation/query_costs.py`, Method 2) — after the base-two
 ruling the Fourier weight and simulation time agree exactly. Three differences
 remain, and in each the repository parts from the thesis's own printed lemma
@@ -238,4 +249,4 @@ Complete: 44 routines / 51 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 840 tests.
+interface and a CLI. 847 tests.
