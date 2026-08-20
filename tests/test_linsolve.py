@@ -22,6 +22,7 @@ from hybrid_benchmarking.routines.linsolve import (
     chebyshev_terms,
     fourier_alpha,
     fourier_queries,
+    fourier_time,
     hhl_queries,
     qsvt_queries,
     _binomial_upper_tail,
@@ -185,7 +186,8 @@ class TestFourierInternals:
     def test_alpha_tracks_its_integral_approximation(self):
         """The summand is a Riemann sum for the integral of u exp(-u^2/2)."""
         kappa, epsilon = 50.0, 1e-8
-        log_term = math.log(1.0 + 8.0 * kappa / epsilon)
+        # Base two, as everything in this chapter's query counts now is.
+        log_term = math.log2(1.0 + 8.0 * kappa / epsilon)
         delta_z = (2.0 * math.pi / (kappa + 1.0)) / math.sqrt(log_term)
         approximate = 4.0 * math.sqrt(math.pi) * kappa / (kappa + 1.0) / delta_z
         assert fourier_alpha(kappa, epsilon) == pytest.approx(
@@ -230,3 +232,106 @@ class TestWhatEachIsBuiltFrom:
         for impl in hb.all_implementations():
             if hb.Unit.GATES in impl.costs:
                 assert "HamSim/qubitization" not in impl.built_from
+
+
+class TestTheLogarithmIsBaseTwo:
+    """Chapter 5 writes a bare ``log`` in some lemmas and ``log2`` in others.
+
+    Lemma 15 states the Fourier weight and simulation time with a bare ``log``;
+    Lemma 16 states the Chebyshev truncation degree with an explicit ``log2``.
+    The two readings differ by a factor of ``ln 2`` that does not cancel -- it
+    propagates through a square root into every query count -- so following each
+    lemma's own typography would give one solver a base the others do not have.
+    Andreea ruled base two throughout, and these tests hold it there.
+    """
+
+    def test_the_fourier_weight_uses_base_two(self):
+        kappa, epsilon = 50.0, 1e-8
+        # Written out independently: alpha ~ 4 sqrt(pi) kappa/(kappa+1) / dz,
+        # with dz set by the logarithm. Base two fixes the value.
+        log_term = math.log2(1.0 + 8.0 * kappa / epsilon)
+        delta_z = (2.0 * math.pi / (kappa + 1.0)) / math.sqrt(log_term)
+        assert fourier_alpha(kappa, epsilon) == pytest.approx(
+            4.0 * math.sqrt(math.pi) * kappa / (kappa + 1.0) / delta_z, rel=0.05)
+
+    def test_the_simulation_time_uses_base_two(self):
+        kappa, epsilon = 50.0, 1e-8
+        assert fourier_time(kappa, epsilon) == pytest.approx(
+            2.0 * math.sqrt(2.0) * kappa
+            * math.log2(1.0 + 8.0 * kappa / epsilon))
+
+    def test_the_truncation_degree_uses_base_two(self):
+        # Lemma 16 spells this one out, and it always agreed.
+        y, epsilon = 200.0, 1e-8
+        s = math.ceil(y ** 2 * math.log2(y / epsilon))
+        assert chebyshev_terms(y, epsilon) == math.ceil(
+            math.sqrt(s * math.log2(4.0 * s / epsilon)))
+
+    def test_taking_natural_logs_instead_would_move_fourier_by_root_two(self):
+        # Why it matters: the discrepancy is not a rounding difference. The
+        # weight scales as the square root of the logarithm, so the two bases
+        # differ by sqrt(ln 2) ~ 0.83 -- and the query count by its inverse.
+        natural = 4.0 * math.sqrt(math.pi) * 50.0 / 51.0 / (
+            (2.0 * math.pi / 51.0) / math.sqrt(math.log(1.0 + 8.0 * 50.0 / 1e-8)))
+        assert fourier_alpha(50.0, 1e-8) / natural == pytest.approx(
+            1.0 / math.sqrt(math.log(2.0)), rel=0.05)
+
+
+class TestAgainstTheQlsComparisonRepository:
+    """What the original Method 2 code computes, and where it parts from the thesis.
+
+    Checked against ``evaluation/query_costs.py`` in the qls-comparison
+    repository -- a fixture, not an input. The values below were produced by
+    running it. Where we agree, agreement is asserted; where we do not, the
+    reason is a lemma this library follows and that code does not, and the test
+    records which.
+    """
+
+    def test_the_fourier_weight_now_matches_the_original(self):
+        """Both base two after the ruling, and agreeing to seven figures.
+
+        Not to the last bit: the original forms the step as
+        ``log**-0.5 * 2 pi / (k+1)`` and this forms it as
+        ``(2 pi / (k+1)) / sqrt(log)``, which are the same number and not the
+        same rounding, over a sum of some hundred terms.
+        """
+        for kappa, epsilon, expected in [(50.0, 1e-8, 334.81099265936706),
+                                         (10.0, 1e-3, 45.463135220920765),
+                                         (100.0, 1e-6, 613.6432392787432)]:
+            assert fourier_alpha(kappa, epsilon) == pytest.approx(
+                expected, rel=1e-6)
+
+    def test_the_amplification_overhead_is_lemma_13_not_the_repositorys(self):
+        """The original omits the floor on m_k and divides by 4 m_l where
+        (5.40) divides by 4 (m_l + 1). Both push the same way at small success
+        probabilities, where it reaches a factor of six."""
+        from hybrid_benchmarking.routines.amplification import rounds
+
+        def lemma_13(p, p0, c=1.2):
+            theta, cap = math.asin(math.sqrt(p)), 1.0 / math.sqrt(p0)
+            total, remaining, k = 0.0, 1.0, 1
+            while remaining >= 1e-15 and k < 4000:
+                m = math.floor(min(c ** k, cap))
+                total += m * remaining
+                remaining *= 1.0 - (0.5 - math.sin(4 * (m + 1) * theta)
+                                    / (4 * (m + 1) * math.sin(2 * theta)))
+                k += 1
+            return total
+
+        for p, p0 in [(0.25, 0.01), (0.5, 0.5), (1e-3, 1e-4), (0.01, 1e-3)]:
+            assert rounds(p, p0, half=False) == pytest.approx(
+                lemma_13(p, p0), rel=1e-12)
+
+    def test_the_repositorys_amplification_values_are_the_ones_we_differ_from(self):
+        """Recorded so the size of the gap is visible rather than asserted away.
+
+        These are what qls-comparison returns. Ours is Lemma 13 exactly, times
+        the ruled one half."""
+        from hybrid_benchmarking.routines.amplification import rounds
+
+        theirs = {(0.25, 0.01): 1.6845496382546455,
+                  (1e-3, 1e-4): 446.28777261754886}
+        for (p, p0), value in theirs.items():
+            ours = rounds(p, p0, half=False)
+            assert ours != pytest.approx(value, rel=1e-3)
+            assert 0.15 < ours / value < 1.1  # same order, not the same number

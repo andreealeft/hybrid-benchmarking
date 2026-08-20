@@ -103,7 +103,7 @@ for name in ("HHL", "QLS-Fourier", "QLS-Chebyshev", "QLS-QSVT"):
 
 ```
 HHL             4.63e+16
-QLS-Fourier     6.97e+08
+QLS-Fourier     1.21e+09
 QLS-Chebyshev   3.02e+07
 QLS-QSVT        1.14e+07
 ```

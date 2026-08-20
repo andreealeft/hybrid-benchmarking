@@ -55,13 +55,19 @@ C_F = 2 ** 7 + 22 * math.pi ** 2 + (64 + 14 * math.pi ** 2) ** 2 / math.pi ** 2
 
 
 def _segments(t_prime: float, epsilon: float) -> int:
-    """Qubitization segments; the numeric twin of :func:`hamsim.segments`."""
-    crossover = math.log(1.0 / epsilon) / math.e
+    """Qubitization segments; the numeric twin of :func:`hamsim.segments`.
+
+    Base two throughout, per the ruling in ``CLAUDE.md``.  The lemmas of
+    chapter 5 write a bare ``log`` in some places and ``log2`` in others, and
+    the two readings differ by a factor of ``ln 2`` that propagates into every
+    query count; base two is the one the author settled on.
+    """
+    crossover = math.log2(1.0 / epsilon) / math.e
     if t_prime >= crossover:
         return math.ceil(math.e * t_prime)
     return math.ceil(
-        4.0 * math.log(1.0 / epsilon)
-        / math.log(math.e + math.log(1.0 / epsilon) / t_prime)
+        4.0 * math.log2(1.0 / epsilon)
+        / math.log2(math.e + math.log2(1.0 / epsilon) / t_prime)
     )
 
 
@@ -127,7 +133,7 @@ _FOURIER = "Childs-Kothari-Somma Fourier approach; Lemma 15 of the thesis " \
 
 
 def fourier_time(kappa: float, epsilon: float) -> float:
-    return 2.0 * math.sqrt(2.0) * kappa * math.log(1.0 + 8.0 * kappa / epsilon)
+    return 2.0 * math.sqrt(2.0) * kappa * math.log2(1.0 + 8.0 * kappa / epsilon)
 
 
 def fourier_alpha(kappa: float, epsilon: float) -> float:
@@ -137,7 +143,7 @@ def fourier_alpha(kappa: float, epsilon: float) -> float:
     ``l dz ~ 1`` and the number of terms stays modest even for large condition
     numbers.
     """
-    log_term = math.log(1.0 + 8.0 * kappa / epsilon)
+    log_term = math.log2(1.0 + 8.0 * kappa / epsilon)
     delta_z = (2.0 * math.pi / (kappa + 1.0)) / math.sqrt(log_term)
     L = int(math.floor((kappa + 1.0) / math.pi * log_term))
     total = 0.0
@@ -287,8 +293,8 @@ _QSVT = "Gilyen et al. quantum singular value transform; Lemma 17 of the " \
 
 def _n_exp(beta: float, epsilon: float) -> int:
     return math.ceil(math.sqrt(
-        2.0 * math.log(4.0 / epsilon)
-        * math.ceil(max(beta * math.e ** 2, math.log(2.0 / epsilon)))
+        2.0 * math.log2(4.0 / epsilon)
+        * math.ceil(max(beta * math.e ** 2, math.log2(2.0 / epsilon)))
     ))
 
 
