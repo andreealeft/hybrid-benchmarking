@@ -22,9 +22,10 @@ are — about 1.4 times the square root of the list length.
 ## What is here so far
 
 Every routine from the thesis, the maximum-flow study, the quantum interior
-point paper, and the Cade-style instrumented counts QUBRABENCH implements — 44
-routines across 51 implementations, in gates, oracle queries, cycles, iterations and
-repetitions — plus a local interface and a command line over the same API.
+point paper, the quadratic and multidimensional knapsack extensions, and the
+Cade-style instrumented counts QUBRABENCH implements — 46 routines across 53
+implementations, in gates, oracle queries, cycles, iterations, repetitions and
+subroutine calls — plus a local interface and a command line over the same API.
 
 ```python
 hb.capability_table()
