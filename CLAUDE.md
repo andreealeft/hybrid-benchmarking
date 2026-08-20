@@ -409,6 +409,71 @@ quadratic profits, `O(log₂(n²))` layers of pairwise additions giving `O(log�
 depth. It is stated asymptotically, with no constants to transcribe, and it is
 the cheaper of the two — so these entries are the dearer form.
 
+## Open decisions
+
+Everything here is a question about the mathematics, not the code. Each is
+recorded where it arises as well; this is the list, so that a new session picks
+them all up.
+
+**1. The break item, and roughly 1.6× on every knapsack gate count.** Sören's
+`gate_count_qtg` skips the capacity comparison *and* the cost-register QFT pair
+for every item before `b = min{h : Σ_{m≤h} w_m > c}`, because up to there every
+partial assignment is feasible. Appendix C as transcribed here does neither. On
+the Pisinger fixture: 295 gates theirs, 462 ours, and 144 of the 167-gate gap is
+exactly that saving. The QKP paper *describes* the optimisation, which suggests
+it is an implementation refinement rather than part of the printed bound — but
+if (6.6) assumes it, every knapsack count here is high by about 1.6×.
+
+**2. What a zero-valued knapsack item costs.** Three readings, and the readers
+currently take the first: **refuse** (a zero has no lowest set bit, so it is a
+file-format complaint with a line number); **charge nothing** (the layer has no
+addition to perform); or **charge a full-width addition** — which is what the
+reference implementation does, since its `lso(0)` returns 0 and
+`gate_count_add(reg, 0) = 3·reg − 2`, nineteen gates on a seven-bit register for
+adding nothing. Almost certainly unintended there, but it is what the published
+figures were computed with. Refusing blocks most of both benchmark sets: only
+full-density quadratic files parse, and of OR-Library's multidimensional sets
+only the 270 Chu–Beasley instances, none of which states an optimum.
+
+**3. The interior point condition number.** The route reads the *unmodified*
+normal-equation system's κ; a diagonal equilibration is logged beside it as
+`kappa_equilibrated`. Equilibration is not reliably smaller — it lowers κ by
+about a third on a vertex cover and raises it on an independent set — so there
+is no safe default, only a stated one. Binkowski's own code was checked and does
+not settle it.
+
+**4. Which basis the interior point route picks.** Both his systems are built on
+`m` independent columns of `A`. His comes from sparse QR, ours from
+column-pivoted QR, and across defensible selections κ(M̂) spans four orders of
+magnitude. Ours is no longer at the bad end, but the choice is still a choice
+and it is recorded on every cost.
+
+**5. Two independent codebases use natural logs where the papers print `log2`** —
+qls-comparison's `j0` and qipm's Chebyshev count. We follow the printed lemmas
+per the ruling above, so we sit ×1.4427 from each. Two codes agreeing against
+two papers is worth weighing before calling it a slip.
+
+**6. Method 1's published gate counts do not use the condition number.**
+`simplex-benchmarks`'s `qls/qlsa.py` opens `compute_lower_bound` with
+`kappa = 1`, discarding the logged value before any caller sees it. On its own
+`dano3mip` fixture that single line is the whole 10⁵–10⁷ gap between the two
+pipelines. Not ours to fix; worth knowing before any number here is compared
+with a published one. Its `qsearch.cpp` also computes `1/(1<<(k-1))` in integer
+division, so `nQ(t, L)` returns 0.5 for every `t > 0`.
+
+**7. `QTGSearch` is one probe away from closing.** Its formula already agrees
+with the original's driver exactly. What is missing is the schedule, and the
+schedule is what an instrumented *classical tree generator* produces: for a
+drawn Grover power `j` the quantum applies the generator `2j+1` times while the
+emulation draws `4j²` samples, so generator applications are the square root of
+classical samples, round for round. Log per segment the attempt count, the sum
+of drawn powers, and the incumbent profit, and the cycle count follows with
+nothing quantum simulated.
+
+**8. No HiGHS presolve.** Binkowski's pipeline presolves before the standard
+form and ours does not, so our logged Newton-system dimension runs larger on any
+instance with removable structure. Unquantified — `highspy` is not installed.
+
 ## Where it stands
 
 Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
