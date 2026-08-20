@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 __all__ = [
     "Graph",
@@ -32,7 +32,9 @@ __all__ = [
     "Knapsack",
     "LinearProgram",
     "Matrix",
+    "MultidimensionalKnapsack",
     "Network",
+    "QuadraticKnapsack",
     "detect",
     "read",
 ]
@@ -129,6 +131,52 @@ class Knapsack(Instance):
 
 
 @dataclass(frozen=True)
+class QuadraticKnapsack(Instance):
+    """Items with their own value, and a bonus for each pair taken together.
+
+    :attr:`pairs` maps an unordered pair to what it earns **in addition** when
+    both items are chosen, keyed ``(higher, lower)`` and holding the total for
+    that pair -- the circuit performs one addition per unordered pair, so a
+    symmetric matrix's two entries belong together here as one number.
+
+    Bonuses only.  A pair worth less than nothing has no gate in the circuit
+    that costs this, so a negative entry is refused rather than carried.
+    """
+
+    profits: Tuple[int, ...]
+    weights: Tuple[int, ...]
+    capacity: int
+    #: ``{(m, m'): value}`` with ``m > m'``; absent pairs earn nothing.
+    pairs: Dict[Tuple[int, int], int] = field(default_factory=dict)
+    optimum: Optional[int] = None
+
+    def describe(self) -> str:
+        return "{}: {} items, {} paired, capacity {}".format(
+            self.name, len(self.profits), len(self.pairs), self.capacity
+        )
+
+
+@dataclass(frozen=True)
+class MultidimensionalKnapsack(Instance):
+    """Items with one value and several costs, under one budget per dimension.
+
+    :attr:`weights` is one row per dimension, each of length ``len(profits)``;
+    :attr:`capacities` holds one budget per dimension, in the same order.
+    """
+
+    profits: Tuple[int, ...]
+    #: ``weights[i][m]`` -- what item ``m`` costs in dimension ``i``.
+    weights: Tuple[Tuple[int, ...], ...]
+    capacities: Tuple[int, ...]
+    optimum: Optional[int] = None
+
+    def describe(self) -> str:
+        return "{}: {} items, {} dimensions".format(
+            self.name, len(self.profits), len(self.weights)
+        )
+
+
+@dataclass(frozen=True)
 class Matrix(Instance):
     """A sparse matrix, as Matrix Market states it.
 
@@ -208,6 +256,8 @@ _BY_SUFFIX = {
     ".mtx": "matrix-market",
     ".mps": "mps",
     ".kp": "pisinger",
+    ".qkp": "quadratic-knapsack",
+    ".mdkp": "multidimensional-knapsack",
 }
 
 
@@ -276,6 +326,14 @@ def read(path: Union[str, Path], layout: str = "") -> Instance:
         from .knapsack import read as read_knapsack
 
         return read_knapsack(location)
+    if chosen == "quadratic-knapsack":
+        from .qkp import read as read_quadratic
+
+        return read_quadratic(location)
+    if chosen == "multidimensional-knapsack":
+        from .mdkp import read as read_multidimensional
+
+        return read_multidimensional(location)
     if chosen == "matrix-market":
         from .matrixmarket import read as read_matrix
 

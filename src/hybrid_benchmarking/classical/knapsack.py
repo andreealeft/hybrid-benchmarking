@@ -128,3 +128,136 @@ def solve(instance: Knapsack, budget: Budget) -> Run:
             "cost of the tree generator rather than of the search around it",
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# the two variants
+# ---------------------------------------------------------------------------
+
+QUADRATIC_IMPLEMENTATION = (
+    "the instance itself, read rather than solved: the quadratic tree "
+    "generator's cost is a function of the profits, the pair bonuses and the "
+    "weights, so there was no classical run to instrument"
+)
+
+MULTIDIMENSIONAL_IMPLEMENTATION = (
+    "the instance itself, read rather than solved: the multidimensional tree "
+    "generator's cost is a function of the profits and the weights in every "
+    "dimension, so there was no classical run to instrument"
+)
+
+
+def quadratic_bound(profits, pairs, weights, capacity: int) -> int:
+    """An upper bound on the best achievable value of a quadratic knapsack.
+
+    Every pair bonus is available only if *both* its items are taken, so the
+    linear relaxation of the pairs is simply all of them: adding every bonus to
+    the ordinary Dantzig bound over-counts, and over-counting is exactly what a
+    bound is for.  It is loose -- an instance where no two chosen items are
+    paired pays for a profit register sized as though they all were -- but it is
+    sound, cheap, and it never claims a smaller register than the circuit needs.
+
+    A tighter one would need a real solve of the quadratic problem, which is the
+    thing being benchmarked.
+    """
+    return dantzig_bound(profits, weights, capacity) + sum(
+        value for value in dict(pairs).values() if value > 0
+    )
+
+
+def multidimensional_bound(profits, weights, capacities) -> int:
+    """An upper bound for the multidimensional knapsack.
+
+    Each dimension on its own is an ordinary knapsack whose optimum bounds the
+    multidimensional one, because dropping constraints can only help.  The
+    tightest of those is still a bound, so the smallest per-dimension Dantzig
+    value is taken -- which is the lower count, as the standing rule prefers.
+    """
+    return min(dantzig_bound(profits, row, capacity)
+               for row, capacity in zip(weights, capacities))
+
+
+def solve_quadratic(instance, budget: Budget) -> Run:
+    """Read a quadratic knapsack instance and size its profit register."""
+    if not instance.profits:
+        return Run(implementation=QUADRATIC_IMPLEMENTATION,
+                   status=Status.FAILED, budget=budget.seconds,
+                   elapsed=budget.elapsed, reason="the instance has no items")
+    if min(instance.weights) > instance.capacity:
+        return Run(
+            implementation=QUADRATIC_IMPLEMENTATION, status=Status.FAILED,
+            budget=budget.seconds, elapsed=budget.elapsed,
+            reason="no item fits in the budget, so every feasible choice is "
+                   "empty and there is no profit register to size",
+        )
+    bound = quadratic_bound(instance.profits, instance.pairs,
+                            instance.weights, instance.capacity)
+    if instance.optimum is not None and instance.optimum < bound:
+        bound, why = int(instance.optimum), "the optimum the file states"
+    else:
+        why = ("the Dantzig bound on the linear part plus every pair bonus, "
+               "which is loose but sound")
+    return Run(
+        implementation=QUADRATIC_IMPLEMENTATION, status=Status.COMPLETE,
+        derivation="ANALYTIC",
+        instance={
+            "profits": list(instance.profits),
+            "weights": list(instance.weights),
+            "capacity": int(instance.capacity),
+            "profit_bound": int(bound),
+            "pair_profits": {"({}, {})".format(a, b): v
+                             for (a, b), v in sorted(instance.pairs.items())},
+        },
+        elapsed=budget.elapsed, budget=budget.seconds,
+        result={"items": len(instance.profits), "paired": len(instance.pairs),
+                "profit_bound": int(bound)},
+        handoff=HANDOFF,
+        assumptions=("the profit register is sized by {}".format(why),
+                     "the amplification schedule is not produced here, so this "
+                     "is the cost of the tree generator rather than of the "
+                     "search around it"),
+    )
+
+
+def solve_multidimensional(instance, budget: Budget) -> Run:
+    """Read a multidimensional knapsack instance and size its profit register."""
+    if not instance.profits:
+        return Run(implementation=MULTIDIMENSIONAL_IMPLEMENTATION,
+                   status=Status.FAILED, budget=budget.seconds,
+                   elapsed=budget.elapsed, reason="the instance has no items")
+    for index, (row, capacity) in enumerate(zip(instance.weights,
+                                                instance.capacities)):
+        if min(row) > capacity:
+            return Run(
+                implementation=MULTIDIMENSIONAL_IMPLEMENTATION,
+                status=Status.FAILED, budget=budget.seconds,
+                elapsed=budget.elapsed,
+                reason="no item fits dimension {}'s budget, so every feasible "
+                       "choice is empty".format(index),
+            )
+    bound = multidimensional_bound(instance.profits, instance.weights,
+                                   instance.capacities)
+    if instance.optimum is not None and instance.optimum < bound:
+        bound, why = int(instance.optimum), "the optimum the file states"
+    else:
+        why = ("the tightest single-dimension Dantzig bound, since dropping "
+               "the other constraints can only help")
+    return Run(
+        implementation=MULTIDIMENSIONAL_IMPLEMENTATION, status=Status.COMPLETE,
+        derivation="ANALYTIC",
+        instance={
+            "profits": list(instance.profits),
+            "weights": [list(row) for row in instance.weights],
+            "capacities": list(instance.capacities),
+            "profit_bound": int(bound),
+        },
+        elapsed=budget.elapsed, budget=budget.seconds,
+        result={"items": len(instance.profits),
+                "dimensions": len(instance.weights),
+                "profit_bound": int(bound)},
+        handoff=HANDOFF,
+        assumptions=("the profit register is sized by {}".format(why),
+                     "the amplification schedule is not produced here, so this "
+                     "is the cost of the tree generator rather than of the "
+                     "search around it"),
+    )

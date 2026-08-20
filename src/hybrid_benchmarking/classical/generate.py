@@ -25,7 +25,8 @@ from ..dataset import Dataset
 from ..dataset import run as cost_log
 from ..dataset import write as write_log
 from ..instances import Graph, Instance, InstanceError, Knapsack, LinearProgram
-from ..instances import Matrix, Network
+from ..instances import Matrix, MultidimensionalKnapsack, Network
+from ..instances import QuadraticKnapsack
 from ..instances import read as read_instance
 from ..problems import Route, family_of, get_problem, get_route
 from .budget import DEFAULT_SECONDS, Budget, Run, Status
@@ -40,6 +41,9 @@ DEFAULT_ROUTE: Dict[str, Tuple[str, str]] = {
     "dimacs-max": ("maximum-flow", "quantum-bfs"),
     "dimacs-edge": ("vertex-cover", "quantum-simplex"),
     "pisinger": ("knapsack", "tree-generator"),
+    "quadratic-knapsack": ("quadratic-knapsack", "tree-generator"),
+    "multidimensional-knapsack": ("multidimensional-knapsack",
+                                  "tree-generator"),
     "matrix-market": ("linear-systems", "qsvt"),
     "mps": ("linear-programming", "quantum-simplex"),
 }
@@ -81,6 +85,10 @@ _DESCRIBED: Dict[str, Tuple[str, str]] = {
     "Graph": ("a DIMACS graph or edge list", "instance.clq"),
     "Knapsack": ("a knapsack instance, Pisinger or Martello-Toth layout",
                  "instance.kp"),
+    "QuadraticKnapsack": ("a quadratic knapsack instance, Billionnet-Soutif "
+                          "layout", "instance.qkp"),
+    "MultidimensionalKnapsack": ("a multidimensional knapsack instance, "
+                                 "OR-Library layout", "instance.mdkp"),
     "Matrix": ("a Matrix Market matrix", "instance.mtx"),
     "LinearProgram": ("an MPS model, fixed or free format", "model.mps"),
 }
@@ -131,6 +139,23 @@ def _run_knapsack(instance: Knapsack, route: Route, budget: Budget,
     from .knapsack import solve
 
     return solve(instance, budget)
+
+
+@_runner("quadratic-knapsack", "tree-generator", QuadraticKnapsack)
+def _run_quadratic(instance: QuadraticKnapsack, route: Route, budget: Budget,
+                   options: Dict[str, Any]) -> Run:
+    from .knapsack import solve_quadratic
+
+    return solve_quadratic(instance, budget)
+
+
+@_runner("multidimensional-knapsack", "tree-generator",
+         MultidimensionalKnapsack)
+def _run_multidimensional(instance: MultidimensionalKnapsack, route: Route,
+                          budget: Budget, options: Dict[str, Any]) -> Run:
+    from .knapsack import solve_multidimensional
+
+    return solve_multidimensional(instance, budget)
 
 
 def _run_linear_system(instance: Matrix, route: Route, budget: Budget,

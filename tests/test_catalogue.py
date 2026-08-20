@@ -124,3 +124,100 @@ class TestTheKnapsackVariantsAreReachable:
 
         with pytest.raises(ValueError):
             qkp_gates([6, 2], {(0, 1): -4}, [2, 2], 7, 11)
+
+
+class TestTheVariantsRunFromAnInstance:
+    """Both new families now take a file, like every other family does."""
+
+    QUADRATIC = dict(profits=(6, 2, 1, 2), weights=(2, 2, 1, 5), capacity=7,
+                     pairs={(1, 0): 6, (2, 0): 3})
+    MULTIDIMENSIONAL = dict(profits=(6, 2, 1, 2),
+                            weights=((2, 2, 1, 5), (3, 1, 4, 2)),
+                            capacities=(7, 6))
+
+    def _quadratic(self, **changes):
+        from hybrid_benchmarking.instances import QuadraticKnapsack
+
+        return QuadraticKnapsack(name="toy", source="(hand built)",
+                                 layout="quadratic-knapsack",
+                                 **dict(self.QUADRATIC, **changes))
+
+    def _multidimensional(self, **changes):
+        from hybrid_benchmarking.instances import MultidimensionalKnapsack
+
+        return MultidimensionalKnapsack(
+            name="toy", source="(hand built)",
+            layout="multidimensional-knapsack",
+            **dict(self.MULTIDIMENSIONAL, **changes))
+
+    def test_a_quadratic_instance_goes_from_object_to_a_cycle_count(self):
+        from hybrid_benchmarking.classical import Budget, cost, generate
+
+        report = cost(generate(self._quadratic(), budget=Budget(30)))
+        assert report["total"] > 0
+        assert report["unit_label"] == "cycles"
+
+    def test_a_multidimensional_instance_does_too(self):
+        from hybrid_benchmarking.classical import Budget, cost, generate
+
+        report = cost(generate(self._multidimensional(), budget=Budget(30)))
+        assert report["total"] > 0
+
+    def test_a_pair_key_survives_a_trip_through_a_file(self):
+        # A log is a file and a file's keys are strings, so (1, 0) comes back
+        # as "(1, 0)". Both name the same pair.
+        from hybrid_benchmarking.routines.qkp import pairwise_terms
+
+        assert pairwise_terms({"(1, 0)": 6}) == pairwise_terms({(1, 0): 6})
+
+    def test_a_key_that_names_no_pair_is_refused(self):
+        from hybrid_benchmarking.routines.qkp import pairwise_terms
+
+        with pytest.raises(ValueError, match="does not name a pair"):
+            pairwise_terms({"(1, 2, 3)": 6})
+
+    def test_the_quadratic_bound_is_above_any_achievable_value(self):
+        """It adds every pair bonus to the linear relaxation, which over-counts
+        on purpose: the register must hold whatever the circuit can reach."""
+        from itertools import combinations
+
+        from hybrid_benchmarking.classical.knapsack import quadratic_bound
+
+        instance = self._quadratic()
+        best = 0
+        for size in range(len(instance.profits) + 1):
+            for chosen in combinations(range(len(instance.profits)), size):
+                if sum(instance.weights[i] for i in chosen) > instance.capacity:
+                    continue
+                value = sum(instance.profits[i] for i in chosen)
+                value += sum(v for (a, b), v in instance.pairs.items()
+                             if a in chosen and b in chosen)
+                best = max(best, value)
+        assert quadratic_bound(instance.profits, instance.pairs,
+                               instance.weights, instance.capacity) >= best
+
+    def test_the_multidimensional_bound_is_above_any_achievable_value(self):
+        from itertools import combinations
+
+        from hybrid_benchmarking.classical.knapsack import multidimensional_bound
+
+        instance = self._multidimensional()
+        best = 0
+        for size in range(len(instance.profits) + 1):
+            for chosen in combinations(range(len(instance.profits)), size):
+                if any(sum(row[i] for i in chosen) > cap
+                       for row, cap in zip(instance.weights,
+                                           instance.capacities)):
+                    continue
+                best = max(best, sum(instance.profits[i] for i in chosen))
+        assert multidimensional_bound(
+            instance.profits, instance.weights, instance.capacities) >= best
+
+    def test_an_instance_where_nothing_fits_is_refused(self):
+        from hybrid_benchmarking.classical import Budget
+        from hybrid_benchmarking.classical.knapsack import solve_quadratic
+
+        run = solve_quadratic(self._quadratic(weights=(99, 99, 99, 99)),
+                              Budget(30))
+        assert run.status.value == "failed"
+        assert "no item fits" in run.reason

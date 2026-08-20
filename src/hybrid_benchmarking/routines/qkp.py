@@ -113,6 +113,31 @@ CONJUNCTION_CYCLES = 2
 # quadratic knapsack
 # ---------------------------------------------------------------------------
 
+def _pair_key(key) -> Tuple[int, int]:
+    """The two items a pair names, however the pair was written down.
+
+    A log is a file, and a file's keys are strings, so ``(1, 0)`` arrives as
+    ``"(1, 0)"`` once it has been through JSON -- and as a tuple when it comes
+    straight from Python.  Both are the same pair and both are accepted; a key
+    that is neither is refused rather than guessed at.
+    """
+    if isinstance(key, str):
+        cleaned = key.strip().strip("()[] ").replace(";", ",")
+        parts = [piece for piece in cleaned.split(",") if piece.strip()]
+    else:
+        parts = list(key)
+    if len(parts) != 2:
+        raise ValueError(
+            "{!r} does not name a pair of items; write it as (i, j)".format(key)
+        )
+    try:
+        return int(parts[0]), int(parts[1])
+    except (TypeError, ValueError):
+        raise ValueError(
+            "{!r} does not name a pair of items by index".format(key)
+        )
+
+
 def pairwise_terms(pairs: Mapping) -> Tuple[Tuple[int, int, int], ...]:
     """The pairwise profits that cost anything, as ``(m, m', value)``.
 
@@ -134,7 +159,7 @@ def pairwise_terms(pairs: Mapping) -> Tuple[Tuple[int, int, int], ...]:
     """
     gathered: Dict[Tuple[int, int], int] = {}
     for key, value in dict(pairs).items():
-        first, second = key
+        first, second = _pair_key(key)
         if first == second:
             raise ValueError(
                 "({0}, {0}) is not a pair; the profit of item {0} on its own "
