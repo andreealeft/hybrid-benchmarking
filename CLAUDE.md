@@ -44,7 +44,7 @@ defensible, **take the one giving the lower count** — every number here is mea
 to be a bound favourable to the quantum side, and a bound built on the larger of
 two candidates is not the bound it claims to be. That rule is a tie-breaker
 between defensible readings, not a licence to adopt a statement that
-contradicts itself. Six have come up, each ruled by
+contradicts itself. Seven have come up, each ruled by
 Andreea and each noted on the entries that depend on it:
 
 | Where | The problem | Ruling |
@@ -53,7 +53,8 @@ Andreea and each noted on the entries that depend on it:
 | Lemma 17 | `n_1/x` defined with three arguments, called with two | **Keep the `d/2κ` rescaling** — it encodes the block-encoding sub-normalisation |
 | Lemma 6 vs Lemma 13 | Same product term; one carries `m_k/2` and truncates, the other does not | **Both carry the half** (`HALF_ROUND_COUNT`). Neither statement contradicts itself, so the standing rule decides: where two defensible readings disagree, take the lower count. Halves every solver's query count; changes no ordering, since all four carry the same overhead |
 | Lemma 9/27 vs (A.23)/Lemma 25 | Minimum-finding rank sum starts at 1 in two places, 0 in two others | **From 0** — the t=0 term is the terminating search that finds nothing, and it is the largest |
-| Lemma 15 vs Lemma 16 | Chapter 5 writes a bare `log` in the Fourier weight and simulation time, and an explicit `log2` in the Chebyshev truncation degree. The two differ by `ln 2`, which survives a square root into every query count | **Base two everywhere.** Fourier's weight and time move by `1/√(ln 2)`; the count by ×1.74. Ordering unchanged. This also brings the Fourier weight into exact agreement with the qls-comparison repository, which already used base two there |
+| Lemma 15 vs Lemma 16 | Chapter 5 writes a bare `log` in the Fourier weight and simulation time, and an explicit `log2` in the Chebyshev truncation degree. The two differ by `ln 2`, which survives a square root into every query count | **Base two where the lemma leaves it open; the lemma wins where it does not.** So base two for Lemma 15's weight and time and Lemma 17's `n_exp`, and `log2` for Lemma 16's `j0` as printed — but *natural* logs in Lemma 12, which writes `ln(1/δ)/e` and divides by `log(e + …)`. Fourier's count moves by ×1.74; ordering unchanged, and the Fourier weight now agrees exactly with the qls-comparison repository |
+| §4.6.2's `d` | The list of iteration-related measures names the maximum non-zeros in the *columns* of `A_B`, but the normalisation four paragraphs later needs `‖A_B‖₂ ≤ d‖A_B‖max`, which the column maximum does not give when a row is denser | **`d` is `max(row, column)`.** Ruled by Andreea. Taking the column maximum makes `A_1` and `A_max` over-estimates rather than the lower bounds they are declared to be — on a thirty-relay max-flow network, 56 of 121 bases violate it and the total lands 16 % high. It is also the sparsity of the Hermitian dilation a quantum solver acts on, which is what `linsystem.py` had concluded independently |
 | (C.18) vs (C.25), (C.24) vs (C.28) | Comparison strategy reads bits of `w` in one and `w−1` in the other; cycle weights grouped differently | Transcribed as written, asymmetry flagged in the docstrings |
 
 Two further corrections already made, both worth not re-breaking:
@@ -128,11 +129,9 @@ They are set out at length in `classical/simplex.py`; in short:
 - **κ is GLPK's**, `max(1, κ₁/m)` with `κ₁ = ‖A_B‖₁‖A_B⁻¹‖₁` from (4.33), not
   the exact condition number. An exact κ₂ would be larger *and* no longer a
   bound.
-- **`d` is the larger of the row and column sparsities**, though §4.6.2's list
-  names the column maximum. Taking the column maximum makes the normalisation
-  below come out false whenever a row is denser than every column — which a
-  max-flow program manages at any vertex of degree four — and then `A_1` and
-  `A_max` are over-estimates rather than the lower bounds they claim to be.
+- **`d` is `max(row, column)`**, though §4.6.2's list names the column maximum.
+  Ruled by Andreea; see the ambiguity table above for why the column maximum
+  breaks the normalisation stated in the same section.
 - **A_1 and A_max are the normalised lower bounds** `‖A_B‖₁/(d‖A_B‖max)` and
   `1/d`, because SimplexIter runs on a normalised matrix. The raw norms are
   logged beside them so the convention is reversible.
@@ -224,9 +223,10 @@ while this library follows it:
   reproduces (5.40) to twelve digits; the repository's value is up to **6×**
   larger at small success probabilities and smaller at large ones.
 - Its `j0` uses natural logs where Lemma 16 writes `log2` explicitly — the one
-  place it does not use base two. Ours is ×1.45 there.
-- Its `hamiltonian_simulation` tests the *unscaled* time against Lemma 12's
-  crossover, where the lemma's condition is on `t' = d ‖A‖max t`.
+  place it does not use base two. Ours is ×1.45 there, and stays there.
+- Its `hamiltonian_simulation` uses base two where Lemma 12 writes `ln`, and
+  tests the *unscaled* time against the crossover, where the lemma's condition
+  is on `t' = d ‖A‖max t`. We follow the lemma on both counts.
 
 This means the published Method 2 figures came from code that differs from the
 lemmas as printed. Worth knowing before comparing any number here with one from
@@ -238,4 +238,4 @@ Complete: 44 routines / 51 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 837 tests.
+interface and a CLI. 840 tests.

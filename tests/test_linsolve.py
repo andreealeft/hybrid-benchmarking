@@ -335,3 +335,43 @@ class TestAgainstTheQlsComparisonRepository:
             ours = rounds(p, p0, half=False)
             assert ours != pytest.approx(value, rel=1e-3)
             assert 0.15 < ours / value < 1.1  # same order, not the same number
+
+
+class TestWhichLemmaGovernsWhichBase:
+    """The base-two ruling settles the lemmas that leave the base open.
+
+    It does not overrule one that says which base it means. Lemma 12 writes its
+    crossover as ``t' >= ln(1/delta)/e`` and divides by ``log(e + ...)``, which
+    is the identity it appears to be only in base e; Lemma 16 spells out
+    ``log2``. Between them sit Lemma 15's weight and time and Lemma 17's
+    exponential degree, which write a bare ``log`` and take base two.
+    """
+
+    def test_hamiltonian_simulation_keeps_the_natural_logs_lemma_12_states(self):
+        from hybrid_benchmarking.routines.linsolve import _segments
+
+        epsilon, t_prime = 1e-8, 1.0
+        assert t_prime < math.log(1.0 / epsilon) / math.e  # the second branch
+        assert _segments(t_prime, epsilon) == math.ceil(
+            4.0 * math.log(1.0 / epsilon)
+            / math.log(math.e + math.log(1.0 / epsilon) / t_prime))
+
+    def test_the_crossover_is_tested_on_the_rescaled_time(self):
+        # Lemma 12's condition is on t' = d ||A||max t, not on t. The original
+        # repository tests the unscaled time; this follows the lemma.
+        from hybrid_benchmarking.routines.linsolve import (
+            _segments,
+            simulation_queries,
+        )
+
+        d, norm_max, t, epsilon = 8.0, 1.0, 1.0, 1e-8
+        assert simulation_queries(d, norm_max, t, epsilon) == \
+            48.0 * _segments(d * norm_max * t, epsilon)
+        # d = 8 pushes t' past the crossover although t alone is well below it.
+        assert t < math.log(1.0 / epsilon) / math.e <= d * norm_max * t
+
+    def test_the_truncation_degree_keeps_the_base_two_lemma_16_states(self):
+        y, epsilon = 200.0, 1e-8
+        s = math.ceil(y ** 2 * math.log2(y / epsilon))
+        assert chebyshev_terms(y, epsilon) == math.ceil(
+            math.sqrt(s * math.log2(4.0 * s / epsilon)))
