@@ -1,0 +1,25 @@
+r_100_100_1
+8
+ 91  75  50  13  91  76  55  12
+ 55  23  35  44   5  91  95
+ 81  21  31  81  58  26
+ 64  11  18  64  80
+ 63  20  16  80
+ 87  50  90
+ 48  13
+ 41
+
+0
+616
+ 10   2  28  10  44  14  21  10
+
+Comments
+
+Density             : 100.00 %
+
+The first eight items of jeu_100_100_1.txt, downloaded from
+https://cedric.cnam.fr/~soutif/QKP/ -- the linear profits, the leading corner
+of the quadratic triangle, the constraint type, the capacity and the weights
+are the file's own numbers, unedited.  The capacity is the full instance's 616
+and the eight weights sum to 139, so the trimmed instance is unconstrained;
+what this fixture is for is the layout, not the packing.

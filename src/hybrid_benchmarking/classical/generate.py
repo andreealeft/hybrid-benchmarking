@@ -310,10 +310,17 @@ def generate(instance: Instance, problem: str = "", route: str = "",
 
 
 def generate_from_file(path: str, problem: str = "", route: str = "",
-                       budget: Optional[Budget] = None,
+                       budget: Optional[Budget] = None, layout: str = "",
                        **options: Any) -> Generated:
-    """Read an instance file and run it, in one step."""
-    return generate(read_instance(path), problem, route, budget, **options)
+    """Read an instance file and run it, in one step.
+
+    ``layout`` names the reader outright, for the files whose extension does not
+    give them away.  Several of the benchmark sets ship as ``.txt``, which says
+    nothing about what is inside, and guessing between formats is the one thing
+    the readers are built not to do.
+    """
+    return generate(read_instance(path, layout), problem, route, budget,
+                    **options)
 
 
 def cost(generated: Generated,

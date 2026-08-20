@@ -237,6 +237,7 @@ def _generate(args: argparse.Namespace, path: str):
 
     return generate_from_file(
         path, args.problem or "", args.route or "", Budget(args.budget),
+        layout=getattr(args, "layout", None) or "",
         rhs=getattr(args, "rhs", None) or "",
     )
 
@@ -421,6 +422,8 @@ def _add_instance_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-o", "--output", help="where to keep the log")
     parser.add_argument("--rhs", help="a Matrix Market vector to use as the "
                                       "right-hand side of a linear system")
+    parser.add_argument("--layout", help="name the file's format outright, for "
+                                         "the sets that ship as .txt")
 
 
 def build_parser() -> argparse.ArgumentParser:
