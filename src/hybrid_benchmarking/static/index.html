@@ -5,26 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hybrid-benchmarking</title>
 <style>
-  /* Three colours, and the pink leads.
+  /* Two colours: a deep pink and an amber, over warm neutrals.
 
-     Deep pink is the identity.  Indigo and gold are its companions, and they
-     were chosen for it rather than inherited: the olive the Classiq set used
-     went with its own scheme and read as a third opinion beside this one, and
-     the teal it used for controls is a blue with green in it, which sat wrong
-     against neutrals this warm.
+     Everything that was blue is amber now.  Two colours is a harder discipline
+     than three and a calmer page for it, and the pair works because they are
+     neighbours warmed from the same side rather than opposites arguing across
+     the wheel.
 
-     What holds the three together is that each is a darkened, low-chroma
-     version of a hue at even spacing around the wheel: red-violet, blue-violet,
-     amber.  Indigo is also a cousin of the plum black the text is set in, so
-     the controls belong to the same family as the ink.
+     Pink marks *what a thing is*: the rule down the side of a result, the
+     quantum bar in the chart, the drawings, the section kickers.  Amber is
+     *everything you touch or should notice*: buttons, the labels on the fields
+     you fill in, the focus outline, links, the chosen problem in the menu, the
+     measured classical bar, and the cautions.
 
-     The division of labour is deliberate.  Pink marks *what a thing is*: the
-     rule down the side of a result, a selected problem, the quantum bar in the
-     chart, the drawings.  Indigo is *what you can do*: buttons, the labels on
-     the fields you fill in, the focus outline, links.  Pink on every control
-     at once was too loud, and pink beside an input box reads as a warning
-     rather than as an invitation.  Gold is *what was measured or what needs
-     care*: the classical bar, and the cautions.
+     Pink is deliberately not used on controls.  It is loud enough that a page
+     of pink buttons reads as a page of warnings, and pink beside an input box
+     reads as though the field were already wrong.
 
      Both themes are written out rather than one being left to inherit, because
      the drawings are painted in these variables and a colour that resolved to
@@ -34,7 +30,6 @@
     --ink: #1a1418; --muted: #55494f; --faint: #8a7c82;
     --rule: #e2dbdd; --accent: #a4133c; --accent-soft: #f8e7eb;
     --warn: #8a5a10; --warn-soft: #f7eddc; --good: #8a5a10;
-    --cool: #2f3566; --cool-soft: #e8e9f4;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
@@ -44,7 +39,6 @@
       --ink: #f3eef0; --muted: #b7abb0; --faint: #877a80;
       --rule: #322b30; --accent: #e4677f; --accent-soft: #381a23;
       --warn: #d9a343; --warn-soft: #2c2119; --good: #d9a343;
-      --cool: #9aa6e2; --cool-soft: #1d1f38;
     }
   }
   * { box-sizing: border-box; }
@@ -69,7 +63,7 @@
     width: 100%; padding: .5rem .65rem; font: inherit; color: var(--ink);
     background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
   }
-  #filter:focus { outline: 2px solid var(--cool); outline-offset: 1px; }
+  #filter:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
   ul { list-style: none; margin: .8rem 0 0; padding: 0; }
   li button {
     width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
@@ -115,7 +109,7 @@
     border: 1px solid var(--rule); border-radius: 999px;
   }
   .tabs button[aria-pressed="true"] {
-    background: var(--cool); border-color: var(--cool); color: var(--ground);
+    background: var(--warn); border-color: var(--warn); color: var(--ground);
   }
   pre {
     background: var(--sunk); border: 1px solid var(--rule); border-radius: 5px;
@@ -136,18 +130,18 @@
   form { display: grid; gap: .7rem; margin-bottom: 1rem; }
   .field { display: grid; grid-template-columns: 1fr; gap: .2rem; }
   @media (min-width: 620px) { .field { grid-template-columns: 170px 1fr; align-items: center; gap: .8rem; } }
-  .field label { font-family: var(--mono); font-size: .82rem; color: var(--cool); }
+  .field label { font-family: var(--mono); font-size: .82rem; color: var(--warn); }
   .field input {
     font: inherit; font-family: var(--mono); font-size: .84rem; padding: .4rem .55rem;
     background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; width: 100%;
   }
-  .field input:focus { outline: 2px solid var(--cool); outline-offset: 1px; }
+  .field input:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
   .actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
   button.primary {
     font: inherit; font-weight: 600; padding: .45rem 1.1rem; cursor: pointer;
-    background: var(--cool); color: var(--ground);
-    border: 1px solid var(--cool); border-radius: 4px;
+    background: var(--warn); color: var(--ground);
+    border: 1px solid var(--warn); border-radius: 4px;
   }
   button.ghost {
     font: inherit; padding: .45rem .9rem; cursor: pointer; color: var(--muted);
@@ -196,13 +190,13 @@
     background: var(--ground); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; max-width: 100%;
   }
-  select:focus { outline: 2px solid var(--cool); outline-offset: 1px; }
+  select:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
   .slot {
     margin: .55rem 0 0 1rem; padding-left: .8rem;
     border-left: 2px solid var(--accent-soft);
   }
   .slot > .label {
-    font-family: var(--mono); font-size: .76rem; color: var(--cool);
+    font-family: var(--mono); font-size: .76rem; color: var(--warn);
     display: block; margin-bottom: .3rem;
   }
   .drop { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; }
@@ -226,7 +220,7 @@
     padding: .6rem; background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; resize: vertical;
   }
-  textarea:focus { outline: 2px solid var(--cool); outline-offset: 1px; }
+  textarea:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
   .sub { color: var(--faint); font-size: .8rem; font-family: var(--mono); }
 
   /* ---- the introduction ---- */
@@ -274,7 +268,7 @@
     margin-bottom: .3rem;
   }
   ul.refs li b { display: block; font-weight: 600; font-size: .89rem; }
-  ul.refs a { color: var(--cool); text-decoration: none; }
+  ul.refs a { color: var(--warn); text-decoration: none; }
   ul.refs a:hover { text-decoration: underline; }
   ul.refs li span {
     display: block; color: var(--muted); font-size: .84rem; margin-top: .1rem;
