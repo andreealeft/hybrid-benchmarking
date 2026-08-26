@@ -345,6 +345,16 @@ The **Browse** and **Build** tabs are still served and still work, but their
 buttons are hidden and the tab bar with them: the page opens on the problems and
 shows nothing else. Unhide the two buttons in `static/index.html` to restore.
 
+The page opens on an **introduction** rather than on a form: what is counted
+(gates, cycles, queries), that these are logical operations in the fault-tolerant
+regime and never added to one another, and the two ways in -- describe your
+problem in ordinary numbers, or bring your own instance, which is the one that
+is about you rather than about your size. The header title returns to it. This
+also fixed a real bug: the subroutine list and the problem menu are the same
+`<ul>`, both were fetched at startup, and whichever finished last owned the left
+menu -- so a menu of problems sometimes came up holding subroutines. Browse now
+loads when Browse is entered, which cannot happen while its button is hidden.
+
 The seventy-one names are grouped under nine headings, and the headings
 deliberately **cut across the families**. Grouping by family would put siting a
 satellite next to siting a charging point and announce that they are one
@@ -528,4 +538,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1768 tests.
+interface and a CLI. 1770 tests.

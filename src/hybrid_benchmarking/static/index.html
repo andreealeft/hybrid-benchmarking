@@ -198,11 +198,55 @@
   }
   textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .sub { color: var(--faint); font-size: .8rem; font-family: var(--mono); }
+
+  /* ---- the introduction ---- */
+  #welcome { max-width: 780px; }
+  .hero h2 {
+    font-family: var(--sans); font-size: 1.5rem; line-height: 1.3;
+    font-weight: 600; margin: .4rem 0 .7rem; max-width: 20ch;
+  }
+  .lede { font-size: 1rem; color: var(--muted); max-width: 62ch; margin: 0 0 1rem; }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .kicker {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--accent); font-weight: 700;
+  }
+  .cards { display: grid; gap: .7rem; margin: .4rem 0 1.4rem; }
+  @media (min-width: 700px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+  .card {
+    border: 1px solid var(--rule); border-radius: 6px; background: var(--surface);
+    padding: .8rem .9rem;
+  }
+  .card h4 {
+    margin: 0 0 .3rem; font-size: .95rem; font-family: var(--mono);
+    font-weight: 600; color: var(--accent);
+  }
+  .card p { margin: 0; font-size: .85rem; color: var(--muted); }
+  .steps { display: grid; gap: .8rem; margin: .4rem 0 1.4rem; }
+  .step {
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0; background: var(--surface); padding: .9rem 1.1rem;
+  }
+  .step.real { border-left-color: var(--good); }
+  .step h4 { margin: 0 0 .35rem; font-size: .95rem; }
+  .step p { margin: 0 0 .4rem; color: var(--muted); font-size: .88rem; max-width: 68ch; }
+  .step p:last-child { margin-bottom: 0; }
+  .step .tag {
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
+    font-weight: 700; color: var(--good);
+  }
+  .brand {
+    font: inherit; font-family: var(--mono); font-size: 1rem; font-weight: 600;
+    background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+    color: var(--ink);
+  }
+  .brand:hover { color: var(--accent); }
 </style>
 </head>
 <body>
 <header>
-  <h1>hybrid-benchmarking</h1>
+  <h1><button class="brand" id="home" title="Back to the introduction"
+      >hybrid-benchmarking</button></h1>
   <p>Quantum subroutines and what they cost. Nothing leaves this machine.</p>
   <!-- One mode is on the menu, so the bar itself is off it.  The buttons stay
        in the document: the handler, and anything that restores them, work. -->
@@ -220,9 +264,75 @@
     <input id="filter" type="search" placeholder="Search the problems" autocomplete="off">
     <ul id="list"></ul>
   </nav>
-  <article id="detail"><p class="none">Loading the registry…</p></article>
+  <article id="welcome">
+    <div class="hero">
+      <span class="kicker">Resource estimates, fault-tolerant regime</span>
+      <h2>What a quantum computer would have to do, counted before there is one.</h2>
+      <p class="lede">This gives you a <b>lower bound</b> on what a handful of
+        quantum algorithms would cost on a problem like yours — the ones whose
+        scaling is asymptotically better than the classical method they replace.
+        Nothing here is simulated and no quantum hardware is involved: the
+        counts come from the published analyses, evaluated on real numbers.</p>
+    </div>
+
+    <h3>Counted in three things</h3>
+    <div class="cards">
+      <div class="card"><h4>Gates</h4>
+        <p>How much work in total — every logical operation the circuit
+          performs, added up.</p></div>
+      <div class="card"><h4>Cycles</h4>
+        <p>How long it takes — layers of gates that can run at the same time,
+          so this is depth rather than volume.</p></div>
+      <div class="card"><h4>Queries</h4>
+        <p>How often the algorithm has to consult its input, when the cost of
+          answering is somebody else's problem.</p></div>
+    </div>
+    <p class="meta">These are <b>logical</b> operations, in the fault-tolerant
+      regime: error correction is assumed to have done its work already, and its
+      physical overhead is not folded in. Gates, cycles and queries are never
+      added to one another — they are three different questions.</p>
+
+    <h3>Two ways in</h3>
+    <div class="steps">
+      <div class="step">
+        <h4>Describe your problem in ordinary numbers</h4>
+        <p>How many employees, how many delivery stops, how much room in the
+          van. Those answers are mapped onto a model instance of that shape, the
+          classical algorithm is run on it here, and every method is costed on
+          the same instance.</p>
+        <p>Good for a sense of the magnitude, and for seeing which method the
+          size of your problem favours. It is a problem <em>like</em> yours.</p>
+      </div>
+      <div class="step real">
+        <span class="tag">the real thing</span>
+        <h4>Bring your own instance</h4>
+        <p>A data file of your own is where the estimate becomes about you. Cost
+          does not follow from size alone — two instances with the same number of
+          items can differ by orders of magnitude, because what the counts
+          actually depend on is structure: how ill-conditioned the matrix is,
+          how many columns improve at each step, how deep the layers go.</p>
+        <p>So the file is read, the classical algorithm runs here with the
+          instrumentation in place, and the log it produces is what gets costed.
+          The log is shown to you; it is the artefact, not a hidden step.</p>
+      </div>
+    </div>
+
+    <h3>Where to start</h3>
+    <p class="lede">Pick your problem from the menu on the left. Seventy-one of
+      them, grouped by the kind of task rather than by the mathematics — choosing
+      what to fund, deciding where to put things, avoiding clashes. If none is
+      exactly yours, take the closest: several of those names are the same
+      problem underneath, so approximately right is usually right.</p>
+
+    <p class="meta">Every number that comes out carries where it came from —
+      which lemma, what it assumes, the regime it was derived in, and whether it
+      is a bound or exact. A plausible number without that is the thing this
+      tool exists to prevent. Nothing leaves this machine: the page loads nothing
+      from the internet, and no file you point it at is uploaded anywhere.</p>
+  </article>
+  <article id="detail" hidden><p class="none">Loading the registry…</p></article>
   <article id="builder" hidden></article>
-  <article id="problems"><p class="none">Loading…</p></article>
+  <article id="problems" hidden><p class="none">Loading…</p></article>
 </main>
 
 <script>
@@ -245,8 +355,16 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/* The subroutine list and the problem menu are the same <ul>, so whichever
+   finished loading last used to win -- which is why the left menu sometimes
+   came up holding subroutines.  Browse now loads when it is entered, and it is
+   not entered at startup. */
+let browseLoaded = false;
+
 async function boot() {
+  if (browseLoaded) { drawList(); return; }
   catalogue = await (await fetch("/api/routines")).json();
+  browseLoaded = true;
   drawList();
   select("QSearch");
 }
@@ -608,7 +726,17 @@ let PROBLEMS = [], problem = null, route = null, logText = "";
 async function boot_problems() {
   PROBLEMS = await (await fetch("/api/problems")).json();
   drawProblemList();
-  pickProblem(PROBLEMS[0].key);
+  /* No problem is picked for you.  The introduction says what the tool is for,
+     which is the thing somebody arriving needs before a form. */
+}
+
+function showWelcome() {
+  problem = null; route = null; logText = "";
+  $("welcome").hidden = false;
+  $("problems").hidden = true;
+  $("detail").hidden = true;
+  $("builder").hidden = true;
+  drawProblemList();
 }
 
 function drawProblemList() {
@@ -650,6 +778,8 @@ function drawProblemList() {
 async function pickProblem(key) {
   problem = await (await fetch("/api/problem/" + key)).json();
   route = null; logText = "";
+  $("welcome").hidden = true;
+  $("problems").hidden = false;
   drawProblemList();
   drawProblem();
 }
@@ -923,21 +1053,22 @@ $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
   $("modes").querySelectorAll("button").forEach(x =>
     x.setAttribute("aria-pressed", String(x === b)));
   document.querySelector("nav").hidden = mode === "build";
+  $("welcome").hidden = !(mode === "problems" && !problem);
   $("detail").hidden = mode !== "browse";
   $("builder").hidden = mode !== "build";
-  $("problems").hidden = mode !== "problems";
+  $("problems").hidden = !(mode === "problems" && problem);
   $("filter").hidden = !(mode === "browse" || mode === "problems");
   if (mode === "build" && !spec) boot_build();
-  if (mode === "browse") { drawList(); if (!current) select("QSearch"); }
+  if (mode === "browse") boot();
   if (mode === "problems") drawProblemList();
 });
 
 /* Problems is the mode the page opens in and the only one on the menu, so the
    search box opens with it rather than waiting for a tab that is no longer
-   there to be clicked. */
-$("detail").hidden = true;
+   there to be clicked.  The registry is not fetched at all until Browse is
+   entered, which cannot happen from the menu as it stands. */
+$("home").onclick = showWelcome;
 $("filter").hidden = false;
-boot();
 boot_problems();
 </script>
 </body>

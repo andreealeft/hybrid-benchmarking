@@ -35,6 +35,30 @@ class TestNothingLeavesTheMachine:
         for marker in ("http://", "https://", "//cdn", "@import"):
             assert marker not in page.replace("http://127.0.0.1", "")
 
+    def test_the_page_opens_on_the_introduction(self):
+        """What someone arriving sees before they have picked anything.
+
+        The page used to open on a form for whichever problem happened to be
+        first, which told a new reader nothing about what the tool is for.
+        """
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        assert '<article id="welcome">' in page
+        assert '<article id="problems" hidden>' in page
+        assert '<article id="detail" hidden>' in page
+
+    def test_the_registry_is_not_fetched_before_it_is_asked_for(self):
+        """The subroutine list and the problem menu share one <ul>.
+
+        Both were loaded at startup, so whichever request finished last owned
+        the left menu -- which is how a menu of problems came up holding
+        subroutines instead.  Browse loads when Browse is entered.
+        """
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        script = page.split("<script>")[1]
+        startup = script.rsplit("$(\"home\").onclick", 1)[1]
+        assert "boot_problems();" in startup
+        assert "\nboot();" not in startup
+
     def test_it_binds_the_loopback_interface(self):
         url, httpd = serve(port=0, open_browser=False)
         try:
