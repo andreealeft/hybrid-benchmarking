@@ -5,50 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hybrid-benchmarking</title>
 <style>
-  /* Ember: brick red, honey, and a taupe for whatever was measured.
+  /* Cool neutrals, a pink, and a green opposite it.
 
-     The warmth is mostly in the paper rather than in the accents.  The ground
-     is a cream and the ink a brown black, so every colour on top of them reads
-     warm; the previous near white and plum black cooled whatever sat on them.
+     The warm experiment is over: cream paper and brown black ink pulled every
+     colour into one tonal band and the page went flat.  Back to the plum black
+     and the near white, which are cold enough to let a colour sit on them
+     without warming into the paper.
 
-     The classical bar is taupe rather than a third colour, because it is the
-     measured baseline and a baseline painted in a neutral says so.  It also
-     gives the amber its job back: amber was doing buttons, menu, cautions and
-     the classical bar at once, and the cautions were disappearing into the
-     furniture.
-
-     Everything that was blue is amber now.  Two colours is a harder discipline
-     than three and a calmer page for it, and the pair works because they are
-     neighbours warmed from the same side rather than opposites arguing across
-     the wheel.
-
-     Pink marks *what a thing is*: the rule down the side of a result, the
-     quantum bar in the chart, the drawings, the section kickers.  Amber is
-     *everything you touch or should notice*: buttons, the labels on the fields
-     you fill in, the focus outline, links, the chosen problem in the menu, the
-     measured classical bar, and the cautions.
-
-     Pink is deliberately not used on controls.  It is loud enough that a page
-     of pink buttons reads as a page of warnings, and pink beside an input box
-     reads as though the field were already wrong.
+     Pink and green are the contrast, and they are nearly opposite: pink is
+     *what a thing is*, the rule down the side of a result, the quantum bar,
+     the drawings.  Green is *what you can do and what was measured*: buttons,
+     field labels, focus, links, the chosen problem in the menu, and the
+     classical bar the quantum one is set against.  Amber is left for one job
+     only, the cautions, so a caution no longer looks like a control.
 
      Both themes are written out rather than one being left to inherit, because
      the drawings are painted in these variables and a colour that resolved to
      nothing would leave a blank panel. */
   :root {
-    --ground: #fdf9f3; --surface: #fffefb; --sunk: #f5eee3;
-    --ink: #241a13; --muted: #5f4d3f; --faint: #95816f;
-    --rule: #e6dccd; --accent: #a63c22; --accent-soft: #fbe9e0;
-    --warn: #9a6a10; --warn-soft: #f8eeda; --good: #8a7361;
+    --ground: #fbfaf9; --surface: #ffffff; --sunk: #f4f1f0;
+    --ink: #15111a; --muted: #514a5c; --faint: #857e91;
+    --rule: #e0dce4; --accent: #a4133c; --accent-soft: #f8e7eb;
+    --good: #55700c; --good-soft: #eef3dd;
+    --warn: #8a5a10; --warn-soft: #f7eddc;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --ground: #161110; --surface: #1f1917; --sunk: #28201d;
-      --ink: #f6efe6; --muted: #bda99a; --faint: #8d7b6d;
-      --rule: #352c27; --accent: #e8734f; --accent-soft: #33201a;
-      --warn: #e0ab4c; --warn-soft: #2d2318; --good: #b59d88;
+      --ground: #101013; --surface: #18181d; --sunk: #202027;
+      --ink: #f0eef4; --muted: #b0aabc; --faint: #837d90;
+      --rule: #2e2c36; --accent: #e4677f; --accent-soft: #381a23;
+      --good: #c7e35a; --good-soft: #232b12;
+      --warn: #d9a343; --warn-soft: #2c2119;
     }
   }
   * { box-sizing: border-box; }
@@ -73,7 +62,7 @@
     width: 100%; padding: .5rem .65rem; font: inherit; color: var(--ink);
     background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
   }
-  #filter:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
+  #filter:focus { outline: 2px solid var(--good); outline-offset: 1px; }
   ul { list-style: none; margin: .8rem 0 0; padding: 0; }
   li button {
     width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
@@ -100,9 +89,9 @@
      that a highlight in it dominated the whole left column while somebody was
      still looking for their problem, which is the one moment the menu should
      be quieter than the page. */
-  li button[aria-current="true"] { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+  li button[aria-current="true"] { background: var(--good-soft); color: var(--good); font-weight: 600; }
   li button span { font-family: var(--mono); font-size: .78rem; color: var(--faint); }
-  li button[aria-current="true"] span { color: var(--warn); }
+  li button[aria-current="true"] span { color: var(--good); }
 
   /* ---- detail ---- */
   article { padding: 1.4rem 1.6rem 4rem; max-width: 900px; }
@@ -119,7 +108,7 @@
     border: 1px solid var(--rule); border-radius: 999px;
   }
   .tabs button[aria-pressed="true"] {
-    background: var(--warn); border-color: var(--warn); color: var(--ground);
+    background: var(--good); border-color: var(--good); color: var(--ground);
   }
   pre {
     background: var(--sunk); border: 1px solid var(--rule); border-radius: 5px;
@@ -140,18 +129,18 @@
   form { display: grid; gap: .7rem; margin-bottom: 1rem; }
   .field { display: grid; grid-template-columns: 1fr; gap: .2rem; }
   @media (min-width: 620px) { .field { grid-template-columns: 170px 1fr; align-items: center; gap: .8rem; } }
-  .field label { font-family: var(--mono); font-size: .82rem; color: var(--warn); }
+  .field label { font-family: var(--mono); font-size: .82rem; color: var(--good); }
   .field input {
     font: inherit; font-family: var(--mono); font-size: .84rem; padding: .4rem .55rem;
     background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; width: 100%;
   }
-  .field input:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
+  .field input:focus { outline: 2px solid var(--good); outline-offset: 1px; }
   .actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
   button.primary {
     font: inherit; font-weight: 600; padding: .45rem 1.1rem; cursor: pointer;
-    background: var(--warn); color: var(--ground);
-    border: 1px solid var(--warn); border-radius: 4px;
+    background: var(--good); color: var(--ground);
+    border: 1px solid var(--good); border-radius: 4px;
   }
   button.ghost {
     font: inherit; padding: .45rem .9rem; cursor: pointer; color: var(--muted);
@@ -200,13 +189,13 @@
     background: var(--ground); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; max-width: 100%;
   }
-  select:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
+  select:focus { outline: 2px solid var(--good); outline-offset: 1px; }
   .slot {
     margin: .55rem 0 0 1rem; padding-left: .8rem;
     border-left: 2px solid var(--accent-soft);
   }
   .slot > .label {
-    font-family: var(--mono); font-size: .76rem; color: var(--warn);
+    font-family: var(--mono); font-size: .76rem; color: var(--good);
     display: block; margin-bottom: .3rem;
   }
   .drop { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; }
@@ -230,7 +219,7 @@
     padding: .6rem; background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; resize: vertical;
   }
-  textarea:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
+  textarea:focus { outline: 2px solid var(--good); outline-offset: 1px; }
   .sub { color: var(--faint); font-size: .8rem; font-family: var(--mono); }
 
   /* ---- the introduction ---- */
@@ -278,7 +267,7 @@
     margin-bottom: .3rem;
   }
   ul.refs li b { display: block; font-weight: 600; font-size: .89rem; }
-  ul.refs a { color: var(--warn); text-decoration: none; }
+  ul.refs a { color: var(--good); text-decoration: none; }
   ul.refs a:hover { text-decoration: underline; }
   ul.refs li span {
     display: block; color: var(--muted); font-size: .84rem; margin-top: .1rem;
