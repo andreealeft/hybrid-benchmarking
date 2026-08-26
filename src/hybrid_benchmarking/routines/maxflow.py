@@ -37,8 +37,9 @@ from ..registry import single
 from ..validity import Validity, definition
 from .amplification import qsearch_all_iterations
 
-_SOURCE = "Lefterovici, Lelakowski and Perk, quantum breadth-first search for " \
-          "maximum flow (Lemmas 1 and 2)"
+_SOURCE = "Lefterovici, Lelakowski and Perk, use case study: benchmarking " \
+          "quantum breadth-first search for maximum flow problems " \
+          "(arXiv:2604.24962), Lemmas 1 and 2"
 
 _ASSUMPTIONS = (
     "one qubit per vertex",

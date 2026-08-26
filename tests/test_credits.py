@@ -48,7 +48,8 @@ WORKS = (
     ("Dalzell", "A shortcut to an optimal quantum linear system solver"),
     ("Binkowski", "Practical lower bounds for hybrid quantum interior point"),
     ("Wilkening", "A quantum search method for quadratic and multidimensional"),
-    ("breadth-first search", "Quantum breadth-first search for maximum flow"),
+    ("breadth-first search",
+     "benchmarking quantum breadth-first search for maximum flow problems"),
     ("thesis", "Hybrid benchmarking of quantum algorithms"),
 )
 
@@ -105,22 +106,31 @@ def test_the_authors_are_off_the_page_but_not_out_of_the_provenance():
 
 
 def test_the_primary_studies_are_named():
+    """Titles as their authors publish them.
+
+    Matched against the flattened page, because a title that carries a link
+    wraps across lines inside its own anchor.
+    """
     """Including the three the thesis is made of, and the paper the tree
     generator itself came from -- which is not the same paper as the variants
     that extend it."""
+    flat = " ".join(PAGE.split())
     for work in ("Hybrid benchmarking of quantum algorithms",
                  "Realistic runtime analysis for quantum simplex computation",
-                 "comparing functional quantum linear\n        solvers",
-                 "A quantum algorithm for solving 0-1 knapsack problems",
-                 "quadratic and multidimensional\n        knapsack problems",
-                 "Quantum breadth-first search for maximum flow",
+                 "comparing functional quantum linear solvers",
+                 "A quantum algorithm for solving 0-1 Knapsack problems",
+                 "quadratic and multidimensional knapsack problems",
+                 "benchmarking quantum breadth-first search for maximum "
+                 "flow problems",
                  "Practical lower bounds for hybrid quantum interior point"):
-        assert work in PAGE, work
+        assert " ".join(work.split()) in flat, work
 
 
 def test_the_identifiers_the_thesis_bibliography_gives():
     for identifier in ("arXiv:2311.09995", "arXiv:2503.21420",
                        "arXiv:2503.22325", "arXiv:2604.24362",
+                       "arXiv:2604.24962",
+                       "IEEE Transactions on Quantum Engineering",
                        "npj Quantum Information 11, 146, 2025"):
         assert identifier in PAGE, identifier
 
@@ -146,6 +156,7 @@ def test_every_cited_work_that_has_an_address_is_linked():
     for address in linked:
         assert address.startswith(("https://arxiv.org/", "https://doi.org/",
                                    "https://www.nature.com/",
+                                   "https://repo.uni-hannover.de/",
                                    "https://ieeexplore.ieee.org/")), address
 
 

@@ -209,8 +209,10 @@ attributed rather than assumed.
 **QUBRABENCH** — all four `Cade-*` entries reproduce its functions to twelve
 digits, on seventeen reference points frozen in `tests/test_cade.py`.
 
-**The quantum breadth-first search paper** (`QBFS___MaxFlow-2.pdf`; note that
-`-4` contains an error) — clean, and it closes three questions an audit had left
+**The quantum breadth-first search paper** -- published since as *Use case
+study: benchmarking quantum breadth-first search for maximum flow problems*,
+arXiv:2604.24962; the drafts read were `QBFS___MaxFlow-2.pdf`, and note that
+`-4` contains an error — clean, and it closes three questions an audit had left
 open. The search space is the graph's whole vertex count, not `2^V`: Lemma 1
 counts `2|L|` cycles per Grover iteration over a register of one qubit per
 vertex, while the Methods section records "the total number of vertices in the
