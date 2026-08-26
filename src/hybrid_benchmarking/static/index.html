@@ -5,20 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hybrid-benchmarking</title>
 <style>
+  /* The palette from the Classiq work: a deep pink carrying the primary line,
+     and an olive yellow beside it that turns lime in the dark theme.  Both
+     themes are defined here rather than one of them being left to inherit,
+     because the drawings are painted in these variables and a colour that
+     resolved to nothing would leave a blank panel. */
   :root {
-    --ground: #f7f8fa; --surface: #fff; --sunk: #eef0f4;
-    --ink: #15181f; --muted: #565e70; --faint: #838b9a;
-    --rule: #dde1e9; --accent: #1d4e6f; --accent-soft: #e4edf3;
-    --warn: #9a5a2e; --warn-soft: #f7ece3; --good: #2c6152;
+    --ground: #fbfaf9; --surface: #ffffff; --sunk: #f4f1f0;
+    --ink: #1a1418; --muted: #55494f; --faint: #8a7c82;
+    --rule: #e2dbdd; --accent: #a4133c; --accent-soft: #f8e7eb;
+    --warn: #8a5a10; --warn-soft: #f7eddc; --good: #5f7a0e;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --ground: #101319; --surface: #171b23; --sunk: #1e232c;
-      --ink: #e6e9ef; --muted: #a0a8b8; --faint: #7b8494;
-      --rule: #2a303b; --accent: #7fb4d4; --accent-soft: #1a2c39;
-      --warn: #d19a6e; --warn-soft: #2c2119; --good: #7fbba6;
+      --ground: #131013; --surface: #1b171a; --sunk: #221d21;
+      --ink: #f3eef0; --muted: #b7abb0; --faint: #877a80;
+      --rule: #322b30; --accent: #e4677f; --accent-soft: #381a23;
+      --warn: #d9a343; --warn-soft: #2c2119; --good: #d7f75b;
     }
   }
   * { box-sizing: border-box; }
