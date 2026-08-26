@@ -758,11 +758,11 @@ async function runBeginner(form) {
       </div>`;
     }).join("") + `</div>`;
 
-  html += `<div class="caution"><b>These columns are not a race.</b>
-    ${esc(res.why)}${res.units.length > 1
-      ? ` They are in ${res.units.length} different units — ${
-          esc(res.units.join(" and "))} — which is why the tool will not add
-          them for you.` : ""}</div>`;
+  /* The caption that used to stand here -- that the columns are not a race --
+     is gone at Andreea's request: each column already names its own unit,
+     bound and assumptions, which says it without the paragraph.  The data
+     still says it too: compare() returns comparable:false and the units
+     present, and the cost algebra still refuses to add gates to cycles. */
 
   if (res.warnings.length) html += res.warnings.map(w =>
     `<p class="warn">⚠ ${esc(w)}</p>`).join("");

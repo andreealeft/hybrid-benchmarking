@@ -368,15 +368,20 @@ Generation is deterministic -- the seed comes from the answers -- because a
 number that wobbled when you asked twice would be worse than useless. Somebody
 would average them.
 
-**The columns are not a race, and the page says so twice.** `compare()` puts
-every route on *one* generated instance, because two routes costed on two
-instances would differ for a reason nobody asked about; it returns
-`comparable: False` and the units present. This is the tension `problems.py` has
-always named -- three numbers in a row imply a comparison none of the sources
-supports -- so the resolution is to show the columns and refuse to reconcile
-them: each carries its own unit, bound, derivation and assumptions, the units are
-named beneath the totals, and the cost algebra still raises if anything tries to
-add gates to cycles.
+**The columns are not a race, and the data still says so — the page no longer
+does.** `compare()` puts every route on *one* generated instance, because two
+routes costed on two instances would differ for a reason nobody asked about; it
+returns `comparable: False` and the units present. The paragraph that spelled
+this out beneath the columns was removed at Andreea's request: the algorithms
+are self-explanatory, and each column already carries its own unit, bound and
+assumptions.
+
+The tension `problems.py` has always named -- three numbers in a row imply a
+comparison none of the sources supports -- is therefore resolved by the columns
+themselves rather than by a caption: each carries its own unit beneath its
+total, its own bound, derivation and assumptions, `compare()` refuses to
+reconcile them, and the cost algebra still raises if anything tries to add gates
+to cycles.
 
 ## The QTG search, and where the square root lives
 
