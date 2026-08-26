@@ -355,7 +355,20 @@ also fixed a real bug: the subroutine list and the problem menu are the same
 menu -- so a menu of problems sometimes came up holding subroutines. Browse now
 loads when Browse is entered, which cannot happen while its button is hidden.
 
-The introduction also **credits every work the library reimplements**: the seven
+The introduction also states the **gate model** where a reader will ask it --
+a single-qubit gate, a two-qubit controlled rotation and a Toffoli each count as
+one, state preparation counts as one, disjoint gates share a cycle, and this is
+*not* a Clifford+T count: a fault-tolerant Toffoli costs several T gates and the
+magic states behind them, so a physical estimate needs a code, a distance and a
+T-count on top. It is the thesis's model, carried on `_GATE_MODEL` in
+`routines/standard.py` and on every entry's assumptions.
+
+It also **lists every work the library reimplements**, without author names --
+Andreea asked for the papers alone. The credit did not move off the numbers:
+`cost.provenance.sources` still names the authors, which is the copy that
+travels, and `tests/test_credits.py` asserts both halves. Algorithm and format
+names that happen to be surnames stay, since Dinic's algorithm and the Pisinger
+layout are what those things are called. The works listed are: the seven
 studies -- the thesis, its three case-study papers (the simplex runtime analysis
 arXiv:2311.09995, the linear-solver comparison arXiv:2503.21420, and the 0-1
 knapsack paper in npj Quantum Information 11, 146, which is where the quantum

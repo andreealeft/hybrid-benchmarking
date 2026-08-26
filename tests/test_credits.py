@@ -29,25 +29,32 @@ def fold(text: str) -> str:
 
 FOLDED_PAGE = fold(PAGE)
 
-#: Words that appear in a source string without identifying a work.
-FURNITURE = {
-    "Lemma", "Lemmas", "Appendix", "Chapter", "Theorem", "Every", "Costed",
-    "Quantum", "Evolution", "Maximum", "Classical", "Lowest", "Market", "Run",
-    "This", "The", "Both", "Where", "Fast", "Practical",
-}
+#: Which listed work each provenance source belongs to.  The page names the
+#: papers and no longer names their authors, so the correspondence has to be
+#: written down: a distinctive fragment of the source string, and a fragment of
+#: the title it points at.  A source matching nothing here is a citation with
+#: no work behind it, which is what this table exists to catch.
+WORKS = (
+    ("Nannicini", "Fast quantum subroutines for the simplex method"),
+    ("Boyer-Brassard-Hoyer-Tapp", "Tight bounds on quantum searching"),
+    ("Brassard, Hoyer, Mosca and Tapp",
+     "Quantum amplitude amplification and estimation"),
+    ("Harrow-Hassidim-Lloyd", "Quantum algorithm for linear systems of equations"),
+    ("Childs-Kothari-Somma", "exponentially improved dependence on precision"),
+    ("Gilyen", "Quantum singular value transformation and beyond"),
+    ("Low-Chuang", "Hamiltonian simulation by qubitization"),
+    ("Berry et al.", "Exponential improvement in precision for simulating"),
+    ("Cade, Folkertsma", "Quantifying Grover speed-ups beyond asymptotic"),
+    ("Dalzell", "A shortcut to an optimal quantum linear system solver"),
+    ("Binkowski", "Practical lower bounds for hybrid quantum interior point"),
+    ("Wilkening", "A quantum search method for quadratic and multidimensional"),
+    ("breadth-first search", "Quantum breadth-first search for maximum flow"),
+    ("thesis", "Hybrid benchmarking of quantum algorithms"),
+)
 
 
-def significant(source: str):
-    """The names in a provenance string.
-
-    Capitalised words that are not scaffolding, plus any arXiv identifier.
-    Hyphenated runs are split, because a source says Boyer-Brassard-Hoyer-Tapp
-    where the page says Boyer, Brassard, Høyer and Tapp -- the same four people.
-    """
-    words = {word for word in re.findall(r"[A-Z][A-Za-zø]{3,}", source)
-             if word not in FURNITURE}
-    words |= set(re.findall(r"arXiv:[\w.\-/]+", source))
-    return {fold(word) for word in words}
+def works_for(source: str):
+    return [title for fragment, title in WORKS if fragment in source]
 
 
 def sources():
@@ -62,23 +69,39 @@ def test_there_are_sources_to_check():
     assert len(sources()) > 15
 
 
-def test_every_source_the_registry_names_is_credited_on_the_page():
-    """Whoever a cost points at, the introduction has to name."""
-    missing = []
+def test_every_source_the_registry_names_belongs_to_a_listed_work():
+    """Whatever a cost points at, the introduction has to list.
+
+    Adding a routine that cites something new fails here until the work goes on
+    the page -- which is the only thing keeping the list true as the registry
+    grows.
+    """
+    flat = " ".join(PAGE.split())
+    orphans, unlisted = [], []
     for source in sources():
-        names = significant(source)
-        if not names:
-            # "Lemma 13 of the thesis", "Lemma 2 of the quantum breadth-first
-            # search study" -- no name in the string, so it must at least point
-            # at a work the page describes.
-            lowered, page = source.lower(), PAGE.lower()
-            assert any(phrase in lowered and phrase in page
-                       for phrase in ("thesis", "breadth-first search",
-                                      "interior point", "knapsack")), source
+        titles = works_for(source)
+        if not titles:
+            orphans.append(source)
             continue
-        if not any(name in FOLDED_PAGE for name in names):
-            missing.append((source, sorted(names)))
-    assert not missing, missing
+        if not any(" ".join(title.split()) in flat for title in titles):
+            unlisted.append((source, titles))
+    assert not orphans, orphans
+    assert not unlisted, unlisted
+
+
+def test_the_authors_are_off_the_page_but_not_out_of_the_provenance():
+    """Andreea asked for the papers alone on the page.
+
+    The credit did not go anywhere: every cost still carries the names in its
+    provenance, so a number handed to somebody still arrives with the people who
+    proved it attached.  That is the copy that matters and it is tested here.
+    """
+    named = {name for source in sources() for name in
+             ("Nannicini", "Cade", "Binkowski", "Wilkening", "Lefterovici",
+              "Dalzell", "Brassard") if name in source}
+    assert len(named) >= 5, named
+    for name in ("Ammann", "Goedicke", "de Wolff", "Ramacciotti", "Steinbach"):
+        assert name not in PAGE, name
 
 
 def test_the_primary_studies_are_named():
@@ -100,15 +123,6 @@ def test_the_identifiers_the_thesis_bibliography_gives():
                        "arXiv:2503.22325", "arXiv:2604.24362",
                        "npj Quantum Information 11, 146, 2025"):
         assert identifier in PAGE, identifier
-
-
-def test_the_people_behind_them_are_named():
-    """Everyone on the author list of a work this library reimplements."""
-    for person in ("Ammann", "Binkowski", "Fekete", "Funck", "Goedicke",
-                   "Gross", "Hess", "Karimov", "Lefterovici", "Lelakowski",
-                   "Osborne", "Perk", "Ramacciotti", "Rotundo", "Skelton",
-                   "Steinbach", "Stiller", "Wilkening", "de Wolff"):
-        assert person in PAGE, person
 
 
 def test_the_page_says_the_results_are_reimplemented_not_vendored():
@@ -136,6 +150,6 @@ def test_every_cited_work_that_has_an_address_is_linked():
 
 
 def test_the_classical_solvers_that_actually_run_are_credited_too():
-    for name in ("Dinic", "Dantzig", "DIMACS", "Pisinger", "Matrix Market",
-                 "MPS"):
+    for name in ("Dinic", "simplex method", "DIMACS", "Pisinger",
+                 "Matrix Market", "MPS"):
         assert name in PAGE, name

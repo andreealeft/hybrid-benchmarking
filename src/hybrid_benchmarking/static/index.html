@@ -301,10 +301,18 @@
         <p>How often the algorithm has to consult its input, when the cost of
           answering is somebody else's problem.</p></div>
     </div>
-    <p class="meta">These are <b>logical</b> operations, in the fault-tolerant
-      regime: error correction is assumed to have done its work already, and its
-      physical overhead is not folded in. Gates, cycles and queries are never
-      added to one another — they are three different questions.</p>
+    <p class="meta"><b>Which gates?</b> The thesis's model: a single-qubit
+      gate, a two-qubit controlled rotation and a Toffoli each count as
+      <b>one</b>, and a state preparation counts as one. Cycles use the same
+      model, with gates on disjoint qubits sharing a cycle and multi-controlled
+      gates sharing one ancilla register. This is not a Clifford+T count — a
+      Toffoli is one gate here, where a fault-tolerant implementation of it
+      costs several T gates and the magic states behind them. So these are
+      <b>logical</b> operations, with error correction assumed to have done its
+      work already and its overhead not folded in; a physical estimate needs a
+      code, a distance and a T-count on top of this. The assumption travels on
+      every number rather than living only here. And gates, cycles and queries
+      are never added to one another — they are three different questions.</p>
 
     <h3>Two ways in</h3>
     <div class="steps">
@@ -347,83 +355,75 @@
     <p class="refhead">The studies this puts in one place</p>
     <ul class="refs">
       <li><b>Hybrid benchmarking of quantum algorithms</b>
-        <span>Lefterovici — PhD thesis, Gottfried Wilhelm Leibniz Universität
-          Hannover, 2026. The three case studies below are its three chapters:
+        <span>PhD thesis, Gottfried Wilhelm Leibniz Universität Hannover, 2026. The three case studies below are its three chapters:
           a gate count, a query count and a cycle count.</span></li>
       <li><b><a href="https://arxiv.org/abs/2311.09995" target="_blank" rel="noopener">Realistic runtime analysis for quantum simplex computation</a></b>
-        <span>Ammann, Hess, Ramacciotti, Fekete, Goedicke, Gross, Lefterovici,
-          Osborne, Perk, Rotundo, Skelton, Stiller and de Wolff —
-          arXiv:2311.09995, 2023. The gate count for Nannicini's quantum
-          simplex, and the instrumented GLPK behind it.</span></li>
+        <span>arXiv:2311.09995, 2023. The gate count for the quantum simplex,
+          and the instrumented GLPK behind it.</span></li>
       <li><b><a href="https://arxiv.org/abs/2503.21420" target="_blank" rel="noopener">Beyond asymptotic scaling: comparing functional quantum linear
         solvers</a></b>
-        <span>Lefterovici, Perk, Ramacciotti, Rotundo, Skelton and Steinbach —
-          arXiv:2503.21420, 2025. The query counts for HHL, the Fourier and
+        <span>arXiv:2503.21420, 2025. The query counts for HHL, the Fourier and
           Chebyshev approaches and the singular value transform, compared on
           the same instances.</span></li>
       <li><b><a href="https://www.nature.com/articles/s41534-025-01097-8" target="_blank" rel="noopener">A quantum algorithm for solving 0-1 knapsack problems</a></b>
-        <span>Wilkening, Lefterovici, Binkowski, Perk, Fekete and Osborne —
-          npj Quantum Information 11, 146, 2025. Where the quantum tree
+        <span>npj Quantum Information 11, 146, 2025. Where the quantum tree
           generator comes from, and the cycle count built on it.</span></li>
       <li><b><a href="https://ieeexplore.ieee.org/document/11250149" target="_blank" rel="noopener">A quantum search method for quadratic and multidimensional
         knapsack problems</a></b>
-        <span>Wilkening, Lefterovici, Binkowski, Funck, Perk, Karimov, Fekete
-          and Osborne — IEEE Quantum Computing and Engineering (QCE) 2025,
+        <span>IEEE Quantum Computing and Engineering (QCE) 2025,
           pages 2209–2215; arXiv:2503.22325. The tree generator extended to
           pair bonuses and to several limits at once.</span></li>
       <li><b>Quantum breadth-first search for maximum flow</b>
-        <span>Lefterovici, Lelakowski and Perk.</span></li>
+        <span>Draft; no published address yet.</span></li>
       <li><b><a href="https://arxiv.org/abs/2604.24362" target="_blank" rel="noopener">Practical lower bounds for hybrid quantum interior point methods
         in linear programming</a></b>
-        <span>Binkowski — arXiv:2604.24362.</span></li>
+        <span>arXiv:2604.24362.</span></li>
     </ul>
 
     <p class="refhead">The quantum results they are built on</p>
     <ul class="refs">
       <li><b><a href="https://doi.org/10.1287/opre.2022.2341" target="_blank" rel="noopener">Fast quantum subroutines for the simplex method</a></b>
-        <span>Nannicini — Operations Research, 2022. The pricing, ratio-test
-          and optimality subroutines costed throughout.</span></li>
+        <span>Operations Research, 2022. The pricing, ratio-test and optimality
+          subroutines costed throughout.</span></li>
       <li><b><a href="https://arxiv.org/abs/quant-ph/9605034" target="_blank" rel="noopener">Tight bounds on quantum searching</a></b>
-        <span>Boyer, Brassard, Høyer and Tapp — the schedule behind every
-          search here, after Grover.</span></li>
+        <span>Fortschritte der Physik 46, 493, 1998. The schedule behind every
+          search here.</span></li>
       <li><b><a href="https://doi.org/10.1090/conm/305/05215" target="_blank" rel="noopener">Quantum amplitude amplification and estimation</a></b>
-        <span>Brassard, Høyer, Mosca and Tapp — arXiv:quant-ph/0005055.</span></li>
+        <span>Contemporary Mathematics 305, 53, 2002.</span></li>
       <li><b><a href="https://doi.org/10.1103/PhysRevLett.103.150502" target="_blank" rel="noopener">Quantum algorithm for linear systems of equations</a></b>
-        <span>Harrow, Hassidim and Lloyd — Physical Review Letters 103,
-          150502, 2009.</span></li>
+        <span>Physical Review Letters 103, 150502, 2009.</span></li>
       <li><b><a href="https://doi.org/10.1137/16M1087072" target="_blank" rel="noopener">Quantum algorithm for systems of linear equations with
         exponentially improved dependence on precision</a></b>
-        <span>Childs, Kothari and Somma — SIAM Journal on Computing 46(6),
-          2017. The Fourier and Chebyshev solvers.</span></li>
+        <span>SIAM Journal on Computing 46(6), 2017. The Fourier and Chebyshev
+          solvers.</span></li>
       <li><b><a href="https://doi.org/10.1145/3313276.3316366" target="_blank" rel="noopener">Quantum singular value transformation and beyond</a></b>
-        <span>Gilyén, Su, Low and Wiebe — STOC 2019.</span></li>
+        <span>STOC 2019.</span></li>
       <li><b><a href="https://doi.org/10.22331/q-2019-07-12-163" target="_blank" rel="noopener">Hamiltonian simulation by qubitization</a></b>
-        <span>Low and Chuang — Quantum 3, 163, 2019.</span></li>
+        <span>Quantum 3, 163, 2019.</span></li>
       <li><b><a href="https://doi.org/10.1145/2591796.2591854" target="_blank" rel="noopener">Exponential improvement in precision for simulating sparse
         Hamiltonians</a></b>
-        <span>Berry, Childs, Cleve, Kothari and Somma — 2014. The
-          fractional-query reduction the simplex route uses.</span></li>
+        <span>STOC 2014. The fractional-query reduction the simplex route
+          uses.</span></li>
       <li><b><a href="https://doi.org/10.22331/q-2023-10-10-1133" target="_blank" rel="noopener">Quantifying Grover speed-ups beyond asymptotic analysis</a></b>
-        <span>Cade, Folkertsma, Niesen and Weggemans — Quantum 7, 1133, 2023,
-          with QUBRABENCH. The instrumented-classical tradition this
-          extends.</span></li>
+        <span>Quantum 7, 1133, 2023, with QUBRABENCH. The
+          instrumented-classical tradition this extends.</span></li>
       <li><b><a href="https://arxiv.org/abs/2305.11352" target="_blank" rel="noopener">A shortcut to an optimal quantum linear system solver</a></b>
-        <span>Dalzell — arXiv:2305.11352.</span></li>
+        <span>arXiv:2305.11352.</span></li>
     </ul>
 
     <p class="refhead">The classical side, which is what actually runs here</p>
     <ul class="refs">
       <li><b>Maximum flow by blocking flows</b>
-        <span>Dinic — instrumented here to log the layer sizes the quantum
-          version's cost depends on.</span></li>
+        <span>Dinic's algorithm, instrumented here to log the layer sizes the
+          quantum version's cost depends on.</span></li>
       <li><b>The simplex method</b>
-        <span>Dantzig — revised, with steepest-edge pricing and Bland's rule as
-          the anti-cycling fallback.</span></li>
+        <span>Revised, with steepest-edge pricing and Bland's rule as the
+          anti-cycling fallback.</span></li>
       <li><b>Instance formats and benchmark sets</b>
-        <span>DIMACS for graphs and flow networks; Pisinger and
-          Martello–Toth for knapsacks; Billionnet–Soutif for the quadratic set;
-          OR-Library, after Chu and Beasley, for the multidimensional one;
-          Matrix Market for linear systems; MPS for linear programmes.</span></li>
+        <span>DIMACS for graphs and flow networks; the Pisinger and
+          Martello–Toth layouts for knapsacks; Billionnet–Soutif for the
+          quadratic set; OR-Library for the multidimensional one; Matrix Market
+          for linear systems; MPS for linear programmes.</span></li>
     </ul>
 
     <p class="meta">Every number that comes out carries where it came from —
