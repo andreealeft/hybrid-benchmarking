@@ -323,6 +323,94 @@ def generate_from_file(path: str, problem: str = "", route: str = "",
                     **options)
 
 
+def generate_from_parameters(problem: str, values: Dict[str, Any],
+                             route: str = "",
+                             budget: Optional[Budget] = None,
+                             **options: Any) -> Generated:
+    """Make up an instance of the size described, then run it like any other.
+
+    The caveat that it was made up travels on the run, so every cost built this
+    way carries it and the interface shows it before the number.
+    """
+    from ..instances import InstanceError
+    from .synthesise import CAVEAT, build
+
+    try:
+        instance = build(problem, values)
+    except InstanceError as error:
+        raise GenerationError(str(error))
+    made = generate(instance, problem, route, budget, **options)
+    made.run.assumptions = (CAVEAT,) + tuple(made.run.assumptions)
+    made.data.generated["assumptions"] = list(made.run.stated().get(
+        "assumptions", ()))
+    return made
+
+
+def compare(problem: str, values: Dict[str, Any],
+            chosen: Optional[Dict[str, Any]] = None,
+            budget: Optional[Budget] = None) -> Dict[str, Any]:
+    """Every route through a problem, on one generated instance.
+
+    One instance for all of them, because two routes costed on two instances
+    would differ for a reason nobody asked about.
+
+    The results are put side by side and **not** added, ranked or reconciled.
+    They are in different units and rest on different assumptions -- the
+    quantum-search route counts a fixed schedule, the simplex route is a lower
+    bound with terms dropped, the interior point route is a cycle bound resting
+    on deliberately generous assumptions -- so the columns are a description of
+    what each analysis says, not a race between them.  Every one carries its own
+    unit, bound and provenance for exactly that reason.
+    """
+    from ..problems import get_problem
+
+    results = []
+    for route in get_problem(problem).routes:
+        entry: Dict[str, Any] = {"route": route.key, "label": route.label,
+                                 "classical": route.classical,
+                                 "note": route.note}
+        try:
+            made = generate_from_parameters(problem, values, route.key, budget)
+            report = cost(made, _for(route, chosen))
+            entry.update(total=report["total"], unit=report["unit"],
+                         unit_label=report["unit_label"],
+                         bound=report["bound"],
+                         derivation=report["derivation"],
+                         provenance=report["provenance"],
+                         assumptions=report["assumptions"],
+                         records=report["logged_records"],
+                         instance=made.instance.describe(),
+                         result=made.run.result or {})
+        except (GenerationError, ValueError) as error:
+            entry["error"] = str(error)
+        results.append(entry)
+
+    units = sorted({r["unit_label"] for r in results if "unit_label" in r})
+    return {
+        "problem": problem,
+        "routes": results,
+        "units": units,
+        "comparable": False,
+        "why": "These are not four measurements of one thing. They count "
+               "different units and rest on different assumptions, so they sit "
+               "side by side and are never added or ranked against each other.",
+    }
+
+
+def _for(route, chosen: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Fill a route's chosen parameters from its own defaults, then overrides."""
+    from ..web import _coerce
+
+    values: Dict[str, Any] = {}
+    for field in route.chosen:
+        if field.example:
+            values[field.name] = _coerce(field.example)
+    for name, raw in (chosen or {}).items():
+        if str(raw).strip():
+            values[name] = _coerce(raw)
+    return values
+
+
 def cost(generated: Generated,
          chosen: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Cost a generated log, exactly as a hand-written one is costed.

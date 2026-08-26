@@ -718,6 +718,184 @@ PROBLEMS: Tuple[Problem, ...] = tuple(
 )
 
 
+@dataclass(frozen=True)
+class Ask:
+    """One plain-language question, in the words of whoever is being asked.
+
+    The generator underneath needs a vertex count or an item count; nobody
+    arrives with one of those.  They arrive with people, shifts, sites, budgets.
+    So a family declares *what* it needs to know and the sentence it needs it in,
+    and each problem supplies the nouns for its own story.
+    """
+
+    key: str
+    frame: str
+    example: str
+    help: str = ""
+
+
+#: What each family has to be told before it can build an instance, and the
+#: sentence it asks in.  ``{a}`` and ``{b}`` are filled from the problem's own
+#: nouns, so one frame serves every name in the family.
+BEGINNER: Dict[str, Tuple[Ask, ...]] = {
+    "maximum-flow": (
+        Ask("things", "How many {a} are there?", "60",
+            "Every place the flow can pass through, counting where it starts "
+            "and where it ends up."),
+        Ask("links", "How many {b} connect them?", "180",
+            "More connections means more ways through, and a bigger circuit."),
+    ),
+    "vertex-cover": (
+        Ask("things", "How many {a} are there?", "60", ""),
+        Ask("links", "How many {b} have to be covered?", "180", ""),
+    ),
+    "independent-set": (
+        Ask("things", "How many {a} are there?", "60", ""),
+        Ask("links", "How many {b} are there?", "180",
+            "Each one rules out having both of the things it joins."),
+    ),
+    "clique": (
+        Ask("things", "How many {a} are there?", "40", ""),
+        Ask("links", "How many {b} are there?", "500",
+            "A sparse set of these makes a *denser* problem, which is the "
+            "awkward thing about this one."),
+    ),
+    "linear-programming": (
+        Ask("things", "How many {a} can you set?", "200", ""),
+        Ask("links", "How many {b} must hold?", "50", ""),
+    ),
+    "knapsack": (
+        Ask("things", "How many {a} are there to choose from?", "40", ""),
+        Ask("budget", "How much {b} do you have?", "100",
+            "Roughly. It sets how many of them you can afford at once."),
+    ),
+    "quadratic-knapsack": (
+        Ask("things", "How many {a} are there to choose from?", "30", ""),
+        Ask("budget", "How much {b} do you have?", "100", ""),
+        Ask("pairs", "Out of every hundred pairs, how many help each other?",
+            "30", "Pairs that are worth more together than apart. Only "
+                  "bonuses -- a pair that gets in its own way is not something "
+                  "this counts."),
+    ),
+    "multidimensional-knapsack": (
+        Ask("things", "How many {a} are there to choose from?", "40", ""),
+        Ask("limits", "How many separate {b} are there?", "3",
+            "Every one of them has to hold at once, which is what makes this "
+            "harder than a single budget."),
+        Ask("budget", "How much of each is available?", "100", ""),
+    ),
+    "linear-systems": (
+        Ask("things", "How many {a} are there?", "500", ""),
+        Ask("links", "How many others does each {b} touch?", "5",
+            "Most large systems are sparse: each unknown depends on only a few "
+            "of its neighbours."),
+    ),
+}
+
+
+#: The nouns each problem uses for itself.  ``a`` is the thing being counted or
+#: chosen, ``b`` is whatever the family's second question is about.
+NOUNS: Dict[str, Tuple[str, str]] = {
+    # maximum flow
+    "maximum-flow": ("places in the network", "pipes or cables"),
+    "evacuation": ("rooms and exits", "corridors between them"),
+    "supply-chain": ("factories, depots and shops", "shipping lanes"),
+    "shift-assignment": ("people and shifts", "possible pairings"),
+    "school-places": ("applicants and places", "acceptable pairings"),
+    "job-machines": ("jobs and machines", "possible pairings"),
+    "image-separation": ("pixels", "neighbouring pairs"),
+    "project-prerequisites": ("projects", "prerequisites between them"),
+    "weakest-link": ("places in the network", "connections between them"),
+    "elimination": ("teams", "remaining games"),
+    # 0-1 knapsack
+    "knapsack": ("items", "budget"),
+    "capital-budgeting": ("proposals", "money"),
+    "release-planning": ("features", "engineering time"),
+    "ad-budget": ("placements", "budget"),
+    "cache-contents": ("items", "storage"),
+    "observing-night": ("targets", "observing time"),
+    "maintenance-backlog": ("repairs", "maintenance budget"),
+    # quadratic knapsack
+    "quadratic-knapsack": ("items", "budget"),
+    "satellite-siting": ("orbital slots", "launch budget"),
+    "charging-stations": ("candidate sites", "budget"),
+    "sensor-overlap": ("possible sensor positions", "budget"),
+    "cell-towers": ("candidate mast sites", "budget"),
+    "depot-siting": ("candidate depot sites", "budget"),
+    "store-network": ("candidate locations", "budget"),
+    "team-selection": ("candidates", "room on the team"),
+    "research-portfolio": ("projects", "funding"),
+    "product-bundles": ("product lines", "shelf space"),
+    "committee": ("candidates", "room on the committee"),
+    # multidimensional knapsack
+    "multidimensional-knapsack": ("items", "limits"),
+    "container-loading": ("crates", "limits, such as weight and volume,"),
+    "cloud-packing": ("services", "resources, such as processor and memory,"),
+    "multi-budget-portfolio": ("projects", "budgets, such as money and people,"),
+    "menu-planning": ("dishes", "nutritional limits"),
+    "production-run": ("products", "raw materials"),
+    "grant-allocation": ("proposals", "resources, such as funds and supervisors,"),
+    "payload-selection": ("instruments", "limits, such as mass and power,"),
+    "rack-filling": ("machines", "limits, such as power and cooling,"),
+    "commissioning-slate": ("productions", "budgets, such as money and studio days,"),
+    # vertex cover
+    "vertex-cover": ("possible sites", "connections"),
+    "camera-placement": ("junctions where a camera could go", "corridors"),
+    "network-monitors": ("routers", "links"),
+    "checkpoints": ("places a checkpoint could stand", "routes"),
+    "pipeline-inspection": ("junctions", "lengths of pipe"),
+    "patch-priority": ("machines", "connections between them"),
+    # independent set
+    "independent-set": ("candidates", "conflicts between them"),
+    "transmitters": ("transmitters", "pairs close enough to interfere"),
+    "booking-clashes": ("requests", "pairs that overlap in time"),
+    "compatible-machines": ("machines", "pairs that cannot run together"),
+    "spaced-seating": ("seats", "pairs too close together"),
+    "ad-slots": ("placements", "pairs that would clash"),
+    # clique
+    "clique": ("members", "relationships between them"),
+    "community": ("people", "who knows whom"),
+    "compatible-parts": ("components", "compatible pairs"),
+    "trading-group": ("parties", "existing relationships"),
+    "fragment-matching": ("fragments", "compatible pairs"),
+    # linear programming
+    "linear-programming": ("quantities", "rules"),
+    "production-planning": ("products you could make", "capacity limits"),
+    "blending": ("ingredients", "specifications"),
+    "logistics": ("routes you could use", "supply and demand rules"),
+    "rostering": ("shift patterns", "coverage rules"),
+    "energy-dispatch": ("generators", "demand and capacity rules"),
+    "diet-problem": ("foods", "nutritional requirements"),
+    "revenue-management": ("fare classes", "capacity rules"),
+    # linear systems
+    "linear-systems": ("unknowns", "unknown"),
+    "heat-distribution": ("points on the component", "point"),
+    "electrostatics": ("points in the region", "point"),
+    "structural-load": ("points on the structure", "point"),
+    "circuit-analysis": ("nodes in the circuit", "node"),
+    "groundwater": ("points in the rock", "point"),
+    "deblurring": ("pixels", "pixel"),
+    "least-squares": ("parameters to fit", "parameter"),
+}
+
+
+def beginner_asks(problem_key: str) -> Tuple[Field, ...]:
+    """The questions this problem puts to someone who has no file.
+
+    Each comes back as an ordinary :class:`Field`, so the interface draws it the
+    same way it draws everything else -- but labelled in the words of the person
+    being asked rather than in the words of the lemma underneath.
+    """
+    problem = get_problem(problem_key)
+    first, second = NOUNS.get(problem_key, ("items", "connections"))
+    return tuple(
+        Field(name=ask.key,
+              label=ask.frame.format(a=first, b=second),
+              help=ask.help, example=ask.example)
+        for ask in BEGINNER[problem.family]
+    )
+
+
 def family_of(problem_key: str) -> str:
     """The problem underneath the name, which is what decides how it is solved."""
     return get_problem(problem_key).family

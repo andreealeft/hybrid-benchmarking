@@ -335,6 +335,37 @@ should cost is the open question: nothing, since its layer has nothing to add,
 or a full-width addition, which is what Sören's 0-1 code counts for a zero
 summand. It changes counts either way.
 
+## Three levels, and what the first one costs honestly
+
+The interface now meets people at three depths. **Describe it** asks for the
+problem in its own nouns -- how many people, how many shifts -- builds an
+instance of that shape, runs the real classical solvers on it, and costs every
+route side by side. **I have a data file** is the path that was there before.
+The **Browse** and **Build** tabs remain for anyone who wants the registry
+itself.
+
+The first level is the one with a hazard, and it is handled in two places rather
+than one. `classical/synthesise.py` generates the instance, and every run built
+that way carries `CAVEAT` in its assumptions: *the instance was generated to the
+size given, not read from your data*. It travels on `Run.assumptions`, so it
+reaches the cost's provenance by the ordinary route and cannot be dropped by a
+change to the page; the interface then leads with it, above the numbers. There
+is a test that a run from a real file does *not* carry it.
+
+Generation is deterministic -- the seed comes from the answers -- because a
+number that wobbled when you asked twice would be worse than useless. Somebody
+would average them.
+
+**The columns are not a race, and the page says so twice.** `compare()` puts
+every route on *one* generated instance, because two routes costed on two
+instances would differ for a reason nobody asked about; it returns
+`comparable: False` and the units present. This is the tension `problems.py` has
+always named -- three numbers in a row imply a comparison none of the sources
+supports -- so the resolution is to show the columns and refuse to reconcile
+them: each carries its own unit, bound, derivation and assumptions, the units are
+named beneath the totals, and the cost algebra still raises if anything tries to
+add gates to cycles.
+
 ## The QTG search, and where the square root lives
 
 Checked against the original's driver, `_qtg_bindings.cpp::execute_q_max_search`.
@@ -480,4 +511,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1626 tests.
+interface and a CLI. 1751 tests.

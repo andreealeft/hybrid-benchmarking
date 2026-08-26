@@ -284,6 +284,46 @@ def cost_from_instance(problem: str, route_key: str, path: str,
     return payload
 
 
+def beginner_form(problem_key: str) -> Dict[str, Any]:
+    """The questions to put to someone who has a problem but not a file."""
+    from .problems import beginner_asks
+
+    problem = get_problem(problem_key)
+    return {
+        "key": problem.key,
+        "label": problem.label,
+        "blurb": problem.blurb,
+        "asks": [_field_data(f) for f in beginner_asks(problem_key)],
+        "routes": [{"key": r.key, "label": r.label, "unit_label": str(r.unit),
+                    "classical": r.classical} for r in problem.routes],
+    }
+
+
+def compare_from_parameters(problem_key: str, values: Dict[str, Any],
+                            chosen: Optional[Dict[str, Any]] = None,
+                            budget: Optional[float] = None) -> Dict[str, Any]:
+    """Make an instance of the size described and cost every route on it.
+
+    The caveat comes back first and the interface leads with it: the number is
+    what a problem of that shape costs, which is not what theirs costs.
+    """
+    from .classical import Budget, compare
+    from .classical.budget import DEFAULT_SECONDS
+    from .classical.synthesise import CAVEAT
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", ValidityWarning)
+        result = compare(problem_key, values or {}, chosen,
+                         Budget(budget or DEFAULT_SECONDS))
+    result["caveat"] = CAVEAT
+    result["warnings"] = sorted({str(w.message) for w in caught})
+    result["snippet"] = (
+        "import hybrid_benchmarking as hb\n\n"
+        "hb.classical.compare({!r}, {!r})".format(problem_key, dict(values))
+    )
+    return result
+
+
 def why_not(routine: Routine, unit: Unit) -> str:
     """Explain a unit a routine does not offer, rather than greying it out.
 
@@ -435,6 +475,11 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(catalogue())
         if self.path == "/api/problems":
             return self._json(problems())
+        if self.path.startswith("/api/beginner/"):
+            try:
+                return self._json(beginner_form(self.path.rsplit("/", 1)[-1]))
+            except KeyError as error:
+                return self._fail(error, 404)
         if self.path.startswith("/api/problem/"):
             try:
                 return self._json(problem_detail(self.path.rsplit("/", 1)[-1]))
@@ -478,7 +523,7 @@ class _Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         if self.path not in ("/api/evaluate", "/api/compose",
                              "/api/compose/evaluate", "/api/problem/run",
-                             "/api/problem/generate"):
+                             "/api/problem/generate", "/api/problem/compare"):
             return self._send(404, b"not found", "text/plain; charset=utf-8")
         length = int(self.headers.get("Content-Length", 0))
         try:
@@ -490,6 +535,11 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(evaluate(
                     request["path"], request.get("unit"),
                     request.get("values", {}),
+                ))
+            if self.path == "/api/problem/compare":
+                return self._json(compare_from_parameters(
+                    request["problem"], request.get("values", {}),
+                    request.get("chosen", {}), request.get("budget"),
                 ))
             if self.path == "/api/problem/generate":
                 return self._json(cost_from_instance(

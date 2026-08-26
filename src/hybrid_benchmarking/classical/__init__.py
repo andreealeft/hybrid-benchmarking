@@ -32,9 +32,11 @@ from .generate import (
     DEFAULT_ROUTE,
     GenerationError,
     Generated,
+    compare,
     cost,
     generate,
     generate_from_file,
+    generate_from_parameters,
     supported,
 )
 
@@ -46,8 +48,10 @@ __all__ = [
     "Generated",
     "Run",
     "Status",
+    "compare",
     "cost",
     "generate",
     "generate_from_file",
+    "generate_from_parameters",
     "supported",
 ]

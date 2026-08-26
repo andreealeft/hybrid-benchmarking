@@ -123,6 +123,24 @@
     color: var(--muted); }
   details.secondary[open] > summary { margin-bottom: .6rem; }
   .none { color: var(--faint); font-style: italic; }
+  /* Side by side, never summed: the columns describe four analyses, and the
+     units below them are what stops anyone reading them as a ranking. */
+  .parallel { display: grid; gap: .7rem; margin-bottom: 1rem;
+    grid-template-columns: 1fr; }
+  @media (min-width: 720px) {
+    .parallel { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
+  }
+  .parallel .column {
+    border: 1px solid var(--rule); border-top: 3px solid var(--accent);
+    border-radius: 0 0 6px 6px; background: var(--surface); padding: .8rem .9rem;
+  }
+  .parallel .column.bad { border-top-color: var(--warn); }
+  .parallel .column h4 { margin: 0 0 .5rem; font-size: .9rem; }
+  .parallel .column .value { font-size: 1.35rem; }
+  .parallel .column .unit { margin: 0 0 .5rem; font-size: .8rem;
+    color: var(--muted); font-family: var(--mono); }
+  .parallel .column details { font-size: .8rem; color: var(--muted); }
+  .parallel .column summary { cursor: pointer; }
   .term {
     border: 1px solid var(--rule); border-radius: 6px; background: var(--surface);
     padding: .8rem .9rem; margin-bottom: .6rem;
@@ -596,10 +614,26 @@ async function pickProblem(key) {
   drawProblem();
 }
 
+let level = "beginner";
+
 function drawProblem() {
   const p = problem;
   let html = `<h2>${esc(p.label)}</h2>
-    <p class="summary">${esc(p.blurb)}</p>`;
+    <p class="summary">${esc(p.blurb)}</p>
+    <div class="tabs levels">
+      <button data-level="beginner" aria-pressed="${level === "beginner"}"
+        >Describe it</button>
+      <button data-level="file" aria-pressed="${level === "file"}"
+        >I have a data file</button>
+    </div>`;
+
+  if (level === "beginner") {
+    $("problems").innerHTML = html + `<div id="beginner"></div>`;
+    $("problems").querySelectorAll(".levels button").forEach(b =>
+      b.onclick = () => { level = b.dataset.level; drawProblem(); });
+    drawBeginner();
+    return;
+  }
 
   if (p.incomparable) html += `<div class="caution"><b>These routes are not
     comparable with one another.</b> Each rests on a different cost model and a
@@ -616,11 +650,85 @@ function drawProblem() {
 
   html += `<div id="routebody"></div>`;
   $("problems").innerHTML = html;
+  $("problems").querySelectorAll(".levels button").forEach(b =>
+    b.onclick = () => { level = b.dataset.level; drawProblem(); });
   $("problems").querySelectorAll(".route").forEach(el => el.onclick = () => {
     route = problem.routes.find(r => r.key === el.dataset.route);
     drawProblem();
   });
   if (route) drawRoute();
+}
+
+async function drawBeginner() {
+  const form = await (await fetch("/api/beginner/" + problem.key)).json();
+  $("beginner").innerHTML = `
+    <p class="meta">Answer these and every way of attacking the problem is
+      costed side by side. No file needed — an instance of the size you
+      describe is made up and actually solved here.</p>
+    <form id="askform">` + form.asks.map(a => `
+      <div class="field">
+        <label for="ask_${esc(a.name)}">${esc(a.label)}</label>
+        <input id="ask_${esc(a.name)}" value="${esc(a.example)}"
+               title="${esc(a.help)}">
+      </div>` + (a.help ? `<p class="meta" style="margin:-.4rem 0 .2rem">
+        ${esc(a.help)}</p>` : "")).join("") + `
+      <div class="actions">
+        <button class="primary" type="submit">Work out what it would cost</button>
+      </div>
+    </form><div id="askout"></div>`;
+  $("askform").onsubmit = (e) => { e.preventDefault(); runBeginner(form); };
+}
+
+async function runBeginner(form) {
+  const values = {};
+  form.asks.forEach(a => values[a.name] = $("ask_" + a.name).value.trim());
+  $("askout").innerHTML = `<p class="meta">Building an instance and solving
+    it…</p>`;
+
+  const res = await (await fetch("/api/problem/compare", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ problem: problem.key, values }),
+  })).json();
+  if (res.error) {
+    $("askout").innerHTML = `<div class="result bad"><b>Cannot do that</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+
+  // The caveat leads, because it is the difference between this number and an
+  // answer, and it is the thing someone skimming will otherwise miss.
+  let html = `<div class="caution"><b>This is a problem of your shape, not your
+    problem.</b> ${esc(res.caveat)}</div>`;
+
+  html += `<h3>What each approach would cost</h3>
+    <div class="parallel">` + res.routes.map(r => {
+      if (r.error) return `<div class="column bad">
+        <h4>${esc(r.label)}</h4><p class="warn">${esc(r.error)}</p></div>`;
+      return `<div class="column">
+        <h4>${esc(r.label)}</h4>
+        <div class="value">${r.total.toPrecision(4)}</div>
+        <p class="unit">${esc(r.unit_label)}</p>
+        <p class="meta"><b>${esc(r.bound)}</b>, ${esc(r.derivation)}</p>
+        <p class="meta">${esc(r.classical)} does this classically${
+          r.records ? `, in ${r.records} logged step${r.records === 1 ? "" : "s"}`
+                    : ""}.</p>
+        <details><summary>What this number assumes</summary>
+          <ul class="notes">${r.assumptions.map(a =>
+            `<li>${esc(a)}</li>`).join("")}</ul></details>
+      </div>`;
+    }).join("") + `</div>`;
+
+  html += `<div class="caution"><b>These columns are not a race.</b>
+    ${esc(res.why)}${res.units.length > 1
+      ? ` They are in ${res.units.length} different units — ${
+          esc(res.units.join(" and "))} — which is why the tool will not add
+          them for you.` : ""}</div>`;
+
+  if (res.warnings.length) html += res.warnings.map(w =>
+    `<p class="warn">⚠ ${esc(w)}</p>`).join("");
+
+  html += `<h3>The same thing, as code</h3><pre>${esc(res.snippet)}</pre>`;
+  $("askout").innerHTML = html;
 }
 
 async function drawRoute() {
