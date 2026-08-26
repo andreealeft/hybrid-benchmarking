@@ -111,12 +111,28 @@ def test_the_people_behind_them_are_named():
         assert person in PAGE, person
 
 
-def test_the_repositories_are_marked_as_fixtures_not_ingredients():
-    """Rule four: reimplement from lemmas, never vendor."""
-    assert "Checked against, never copied from" in PAGE
-    for repository in ("QUBRABENCH", "simplex-benchmarks", "qls-comparison",
-                       "qipm"):
-        assert repository in PAGE, repository
+def test_the_page_says_the_results_are_reimplemented_not_vendored():
+    """Rule four, stated where a reader can see it.
+
+    The list of reference repositories was dropped from the page at Andreea's
+    request; the claim it was there to support is made in the lead instead, and
+    QUBRABENCH is still credited beside the result it contributes.
+    """
+    flat = " ".join(PAGE.split())
+    assert "reimplemented from the published statements" in flat
+    assert "used to check the results against, never copied from" in flat
+    assert "QUBRABENCH" in PAGE
+
+
+def test_every_cited_work_that_has_an_address_is_linked():
+    """A citation somebody has to retype is half a citation."""
+    linked = re.findall(r'<a href="(https?://[^"]+)"[^>]*>(?:(?!</a>).)*</a>',
+                        PAGE, flags=re.S)
+    assert len(linked) >= 15, linked
+    for address in linked:
+        assert address.startswith(("https://arxiv.org/", "https://doi.org/",
+                                   "https://www.nature.com/",
+                                   "https://ieeexplore.ieee.org/")), address
 
 
 def test_the_classical_solvers_that_actually_run_are_credited_too():

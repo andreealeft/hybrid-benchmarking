@@ -365,7 +365,11 @@ built on, the classical algorithms and
 instance formats that actually run here, and the five repositories checked
 against but never copied from. `tests/test_credits.py` holds it to the registry
 -- every provenance source must name something the page names, so a routine
-added with a new citation fails until the credit goes up. It folds diacritics,
+added with a new citation fails until the credit goes up. Every work with a
+published address is **linked**, which refined the offline rule rather than
+breaking it: the invariant is that nothing is *fetched*, so `<a href>` is
+allowed and `src`, `@import` and `url(` are not, and the test now checks that
+every external address in the file is inside an anchor. It folds diacritics,
 because the registry writes Hoyer and Gilyen where the page writes Høyer and
 Gilyén; the page is right and neither is a missing credit.
 
@@ -552,4 +556,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1777 tests.
+interface and a CLI. 1778 tests.

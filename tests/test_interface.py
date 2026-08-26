@@ -11,6 +11,7 @@ import json
 import threading
 import urllib.error
 import urllib.request
+import re
 from pathlib import Path
 
 import pytest
@@ -30,10 +31,24 @@ from hybrid_benchmarking.web import (
 class TestNothingLeavesTheMachine:
     def test_the_page_has_no_external_resources(self):
         """Someone working offline must get the same interface as everyone
-        else, so nothing may be fetched from anywhere."""
+        else, so nothing may be *fetched* from anywhere.
+
+        Links to the papers are a different thing from a subresource: an
+        anchor is inert until somebody clicks it, and the page renders
+        identically with the network unplugged.  So hrefs on ``<a>`` are
+        allowed and everything else is not -- and every external address in
+        the file has to be one of them.
+        """
         page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
-        for marker in ("http://", "https://", "//cdn", "@import"):
-            assert marker not in page.replace("http://127.0.0.1", "")
+        anchors = re.findall(r'<a href="(https?://[^"]+)"', page)
+        assert anchors, "the citations lost their links"
+
+        stripped = page
+        for address in anchors:
+            stripped = stripped.replace('<a href="{}"'.format(address), "<a")
+        for marker in ("http://", "https://", "//cdn", "@import", "url(",
+                       "src=\"//"):
+            assert marker not in stripped.replace("http://127.0.0.1", ""), marker
 
     def test_the_page_opens_on_the_introduction(self):
         """What someone arriving sees before they have picked anything.
