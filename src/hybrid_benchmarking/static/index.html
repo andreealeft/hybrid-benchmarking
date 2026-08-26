@@ -6,7 +6,14 @@
 <title>hybrid-benchmarking</title>
 <style>
   /* The palette from the Classiq work: a deep pink carrying the primary line,
-     and an olive yellow beside it that turns lime in the dark theme.  Both
+     an olive yellow beside it, and the blue that came with them.
+
+     The division of labour is deliberate.  Pink marks *what a thing is*: the
+     rule down the side of a result, a selected problem, a bar in the chart.
+     Blue is *what you can do*: buttons, the labels on the fields you fill in,
+     the outline on whatever has focus, and links.  Pink on every control at
+     once was too loud, and pink beside an input box reads as a warning rather
+     than as an invitation.  Both
      themes are defined here rather than one of them being left to inherit,
      because the drawings are painted in these variables and a colour that
      resolved to nothing would leave a blank panel. */
@@ -15,6 +22,7 @@
     --ink: #1a1418; --muted: #55494f; --faint: #8a7c82;
     --rule: #e2dbdd; --accent: #a4133c; --accent-soft: #f8e7eb;
     --warn: #8a5a10; --warn-soft: #f7eddc; --good: #5f7a0e;
+    --cool: #2d5a6e; --cool-soft: #e4eef2;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
@@ -24,6 +32,7 @@
       --ink: #f3eef0; --muted: #b7abb0; --faint: #877a80;
       --rule: #322b30; --accent: #e4677f; --accent-soft: #381a23;
       --warn: #d9a343; --warn-soft: #2c2119; --good: #d7f75b;
+      --cool: #7fb5cb; --cool-soft: #1b2c34;
     }
   }
   * { box-sizing: border-box; }
@@ -48,7 +57,7 @@
     width: 100%; padding: .5rem .65rem; font: inherit; color: var(--ink);
     background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
   }
-  #filter:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  #filter:focus { outline: 2px solid var(--cool); outline-offset: 1px; }
   ul { list-style: none; margin: .8rem 0 0; padding: 0; }
   li button {
     width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
@@ -90,7 +99,7 @@
     border: 1px solid var(--rule); border-radius: 999px;
   }
   .tabs button[aria-pressed="true"] {
-    background: var(--accent); border-color: var(--accent); color: var(--ground);
+    background: var(--cool); border-color: var(--cool); color: var(--ground);
   }
   pre {
     background: var(--sunk); border: 1px solid var(--rule); border-radius: 5px;
@@ -111,18 +120,18 @@
   form { display: grid; gap: .7rem; margin-bottom: 1rem; }
   .field { display: grid; grid-template-columns: 1fr; gap: .2rem; }
   @media (min-width: 620px) { .field { grid-template-columns: 170px 1fr; align-items: center; gap: .8rem; } }
-  .field label { font-family: var(--mono); font-size: .82rem; color: var(--accent); }
+  .field label { font-family: var(--mono); font-size: .82rem; color: var(--cool); }
   .field input {
     font: inherit; font-family: var(--mono); font-size: .84rem; padding: .4rem .55rem;
     background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; width: 100%;
   }
-  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .field input:focus { outline: 2px solid var(--cool); outline-offset: 1px; }
   .actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
   button.primary {
     font: inherit; font-weight: 600; padding: .45rem 1.1rem; cursor: pointer;
-    background: var(--accent); color: var(--ground);
-    border: 1px solid var(--accent); border-radius: 4px;
+    background: var(--cool); color: var(--ground);
+    border: 1px solid var(--cool); border-radius: 4px;
   }
   button.ghost {
     font: inherit; padding: .45rem .9rem; cursor: pointer; color: var(--muted);
@@ -171,13 +180,13 @@
     background: var(--ground); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; max-width: 100%;
   }
-  select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  select:focus { outline: 2px solid var(--cool); outline-offset: 1px; }
   .slot {
     margin: .55rem 0 0 1rem; padding-left: .8rem;
     border-left: 2px solid var(--accent-soft);
   }
   .slot > .label {
-    font-family: var(--mono); font-size: .76rem; color: var(--accent);
+    font-family: var(--mono); font-size: .76rem; color: var(--cool);
     display: block; margin-bottom: .3rem;
   }
   .drop { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; }
@@ -201,7 +210,7 @@
     padding: .6rem; background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; resize: vertical;
   }
-  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  textarea:focus { outline: 2px solid var(--cool); outline-offset: 1px; }
   .sub { color: var(--faint); font-size: .8rem; font-family: var(--mono); }
 
   /* ---- the introduction ---- */
@@ -249,7 +258,7 @@
     margin-bottom: .3rem;
   }
   ul.refs li b { display: block; font-weight: 600; font-size: .89rem; }
-  ul.refs a { color: var(--accent); text-decoration: none; }
+  ul.refs a { color: var(--cool); text-decoration: none; }
   ul.refs a:hover { text-decoration: underline; }
   ul.refs li span {
     display: block; color: var(--muted); font-size: .84rem; margin-top: .1rem;
