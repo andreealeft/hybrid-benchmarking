@@ -49,7 +49,7 @@ from .budget import Budget, Run, Status
 
 IMPLEMENTATION = ("a dense LU factorisation for the solution and a singular "
                   "value decomposition for the condition number, both numpy's "
-                  "-- an iterative solver would report a different condition "
+                  "an iterative solver would report a different condition "
                   "number and a different solution norm")
 
 #: Beyond this a dense decomposition is not something to wait for at any budget.

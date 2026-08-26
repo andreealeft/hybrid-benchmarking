@@ -65,7 +65,7 @@ RATES: Dict[str, Tuple[float, str]] = {
     "record": (RECORD_SECONDS,
                "the speed record for an isolated gate operation, 6.5 ns"),
     "control": (CONTROL_FLOOR_SECONDS,
-                "the floor set by control electronics at 10 GHz, 0.1 ns -- "
+                "the floor set by control electronics at 10 GHz, 0.1 ns, "
                 "faster than any gate has run, and not a claim that one will"),
 }
 
@@ -125,7 +125,7 @@ class Projection:
             return "{} at {}".format(humanise(self.seconds), self.rate_named)
         if self.shortfall and self.shortfall > 1:
             return ("would need {} per operation to match the classical "
-                    "solver -- {:.3g}x faster than {}".format(
+                    "solver, which is {:.3g}x faster than {}".format(
                         humanise(self.required), self.shortfall,
                         self.rate_named))
         return ("would need {} per operation to match the classical solver, "

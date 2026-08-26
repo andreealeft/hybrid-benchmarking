@@ -120,7 +120,7 @@ def template(route: Route, fmt: str = "") -> str:
             str(_example(f)) for f in route.per_record + route.per_instance
         )
 
-    notes = ["# {} -- {}".format(f.name, f.help)
+    notes = ["# {}: {}".format(f.name, f.help)
              for f in route.per_record + route.per_instance]
     if route.chosen:
         notes.append("# supplied when you run it, not logged: "
@@ -226,7 +226,7 @@ def _load_csv(text: str, source: str) -> Dataset:
 
 def summarise(generated: Dict[str, Any]) -> str:
     """One sentence saying who wrote this log and whether they finished."""
-    return "{} -- {}, {} record{} in {}s".format(
+    return "{}: {}, {} record{} in {}s".format(
         generated.get("implementation", "an instrumented classical run"),
         generated.get("status", "complete"),
         generated.get("records", 0),
@@ -282,7 +282,7 @@ def _render_csv(data: Dataset, route: Optional[Route]) -> str:
         lines.append("# " + summarise(data.generated))
     if route is not None:
         explained = {f.name: f.help for f in route.per_record + route.per_instance}
-        lines += ["# {} -- {}".format(name, explained[name])
+        lines += ["# {}: {}".format(name, explained[name])
                   for name in columns if name in explained]
     if data.generated:
         # Last, and on one line: this is the machine-readable twin of the
@@ -344,7 +344,7 @@ def check(route: Route, data: Dataset,
         for f in required(route) if f.name not in supplied
     ]
     if route.per_record and not data.records:
-        missing.append("at least one record -- this route costs a run "
+        missing.append("at least one record: this route costs a run "
                        "iteration by iteration")
     return missing
 
@@ -396,7 +396,7 @@ def _collected(data: Dataset, source_field: str) -> List[Any]:
             # comparison inside a cost formula and fail as a type error.
             raise FormatError(
                 "record {}'s {!r} is {!r}, and this route needs a list. A "
-                "comma-separated file cannot hold a comma-separated value -- "
+                "comma-separated file cannot hold a comma-separated value: "
                 "write this log as JSON".format(position + 1, source_field, value)
             )
         gathered.append(value)
@@ -428,7 +428,7 @@ def origin(data: Dataset) -> Optional[Provenance]:
         # that did not take place, with nothing anywhere saying so.
         raise FormatError(
             "this log records a classical run that {}: {}. There is no cost to "
-            "give it -- the records are of a solve that did not happen".format(
+            "give it: the records are of a solve that did not happen".format(
                 status, stated.get("reason", "did not finish")
             )
         )
@@ -436,7 +436,7 @@ def origin(data: Dataset) -> Optional[Provenance]:
         assumptions.append(
             "the classical run was cut off after {} of an unfinished solve, so "
             "this counts only what was logged and understates the whole solve "
-            "-- a lower bound for a second reason, unrelated to the lemmas"
+            "a lower bound for a second reason, unrelated to the lemmas"
             .format(_iterations(stated))
         )
     for note in stated.get("assumptions", ()):

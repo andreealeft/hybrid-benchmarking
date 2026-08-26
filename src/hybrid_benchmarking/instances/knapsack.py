@@ -188,15 +188,15 @@ def _value(token: str, number: int, what: str) -> int:
     except ValueError:
         raise InstanceError(
             "line {}: the {} is {!r}, which is not an integer.  Profits and "
-            "weights are read as binary representations -- the circuit cost "
-            "depends on where the ones sit -- so a fractional value has no "
+            "weights are read as binary representations: the circuit cost "
+            "depends on where the ones sit, so a fractional value has no "
             "meaning downstream".format(number, what, token)
         )
     if value <= 0:
         raise InstanceError(
             "line {}: the {} is {}, and must be a positive integer.  Profits "
-            "and weights are read as binary representations -- the circuit "
-            "cost depends on the position of the lowest set bit -- so a zero "
+            "and weights are read as binary representations: the circuit "
+            "cost depends on the position of the lowest set bit, so a zero "
             "or negative value has no meaning downstream".format(
                 number, what, value
             )
@@ -222,7 +222,7 @@ def _assemble(
     if optimum is not None and optimum > sum(profits):
         raise InstanceError(
             "line {}: the stated optimum {} exceeds {}, the profit of taking "
-            "every item, so no selection achieves it -- the columns are "
+            "every item, so no selection achieves it: the columns are "
             "probably not profit and weight in that order".format(
                 optimum_line, optimum, sum(profits)
             )
@@ -455,7 +455,7 @@ def _capacity_of(
     if numbers != 2 * count + 1:
         raise InstanceError(
             "line {}: line {} states {} items, so {} numbers should follow "
-            "it -- a capacity and a profit and a weight each -- but {} "
+            "it: a capacity and a profit and a weight each, but {} "
             "do".format(
                 rest[0][0] if rest else lines[0][0],
                 lines[0][0], count, 2 * count + 1, numbers,

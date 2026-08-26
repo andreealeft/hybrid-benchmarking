@@ -49,8 +49,8 @@ IMPLEMENTATION = ("the instance itself, read rather than solved: the tree "
                   "so there was no classical run to instrument")
 
 HANDOFF = (
-    "this costs the tree generator, which is a state preparation. QTGSearch -- "
-    "the maximum finding around it -- needs the schedule of Grover powers the "
+    "this costs the tree generator, which is a state preparation. QTGSearch, "
+    "the maximum finding around it, needs the schedule of Grover powers the "
     "search actually draws, and that is a simulation of the instance rather "
     "than a property of it. Supply a schedule to cost QTGSearch directly."
 )

@@ -72,7 +72,7 @@ from .budget import Budget, Run, Status
 from .lp import StandardForm
 
 IMPLEMENTATION = ("a revised simplex with steepest-edge pricing, this "
-                  "library's own numpy implementation -- not GLPK, which is "
+                  "library's own numpy implementation: not GLPK, which is "
                   "what every published figure logged")
 
 #: Below this a number is zero.  The standard forms built here have entries of
@@ -210,7 +210,7 @@ def solve(form: StandardForm, budget: Budget,
             implementation=IMPLEMENTATION, status=Status.FAILED,
             budget=budget.seconds, elapsed=budget.elapsed,
             reason="the objective is identically zero, so there is no pivoting "
-                   "rule to instrument -- every column looks the same to a "
+                   "rule to instrument: every column looks the same to a "
                    "steepest-edge comparison",
         )
 

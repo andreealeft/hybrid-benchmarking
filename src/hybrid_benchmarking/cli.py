@@ -88,7 +88,7 @@ def _command_show(args: argparse.Namespace) -> int:
     if not isinstance(target, Implementation):
         for unit in (Unit.GATES, Unit.QUERIES, Unit.CYCLES):
             if unit not in target.units:
-                print("\n  no {} -- {}".format(unit, why_not(target, unit)))
+                print("\n  no {}: {}".format(unit, why_not(target, unit)))
     return 0
 
 
@@ -389,7 +389,7 @@ def _command_batch(args: argparse.Namespace) -> int:
         print("kept apart on purpose: these units do not add")
     if truncations:
         print("{} run{} cut off by the {:g}s budget, so {} total is an "
-              "understatement as well as a bound -- rerun with --budget"
+              "understatement as well as a bound: rerun with --budget"
               .format(truncations, "" if truncations == 1 else "s",
                       args.budget, "that" if len(totals) == 1 else "each"))
     return 0

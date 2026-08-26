@@ -218,15 +218,15 @@ def _value(token: str, number: int, what: str) -> int:
     except ValueError:
         raise InstanceError(
             "line {}: the {} is {!r}, which is not an integer.  Profits and "
-            "weights are read as binary representations -- the circuit cost "
-            "depends on where the ones sit -- so a fractional value has no "
+            "weights are read as binary representations: the circuit cost "
+            "depends on where the ones sit, so a fractional value has no "
             "meaning downstream".format(number, what, token)
         )
     if value <= 0:
         raise InstanceError(
             "line {}: the {} is {}, and must be a positive integer.  Profits "
-            "and weights are read as binary representations -- the circuit "
-            "cost depends on the position of the lowest set bit -- so a zero "
+            "and weights are read as binary representations: the circuit "
+            "cost depends on the position of the lowest set bit, so a zero "
             "or negative value has no meaning downstream".format(
                 number, what, value
             )
@@ -260,7 +260,7 @@ def _bonus(token: str, number: int, first: int, second: int) -> int:
             "pair profit must not be negative.  These are bonuses only: the "
             "circuit has a gate for a pair that earns something when both "
             "items are chosen and no gate for a pair that costs something, so "
-            "a negative entry has nothing to count -- and it would not fail "
+            "a negative entry has nothing to count, and it would not fail "
             "loudly either, the lowest set bit of a negative number being a "
             "perfectly good integer".format(number, first, second, value)
         )
@@ -358,7 +358,7 @@ def _quadratic(
         where = block[-1][0] if block else lines[start - 1][0]
         raise InstanceError(
             "line {}: line {} states {} items, so the quadratic block holds "
-            "{} rows -- one per item but the last -- and the block starting "
+            "{} rows, one per item but the last, and the block starting "
             "at line {} holds {}.  The layout ends that block with a blank "
             "line before the constraint; a missing blank line reads the "
             "constraint as further rows".format(
@@ -399,7 +399,7 @@ def _indicator(lines: Sequence[Tuple[int, str]], index: int) -> int:
         return index + 1
     if len(words) == 1 and words[0] == "1":
         raise InstanceError(
-            "line {}: the constraint type is 1, an equality constraint -- the "
+            "line {}: the constraint type is 1, an equality constraint, the "
             "file asks for a selection weighing exactly the capacity, not at "
             "most it.  That is a different problem from the quadratic "
             "knapsack this reads, so it is refused rather than relaxed to "

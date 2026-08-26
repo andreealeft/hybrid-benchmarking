@@ -38,7 +38,7 @@ from ..instances import Network
 from .budget import Budget, Run, Status
 
 IMPLEMENTATION = ("Dinic's algorithm, this library's own pure-Python "
-                  "implementation -- not the solver any published figure used")
+                  "implementation: not the solver any published figure used")
 
 #: How often the blocking-flow walk looks at the clock.  Between iteration
 #: boundaries there is nothing to record, so checking every step would only cost

@@ -271,7 +271,7 @@ Interfere = single(
 
 SignEstNFN = single(
     name="SignEstNFN",
-    summary="Is an amplitude positive -- with no false negatives. Amplitude "
+    summary="Is an amplitude positive, with no false negatives. Amplitude "
             "estimation on the interference of the state with a basis vector.",
     citation=_NANNICINI + " (Lemma 20)",
     built_from=("Interfere", "QAE"),
@@ -288,7 +288,7 @@ SignEstNFN = single(
 SignEstNFP = single(
     name="SignEstNFP",
     summary="The same, with no false positives. Differs only in the precision "
-            "handed to the amplitude estimation -- a factor of nine, and so a "
+            "handed to the amplitude estimation: a factor of nine, and so a "
             "factor of nine in cost.",
     citation=_NANNICINI + " (Lemma 21)",
     built_from=("Interfere", "QAE"),
@@ -312,7 +312,7 @@ RedCost = single(
 
 CanEnterNFN = single(
     name="CanEnterNFN",
-    summary="Does this column have negative reduced cost -- no false negatives.",
+    summary="Does this column have negative reduced cost, with no false negatives.",
     citation=_NANNICINI + " (Lemma 22)",
     built_from=("RedCost", "SignEstNFN"),
     costs={Unit.GATES: _lower_bound(_display(S.epsilon), can_enter_nfn)},

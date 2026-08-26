@@ -195,7 +195,7 @@ class Cost:
                 c.message for c in broken
             )
             provenance = provenance.assuming(note)
-            message = "{} -- the returned number may not mean anything".format(note)
+            message = "{}: the returned number may not mean anything".format(note)
             if strict:
                 raise ValueError(message)
             warnings.warn(message, ValidityWarning, stacklevel=2)
@@ -282,7 +282,7 @@ class Cost:
             head = "{:.6g} {}".format(float(self.expr), self.unit)
         else:
             head = "{} [{}]".format(self.unit, ", ".join(self.parameters))
-        return "<Cost {} -- {}>".format(head, self.provenance.describe())
+        return "<Cost {}: {}>".format(head, self.provenance.describe())
 
 
 def exact(expr: sp.Expr, unit: Unit, source: str = "", **kwargs) -> Cost:

@@ -442,7 +442,7 @@ QLS_Fourier = register(Routine(
 QLS_Chebyshev = single(
     name="QLS-Chebyshev",
     summary="Inverse approximated by Chebyshev polynomials realised as a "
-            "quantum walk. Queries the oracles directly -- no simulation.",
+            "quantum walk. Queries the oracles directly: no simulation.",
     citation=_CHEBYSHEV,
     built_from=("P_b", "LCU", "QAA"),
     costs={

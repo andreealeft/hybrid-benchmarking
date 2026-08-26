@@ -157,4 +157,4 @@ class Provenance:
             parts.append("after " + "; ".join(self.sources))
         if self.assumptions:
             parts.append("assuming " + "; ".join(self.assumptions))
-        return " -- ".join(parts)
+        return ": ".join(parts)

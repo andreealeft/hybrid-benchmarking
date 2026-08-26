@@ -234,7 +234,7 @@ CadeSearch = single(
     name="Cade-search",
     summary="Search a classically-defined predicate over a collection, with "
             "the classical and would-be-quantum call counts tracked side by "
-            "side. Counted by instrumenting a run, in subroutine calls -- "
+            "side. Counted by instrumenting a run, in subroutine calls: "
             "which are not sparse-access oracle queries and must never be "
             "compared with them.",
     citation=_CADE,
@@ -302,7 +302,7 @@ CadeLinalg = single(
     name="Cade-linalg",
     summary="A linear solve instrumented in the same style, costed in queries "
             "to a block encoding. Deliberately not in the same unit as the "
-            "functional solvers, which count sparse-access oracle queries -- a "
+            "functional solvers, which count sparse-access oracle queries: a "
             "different access model wearing the same word.",
     citation=_DALZELL,
     costs={

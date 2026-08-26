@@ -191,7 +191,7 @@ class TestTheFileTheUserSees:
         text = open(path).read()
         # A sentence first, for whoever opens the file; the machine-readable
         # twin of it further down, for whoever loads it.
-        assert text.splitlines()[0] == "# a test -- complete, 0 records in 0s"
+        assert text.splitlines()[0] == "# a test: complete, 0 records in 0s"
         assert "# generated: {" in text
 
         back = load(path)

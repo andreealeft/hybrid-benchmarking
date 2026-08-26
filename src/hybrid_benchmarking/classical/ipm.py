@@ -66,7 +66,7 @@ from .budget import Budget, Run, Status
 from .lp import StandardForm
 
 IMPLEMENTATION = ("the first Newton system from the canonical iterate, built "
-                  "and measured as in Binkowski's benchmark -- with exact "
+                  "and measured as in Binkowski's benchmark: with exact "
                   "singular values where the paper estimates them")
 
 #: Entries below this fraction of the largest are not structurally present.
@@ -315,7 +315,7 @@ def solve(form: StandardForm, budget: Budget, system: str = "mnes") -> Run:
                 "difficulty": record["gamma"]},
         assumptions=(
             "the system is the {} of Binkowski's equation ({}), built at the "
-            "canonical iterate (x, y, s) = (1, 0, 1) -- strictly positive and "
+            "canonical iterate (x, y, s) = (1, 0, 1): strictly positive and "
             "deliberately not feasible, which is what makes X = S = I".format(
                 system.upper(), "6" if system == "mnes" else "8"),
             "one system is costed, not a solve: the paper assumes the method "

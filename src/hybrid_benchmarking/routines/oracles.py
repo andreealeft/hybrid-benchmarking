@@ -36,7 +36,7 @@ P_b = single(
     name="P_b",
     summary="State preparation for the right-hand side. Costed as zero in the "
             "four-way solver comparison, on the grounds that it is identical "
-            "across all four -- defensible for ranking solvers, not for an "
+            "across all four: defensible for ranking solvers, not for an "
             "absolute number.",
     citation=_SPARSE_ACCESS,
     costs={},

@@ -270,7 +270,7 @@
 <header>
   <h1><button class="brand" id="home" title="Back to the introduction"
       >hybrid-benchmarking</button></h1>
-  <p>Quantum subroutines and what they cost. Nothing leaves this machine.</p>
+  <p>Resource estimates</p>
   <!-- One mode is on the menu, so the bar itself is off it.  The buttons stay
        in the document: the handler, and anything that restores them, work. -->
   <div class="tabs" id="modes" style="margin-left:auto" hidden>
@@ -290,14 +290,14 @@
   <article id="welcome">
     <div class="hero">
       <span class="kicker">Resource estimates, fault-tolerant regime</span>
-      <h2>What a quantum computer would have to do, before there is one.</h2>
+      <h2>What a quantum computer could ideally do, before there is one.</h2>
       <p class="lede">This gives you a <b>lower bound</b> on the cost of running
-        a few quantum algorithms on a problem like yours — specifically, the
+        a few quantum algorithms on a problem like yours: specifically, the
         ones that promise better asymptotic scaling than the classical methods
         they replace.</p>
       <p class="lede">Nothing here is simulated, and no quantum hardware is
-        involved. The numbers come from the published algorithmic analyses —
-        beyond complexity theory, so with prefactors — evaluated for actual
+        involved. The numbers come from the published algorithmic analyses,
+        beyond complexity theory, so with prefactors, evaluated for actual
         problem sizes.</p>
     </div>
 
@@ -349,14 +349,14 @@
 
     <h3>Where to start</h3>
     <p class="lede">Pick your problem from the menu on the left. Seventy-one of
-      them, grouped by the kind of task rather than by the mathematics — choosing
+      them, grouped by the kind of task rather than by the mathematics: choosing
       what to fund, deciding where to put things, avoiding clashes. If none is
       exactly yours, take the closest: several of those names are the same
       problem underneath, so approximately right is usually right.</p>
 
     <h3>Where this comes from</h3>
     <p class="lede">Everything here is <b>reimplemented from the published
-      statements</b> — the lemma, not somebody's code. The original repositories
+      statements</b>: the lemma, not somebody's code. The original repositories
       are used to check the results against, never copied from. These are the
       works that were read.</p>
 
@@ -439,7 +439,7 @@
           for linear systems; MPS for linear programmes.</span></li>
     </ul>
 
-    <p class="meta">Every number that comes out carries where it came from —
+    <p class="meta">Every number that comes out carries where it came from:
       which lemma, what it assumes, the regime it was derived in, and whether it
       is a bound or exact. A plausible number without that is the thing this
       tool exists to prevent. Nothing leaves this machine: the page loads nothing
@@ -528,7 +528,7 @@ function drawDetail() {
     html += `<p class="meta"><b>Built from</b> ${impl.built_from.map(esc).join(", ")}</p>`;
 
   if (!impl.units.length) {
-    html += `<h3>Cost</h3><p class="none">This entry has no cost of its own —
+    html += `<h3>Cost</h3><p class="none">This entry has no cost of its own:
       it is the unit other costs are counted in.</p>`;
   } else {
     html += `<h3>Counted in</h3><div class="tabs" id="units">` +
@@ -539,7 +539,7 @@ function drawDetail() {
 
   if (r.missing && Object.keys(r.missing).length) {
     html += `<ul class="notes">` + Object.entries(r.missing).map(([u, why]) =>
-      `<li><b>${u.toLowerCase()}</b> — ${esc(why)}</li>`).join("") + `</ul>`;
+      `<li><b>${u.toLowerCase()}</b>: ${esc(why)}</li>`).join("") + `</ul>`;
   }
 
   if (cost) {
@@ -675,14 +675,14 @@ async function renderNode(node, address, allowed) {
     for (const [slot, unit] of Object.entries(slots)) {
       const filled = node.bind[slot];
       const choices = await (await fetch("/api/fillings/" + unit)).json();
-      html += `<div class="slot"><span class="label">${esc(slot)} — takes ${unit.toLowerCase()}</span>`;
+      html += `<div class="slot"><span class="label">${esc(slot)}, takes ${unit.toLowerCase()}</span>`;
       if (filled) {
         html += await renderNode(filled, address + ".bind." + slot, choices);
         html += `<button class="drop" data-clear="${address}.bind.${slot}">leave empty (cost per call)</button>`;
       } else {
         html += `<div class="row"><select data-fill="${address}.bind.${slot}">
           ${options(choices, "")}</select>
-          <span class="pill">empty — counts calls</span></div>`;
+          <span class="pill">empty: counts calls</span></div>`;
       }
       html += `</div>`;
     }
@@ -790,7 +790,7 @@ async function refreshAssembled() {
   if (Object.keys(res.open_slots).length)
     html += `<p class="meta">Slots left empty: ` + Object.entries(res.open_slots)
       .map(([s, u]) => `<span class="pill">${esc(s)} (${u.toLowerCase()})</span>`)
-      .join(" ") + ` — these stay as parameters, so the result counts calls.</p>`;
+      .join(" ") + `: these stay as parameters, so the result counts calls.</p>`;
   if (res.sources.length)
     html += `<h3>Drawing on</h3><ul class="notes">` +
       res.sources.map(x => `<li>${esc(x)}</li>`).join("") + `</ul>`;
@@ -948,7 +948,7 @@ async function drawBeginner() {
   const form = await (await fetch("/api/beginner/" + problem.key)).json();
   $("beginner").innerHTML = `
     <p class="meta">Answer these and every way of attacking the problem is
-      costed side by side. No file needed — an instance of the size you
+      costed side by side. No file needed: an instance of the size you
       describe is made up and actually solved here.</p>
     <form id="askform">` + form.asks.map(a => `
       <div class="field">
@@ -1054,7 +1054,7 @@ function timeChart(routes) {
     <div class="timerow">
       <b>${esc(r.label)}</b>
       <em>${esc(r.timing.summary)}${
-        r.timing.note ? ` — ${esc(r.timing.note)}` : ""}</em>
+        r.timing.note ? `. ${esc(r.timing.note)}` : ""}</em>
     </div>`).join("");
 
   const missing = untimed.map(r => `<li>${esc(r.label)}: ${
@@ -1063,7 +1063,7 @@ function timeChart(routes) {
   return `<h3>How long that would take</h3>
     <p class="meta">Each pair is one method: <b class="swatch q">quantum</b>, if
       every counted operation took ${esc(humaniseSeconds(rows[0].timing.rate))}
-      — the speed record for an isolated gate operation — against
+      (the speed record for an isolated gate operation) against
       <b class="swatch c">classical</b>, measured on this machine a moment ago.
       Where a quantum routine replaces only part of a solve, its bar is that
       part costed plus the rest of the solve as measured, since the rest still
@@ -1151,7 +1151,7 @@ async function drawRoute() {
     <p class="meta">That is the whole input. ${esc(r.classical)} runs here,
       instrumented, works out the quantities the bound needs, and the answer is
       a ${esc(r.unit_label)} count. Accepts ${esc(r.accepts || "an instance file")}.
-      Nothing is uploaded and nothing is installed — the file is read where it
+      Nothing is uploaded and nothing is installed: the file is read where it
       sits, and you see the log it produced before you see the number.</p>
     <form id="genform">
       <div class="field">
@@ -1194,7 +1194,7 @@ async function drawRoute() {
         <label for="logpath">file</label>
         <input id="logpath" name="path" placeholder="/path/to/your-log.csv">
       </div>
-      <p class="meta" style="margin:0">Read where it sits — nothing is uploaded,
+      <p class="meta" style="margin:0">Read where it sits: nothing is uploaded,
         the server is on this machine. Or paste it:</p>
       <textarea id="logtext" placeholder="paste a log here instead"></textarea>`;
 
@@ -1252,7 +1252,7 @@ async function runInstance() {
 
   // The log first, always. Skipping past it to the number would make this an
   // oracle, which is the one thing the whole tool is arranged not to be.
-  let html = `<p class="meta">${esc(res.instance)} — ${esc(res.implementation)}</p>
+  let html = `<p class="meta">${esc(res.instance)}, ${esc(res.implementation)}</p>
     <p class="meta">${esc(res.status)} in ${res.elapsed}s`
     + (Object.keys(res.result || {}).length ? " · " + Object.entries(res.result)
         .map(([k, v]) => esc(k.replace(/_/g, " ") + " " + v)).join(" · ") : "")

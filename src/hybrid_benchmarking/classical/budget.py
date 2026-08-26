@@ -181,7 +181,7 @@ class Run:
             return (
                 "cut off after {:.1f}s and {} records; rerun with "
                 "--budget {:.0f} to let it finish, and if it still will not, "
-                "the instance is larger than this tool is packaged for -- "
+                "the instance is larger than this tool is packaged for: "
                 "that is worth telling us about".format(
                     self.elapsed, len(self.records), max(self.budget * 4, 60)
                 )

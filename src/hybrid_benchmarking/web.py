@@ -345,7 +345,7 @@ def why_not(routine: Routine, unit: Unit) -> str:
     informative one.
     """
     if not routine.units:
-        return ("this is an oracle or an input model -- it is the unit other "
+        return ("this is an oracle or an input model: it is the unit other "
                 "costs are counted in, and has no cost of its own")
     if unit is Unit.GATES:
         return ("no gate count: the oracle implementation is not fixed, so "

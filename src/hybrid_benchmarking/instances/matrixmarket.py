@@ -86,7 +86,7 @@ def _banner(number: int, line: str) -> _Header:
         )
     if len(words) != 5:
         raise InstanceError(
-            "line {}: the banner names object, format, field and symmetry -- "
+            "line {}: the banner names object, format, field and symmetry, "
             "four words after %%MatrixMarket, not {}".format(number, len(words) - 1)
         )
     obj, layout, field, symmetry = (word.lower() for word in words[1:])
@@ -114,7 +114,7 @@ def _banner(number: int, line: str) -> _Header:
         )
     if field == "complex":
         raise InstanceError(
-            "line {}: complex matrices are not supported -- a Matrix holds real "
+            "line {}: complex matrices are not supported, a Matrix holds real "
             "values, and taking the real part would be a different matrix".format(
                 number
             )

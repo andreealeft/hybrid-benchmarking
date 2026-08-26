@@ -457,15 +457,15 @@ def _value(line: int, word: str, what: str) -> int:
     except ValueError:
         raise InstanceError(
             "line {}: {} is {!r}, which is not an integer.  Profits and "
-            "weights are read as binary representations -- the circuit cost "
-            "depends on where the ones sit -- so a fractional value has no "
+            "weights are read as binary representations: the circuit cost "
+            "depends on where the ones sit, so a fractional value has no "
             "meaning downstream".format(line, what, word)
         )
     if value <= 0:
         raise InstanceError(
             "line {}: {} is {}, and must be a positive integer.  Profits and "
-            "weights are read as binary representations -- the circuit cost "
-            "depends on the position of the lowest set bit -- so a zero or "
+            "weights are read as binary representations: the circuit cost "
+            "depends on the position of the lowest set bit, so a zero or "
             "negative value has no meaning downstream".format(line, what, value)
         )
     return value
@@ -518,7 +518,7 @@ def _instance(
     if stated > sum(checked_profits):
         raise InstanceError(
             "line {}: the stated optimum {} exceeds {}, the profit of taking "
-            "every item, so no selection achieves it -- the profits and the "
+            "every item, so no selection achieves it: the profits and the "
             "weights are probably not being read in the order the file writes "
             "them".format(line, stated, sum(checked_profits))
         )

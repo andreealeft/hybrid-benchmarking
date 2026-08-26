@@ -70,7 +70,7 @@ class Implementation:
             return next(iter(self.costs.values()))
         if unit not in self.costs:
             raise ValueError(
-                "{} has no {} count -- available: {}".format(
+                "{} has no {} count; available: {}".format(
                     self.path, unit,
                     ", ".join(str(u) for u in self.units) or "none",
                 )
@@ -127,7 +127,7 @@ class Routine:
             if impl.name == name:
                 return impl
         raise ValueError(
-            "{} has no construction {!r} -- known: {}".format(
+            "{} has no construction {!r}; known: {}".format(
                 self.name, name, ", ".join(i.name for i in self.implementations)
             )
         )

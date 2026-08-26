@@ -141,7 +141,7 @@ Tomography = single(
 IterRefine = single(
     name="IterRefine",
     summary="Solve coarsely, then solve again on the residual. Trades a tight "
-            "solver precision for repeated cheap solves -- which matters "
+            "solver precision for repeated cheap solves: which matters "
             "because the readout cost scales as one over precision squared.",
     citation=_SOURCE,
     costs={},

@@ -189,7 +189,7 @@ SIMPLEX_RECORD = (
     # classical/simplex.py, which writes exactly these.
     Field("kappa", "Condition number",
           "Of the basis. GLPK's kappa_1 = ||A_B||_1 ||A_B^-1||_1 divided by m "
-          "and floored at one, per (4.33) -- not the exact condition number",
+          "and floored at one, per (4.33): not the exact condition number",
           "10"),
     Field("d", "Sparsity",
           "Largest number of non-zeros in any row or column of the basis, "
@@ -207,7 +207,7 @@ SIMPLEX_RECORD = (
     # steepest-edge rule this route targets, nothing else consumes t at all.
     Field("t", "Positive pivot components",
           "How many components of the pivot direction are positive. Lemma 10 "
-          "searches the basis for one of them, so this is a count out of m -- "
+          "searches the basis for one of them, so this is a count out of m: "
           "not the number of columns that could enter", "5"),
     Field("c_max", "Largest cost", "Largest absolute objective coefficient", "2"),
     Field("u_norm", "Pivot norm",
@@ -224,7 +224,7 @@ SIMPLEX_RECORD = (
 SOLVER_RECORD = (
     Field("kappa", "Condition number", "Of this system", "10"),
     Field("d", "Sparsity",
-          "Most non-zeros in any row or column, whichever is larger -- the "
+          "Most non-zeros in any row or column, whichever is larger: the "
           "sparsity of the Hermitian matrix a quantum solver acts on", "4"),
     Field("x_norm", "Solution norm",
           "Norm of the solution, for a matrix scaled to unit spectral norm and "
@@ -268,7 +268,7 @@ KNAPSACK_INSTANCE = (
 QUADRATIC_INSTANCE = KNAPSACK_INSTANCE + (
     Field("pair_profits", "Pair bonuses",
           "What each pair earns *in addition* when both are chosen, as "
-          "{\"(i, j)\": value}. Bonuses only -- a pair that costs you "
+          "{\"(i, j)\": value}. Bonuses only: a pair that costs you "
           "something when both are chosen is not something this circuit has a "
           "gate for", '{"(0, 1)": 6}'),
 )
@@ -308,8 +308,8 @@ def _simplex_route(shape: Shape, rule: str = "steepest-edge") -> Route:
         key="quantum-simplex",
         label="Quantum simplex",
         classical="The simplex method",
-        replaces="the pivoting step -- choosing which variable enters the "
-                 "basis -- with quantum search over the candidate columns",
+        replaces="the pivoting step, choosing which variable enters the "
+                 "basis, with quantum search over the candidate columns",
         target="SimplexIter/" + rule,
         unit=Unit.GATES,
         per_record=SIMPLEX_RECORD,
@@ -456,7 +456,7 @@ FAMILIES: Dict[str, Tuple[str, Tuple[Route, ...]]] = {
                               "[1, 3, 5, 2]"),),
             note="The circuit is explicit enough to schedule, so the derivation "
                  "counts cycles; the gate count follows by assuming one cycle "
-                 "costs one gate. That assumption is generous -- a cycle "
+                 "costs one gate. That assumption is generous: a cycle "
                  "usually holds many gates.",
         ),
     ) + _lp_routes(flow_shape)),
@@ -494,7 +494,7 @@ _CATALOGUE: Tuple[Tuple[str, str, str, str], ...] = (
      "Every worker can cover some shifts and not others. Filling as many "
      "shifts as possible is a matching, and a matching is a flow."),
     ("school-places", "maximum-flow", "Matching applicants to places",
-     "Students to schools, doctors to hospitals, applicants to slots -- as "
+     "Students to schools, doctors to hospitals, applicants to slots: as "
      "many good pairings as the preferences and capacities allow."),
     ("job-machines", "maximum-flow", "Putting jobs on the machines that fit",
      "Each job runs on some machines and not others. How many can run at once."),
@@ -506,7 +506,7 @@ _CATALOGUE: Tuple[Tuple[str, str, str, str], ...] = (
      "Profitable projects with prerequisites: picking the best set that is "
      "closed under what it depends on."),
     ("weakest-link", "maximum-flow", "Finding a network's weakest link",
-     "Which few connections, if they failed, would cut the network in two -- "
+     "Which few connections, if they failed, would cut the network in two: "
      "and how much capacity that costs."),
     ("elimination", "maximum-flow", "Who can still win the league",
      "Given the games left to play, whether a team is already out."),
@@ -588,7 +588,7 @@ _CATALOGUE: Tuple[Tuple[str, str, str, str], ...] = (
      "Approving a slate when the constraint is not only the budget but also "
      "the engineers and the calendar."),
     ("menu-planning", "multidimensional-knapsack", "Planning meals within several limits",
-     "Calories, protein, salt and cost -- every one of them capped, and the "
+     "Calories, protein, salt and cost: every one of them capped, and the "
      "menu has to satisfy all of them together."),
     ("production-run", "multidimensional-knapsack", "What to manufacture this quarter",
      "Each product consumes several raw materials, and every stockpile is "
@@ -627,7 +627,7 @@ _CATALOGUE: Tuple[Tuple[str, str, str, str], ...] = (
     # ---- independent set -------------------------------------------------
     ("independent-set", "independent-set",
      "Choosing as many mutually compatible items as possible",
-     "Picking the largest group of things that do not conflict -- "
+     "Picking the largest group of things that do not conflict: "
      "non-interfering transmitters, non-clashing bookings, compatible "
      "machines."),
     ("transmitters", "independent-set", "Turning on as many transmitters as possible",
@@ -636,7 +636,7 @@ _CATALOGUE: Tuple[Tuple[str, str, str, str], ...] = (
     ("booking-clashes", "independent-set", "Fitting in as many bookings as possible",
      "Requests that overlap cannot both be granted. The most that can."),
     ("compatible-machines", "independent-set", "Running as many machines as possible",
-     "Some pairs cannot run at the same time -- shared power, shared "
+     "Some pairs cannot run at the same time: shared power, shared "
      "extraction, shared floor. The largest set that can."),
     ("spaced-seating", "independent-set", "Seating people apart",
      "Seats too close together cannot both be used. How many people fit."),
@@ -662,7 +662,7 @@ _CATALOGUE: Tuple[Tuple[str, str, str, str], ...] = (
 
     # ---- linear programming ----------------------------------------------
     ("linear-programming", "linear-programming", "Allocating limited resources",
-     "Production planning, blending, logistics, staffing -- anything where a "
+     "Production planning, blending, logistics, staffing: anything where a "
      "linear objective meets linear constraints. If you already have a model "
      "in MPS format, this is your entry."),
     ("production-planning", "linear-programming", "How much of each thing to make",
@@ -689,7 +689,7 @@ _CATALOGUE: Tuple[Tuple[str, str, str, str], ...] = (
     # ---- linear systems --------------------------------------------------
     ("linear-systems", "linear-systems",
      "Solving a large system of equations, or a physical field",
-     "Steady-state temperature, electrostatic potential, structural load -- "
+     "Steady-state temperature, electrostatic potential, structural load: "
      "anything that discretises into a large sparse system. Also the step "
      "every method above outsources to a solver."),
     ("heat-distribution", "linear-systems", "Where the heat settles",
@@ -774,7 +774,7 @@ BEGINNER: Dict[str, Tuple[Ask, ...]] = {
         Ask("budget", "How much {b} do you have?", "100", ""),
         Ask("pairs", "Out of every hundred pairs, how many help each other?",
             "30", "Pairs that are worth more together than apart. Only "
-                  "bonuses -- a pair that gets in its own way is not something "
+                  "bonuses: a pair that gets in its own way is not something "
                   "this counts."),
     ),
     "multidimensional-knapsack": (
