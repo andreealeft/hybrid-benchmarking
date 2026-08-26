@@ -304,27 +304,23 @@
     <h3>Counted in three things</h3>
     <div class="cards">
       <div class="card"><h4>Gates</h4>
-        <p>How much work in total — every logical operation the circuit
-          performs, added up.</p></div>
+        <p>Sum up all 1-qubit, 2-qubit and Toffoli gates in the circuit.</p></div>
       <div class="card"><h4>Cycles</h4>
-        <p>How long it takes — layers of gates that can run at the same time,
-          so this is depth rather than volume.</p></div>
+        <p>Number of layers of gates, assuming gates in the same layer can run
+          in parallel.</p></div>
       <div class="card"><h4>Queries</h4>
-        <p>How often the algorithm has to consult its input, when the cost of
-          answering is somebody else's problem.</p></div>
+        <p>How often the algorithm has to ask for information from the
+          input.</p></div>
     </div>
-    <p class="meta"><b>Which gates?</b> The thesis's model: a single-qubit
-      gate, a two-qubit controlled rotation and a Toffoli each count as
-      <b>one</b>, and a state preparation counts as one. Cycles use the same
-      model, with gates on disjoint qubits sharing a cycle and multi-controlled
-      gates sharing one ancilla register. This is not a Clifford+T count — a
-      Toffoli is one gate here, where a fault-tolerant implementation of it
-      costs several T gates and the magic states behind them. So these are
-      <b>logical</b> operations, with error correction assumed to have done its
-      work already and its overhead not folded in; a physical estimate needs a
-      code, a distance and a T-count on top of this. The assumption travels on
-      every number rather than living only here. And gates, cycles and queries
-      are never added to one another — they are three different questions.</p>
+    <p class="meta"><b>Which gates?</b> The model: single-qubit gates,
+      two-qubit controlled rotations and Toffoli each count as one. Cycles use
+      the same model, with gates on disjoint qubits sharing a cycle and
+      multi-controlled gates sharing one ancilla register.</p>
+    <p class="meta">This is not a Clifford+T count. A Toffoli is one gate here,
+      where a fault-tolerant implementation of it costs several T gates and the
+      magic states behind them. So these are <b>logical</b> operations, without
+      error correction assumed: its cost would add on top of every result you
+      see here.</p>
 
     <h3>Two ways in</h3>
     <div class="steps">
