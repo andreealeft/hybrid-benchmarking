@@ -92,9 +92,13 @@
   #list summary .count { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
   #list details ul { margin: .1rem 0 .5rem; }
   #list details li button { padding-left: 1.1rem; }
-  li button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  /* The chosen problem is marked in amber, not in pink.  Pink is loud enough
+     that a highlight in it dominated the whole left column while somebody was
+     still looking for their problem, which is the one moment the menu should
+     be quieter than the page. */
+  li button[aria-current="true"] { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
   li button span { font-family: var(--mono); font-size: .78rem; color: var(--faint); }
-  li button[aria-current="true"] span { color: var(--accent); }
+  li button[aria-current="true"] span { color: var(--warn); }
 
   /* ---- detail ---- */
   article { padding: 1.4rem 1.6rem 4rem; max-width: 900px; }
