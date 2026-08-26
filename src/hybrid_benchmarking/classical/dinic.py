@@ -29,6 +29,8 @@ over all of it.  Stopping early would log smaller layers and a smaller cost.
 
 from __future__ import annotations
 
+import time
+
 from collections import deque
 from typing import Any, Dict, List, Sequence, Tuple
 
@@ -180,16 +182,26 @@ def solve(network: Network, budget: Budget) -> Run:
     flow = 0.0
     status = Status.COMPLETE
 
+    sweeping = 0.0
+
     while True:
+        began = time.perf_counter()
         level = _sweep(residual, network.source_vertex, vertices)
+        sweeping += time.perf_counter() - began
         # The sweep happened whether or not it reached the sink, so it is a
         # record either way -- including the final one, which is how Dinic
         # discovers that it is finished.
         # Stamped with the elapsed classical time, so a reader can ask what one
         # sweep cost the classical solver and compare that with what the
         # quantum count says the same sweep would cost.
+        # Two timings, and they answer different questions.  ``at_seconds``
+        # says when this sweep happened, so consecutive stamps bracket one
+        # phase of the solve.  ``sweep_seconds`` is the sweep alone -- the part
+        # the quantum search would replace, and the only part it is fair to
+        # compare a count of sweeps against.
         records.append({"layers": layer_sizes(level),
-                        "at_seconds": round(budget.elapsed, 6)})
+                        "at_seconds": round(budget.elapsed, 6),
+                        "sweep_seconds": round(time.perf_counter() - began, 6)})
 
         if level[network.sink_vertex] < 0:
             break
@@ -211,6 +223,7 @@ def solve(network: Network, budget: Budget) -> Run:
         records=tuple(records),
         instance={"vertices": vertices},
         elapsed=budget.elapsed,
+        replaced_seconds=sweeping,
         budget=budget.seconds,
         result={"maximum_flow": flow, "sweeps": len(records)}
         if status is Status.COMPLETE else {"flow_so_far": flow},

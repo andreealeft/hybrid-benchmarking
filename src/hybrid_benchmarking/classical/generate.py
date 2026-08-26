@@ -382,7 +382,7 @@ def compare(problem: str, values: Dict[str, Any],
                          instance=made.instance.describe(),
                          result=made.run.result or {})
             entry["timing"] = timing(report["total"], report["unit"],
-                                     made.run.elapsed)
+                                     made.run)
         except (GenerationError, ValueError) as error:
             entry["error"] = str(error)
         results.append(entry)
@@ -399,20 +399,45 @@ def compare(problem: str, values: Dict[str, Any],
     }
 
 
-def timing(total: float, unit_name: str,
-           classical_seconds: float) -> Dict[str, Any]:
+def timing(total: float, unit_name: str, run) -> Dict[str, Any]:
     """Put a costed route beside the classical solver that produced its log.
 
-    Returns the projection, the required rate, and why -- or, for a unit with
-    no duration, only why not.  It never raises: a route that cannot be timed
-    is a column in the same table as one that can, and the reason is more
-    useful than a gap.
+    The comparison is between *whole algorithms*, which is not the same as
+    between a count and a stopwatch.  A quantum routine that replaces part of a
+    classical solve leaves the rest of it standing: Dinic's layering sweeps
+    become quantum searches and the blocking-flow phases do not, so the honest
+    quantum column is the part it replaces, costed, plus the part it does not,
+    measured.  ``Run.replaced_seconds`` says which part; where it says nothing,
+    the routine replaces the run entire.
+
+    The required rate divides by the replaced part for the same reason.  Asking
+    what gate time would make a count of sweeps match a whole max-flow solve
+    would flatter the quantum side by however much of the solve it never
+    touched.
+
+    Returns the projection, the hybrid total, the required rate and why -- or,
+    for a unit with no duration, only why not.  It never raises: a route that
+    cannot be timed belongs in the same table as one that can, and the reason
+    is more useful than a gap.
     """
     from ..provenance import Unit
     from ..runtime import NoClock, RECORD_SECONDS, humanise, project
 
-    block: Dict[str, Any] = {"classical_seconds": round(classical_seconds, 6),
-                             "classical": humanise(classical_seconds)}
+    classical_seconds = float(getattr(run, "elapsed", run) or 0.0)
+    replaced = getattr(run, "replaced_seconds", None)
+    replaced = classical_seconds if replaced is None else float(replaced)
+    retained = max(0.0, classical_seconds - replaced)
+
+    # Unrounded: these are arithmetic, and the hybrid total and the required
+    # rate are derived from them.  The humanised strings beside them are what
+    # anyone reads.
+    block: Dict[str, Any] = {"classical_seconds": classical_seconds,
+                             "classical": humanise(classical_seconds),
+                             "replaced_seconds": replaced,
+                             "replaced": humanise(replaced),
+                             "retained_seconds": retained,
+                             "retained": humanise(retained),
+                             "partial": retained > 0}
     # The report names a unit as ``GATES``; the enum answers to that and to
     # ``gates``, and which one arrives depends on who called.
     try:
@@ -421,14 +446,17 @@ def timing(total: float, unit_name: str,
         block["why_not"] = "unknown unit {}".format(unit_name)
         return block
     try:
-        projection = project(total, unit, classical_seconds)
+        projection = project(total, unit, replaced)
     except NoClock as error:
         block["why_not"] = str(error)
         return block
 
+    hybrid = projection.seconds + retained
     block.update(
         seconds=projection.seconds,
         quantum=humanise(projection.seconds),
+        hybrid_seconds=hybrid,
+        hybrid=humanise(hybrid),
         rate=projection.rate,
         rate_named=projection.rate_named,
         required=projection.required,
@@ -438,6 +466,13 @@ def timing(total: float, unit_name: str,
         assumptions=list(projection.assumptions),
         reference=RECORD_SECONDS,
     )
+    if retained > 0:
+        block["note"] = (
+            "the quantum routine replaces {} of a {} solve; the remaining {} "
+            "stays classical and is counted in the total".format(
+                humanise(replaced), humanise(classical_seconds),
+                humanise(retained))
+        )
     return block
 
 
@@ -474,7 +509,7 @@ def cost(generated: Generated,
     # The classical run that produced this log was timed, so the count can be
     # put beside it without assuming anything the log does not already carry.
     report["timing"] = timing(report["total"], report["unit"],
-                              generated.run.elapsed)
+                              generated.run)
     return report
 
 

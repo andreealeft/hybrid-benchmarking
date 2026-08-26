@@ -98,6 +98,12 @@ class Run:
     records: tuple = ()
     instance: Dict[str, Any] = field(default_factory=dict)
     elapsed: float = 0.0
+    #: How much of ``elapsed`` the quantum routine would actually take over.
+    #: Dinic's quantum version replaces the layering sweeps and leaves the
+    #: blocking-flow phase classical, so comparing a count of the sweeps with
+    #: the whole solve would compare two different algorithms.  ``None`` means
+    #: the routine replaces the run entire, which is the common case.
+    replaced_seconds: Optional[float] = None
     budget: float = DEFAULT_SECONDS
     #: What the classical algorithm found, where it found something -- the
     #: maximum flow value, the optimal objective.  Not a cost; a sanity check
@@ -147,6 +153,8 @@ class Run:
             "elapsed_seconds": round(self.elapsed, 3),
             "budget_seconds": self.budget,
         }
+        if self.replaced_seconds is not None:
+            block["replaced_seconds"] = round(self.replaced_seconds, 6)
         if self.handoff:
             block["handoff"] = self.handoff
         if self.result:

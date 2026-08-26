@@ -148,3 +148,58 @@ class TestHumanise:
 
     def test_the_very_large_stops_pretending_to_be_a_duration(self):
         assert "age of the universe" in humanise(1e25)
+
+
+class TestWhatTheQuantumRoutineActuallyReplaces:
+    """The comparison is between algorithms, not between a count and a clock.
+
+    Dinic's quantum version replaces the layering sweeps and leaves the
+    blocking-flow phases classical.  Costing the sweeps and setting that
+    against the whole solve would credit the quantum side with work it never
+    does -- and on a sixty-node network the sweeps are around a tenth of the
+    solve, which is the difference between clearing the speed record and
+    missing it.
+    """
+
+    def _flow(self):
+        result = compare("maximum-flow", {"things": "60", "links": "180"},
+                         budget=Budget(60))
+        return {r["route"]: r for r in result["routes"] if "error" not in r}
+
+    def test_the_layering_sweeps_are_only_part_of_the_solve(self):
+        block = self._flow()["quantum-bfs"]["timing"]
+        assert block["partial"] is True
+        assert 0 < block["replaced_seconds"] < block["classical_seconds"]
+        assert block["retained_seconds"] > 0
+
+    def test_the_quantum_bar_carries_the_part_that_stays_classical(self):
+        block = self._flow()["quantum-bfs"]["timing"]
+        assert block["hybrid_seconds"] == pytest.approx(
+            block["seconds"] + block["retained_seconds"])
+
+    def test_the_required_rate_divides_by_the_replaced_part_only(self):
+        route = self._flow()["quantum-bfs"]
+        block = route["timing"]
+        assert block["required"] == pytest.approx(
+            block["replaced_seconds"] / route["total"])
+        # ... which is a stiffer requirement than dividing by the whole solve,
+        # and stiffer is the point: the easier number is not the true one.
+        assert block["required"] < block["classical_seconds"] / route["total"]
+
+    def test_a_route_that_replaces_the_whole_solve_says_so(self):
+        block = self._flow()["quantum-simplex"]["timing"]
+        assert block["partial"] is False
+        assert block["retained_seconds"] == 0
+        assert block["hybrid_seconds"] == pytest.approx(block["seconds"])
+        assert "note" not in block
+
+    def test_the_split_is_recorded_in_the_log_the_user_is_shown(self):
+        """Not only in the comparison: the log file states it too."""
+        from hybrid_benchmarking.classical import generate_from_parameters
+
+        made = generate_from_parameters("maximum-flow",
+                                        {"things": "40", "links": "90"},
+                                        "quantum-bfs", Budget(60))
+        stated = made.run.stated()
+        assert stated["replaced_seconds"] > 0
+        assert all("sweep_seconds" in record for record in made.run.records)

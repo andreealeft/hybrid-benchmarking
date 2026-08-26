@@ -457,13 +457,23 @@ iteration was reached, so consecutive stamps differ by one iteration's cost and
 `per_iteration()` recovers the per-iteration series Figure 4.5 is built from. A
 log written by somebody else has no stamps and gets `()` rather than a guess.
 
-The comparison view ends with a **log-scale chart**: projected quantum time
-against the classical time measured on this machine, one pair per route, since
-each route runs its own classical algorithm and is timed against that one. On a
-sixty-node network the shape of the thesis's own result reappears -- the
-breadth-first route needs about 40 ns per gate, which the record already
-provides, while the simplex route needs `2.4e-18 s`, about 2.7 billion times
-faster than anything ever measured.
+**A routine that replaces part of a solve is compared as part of a solve.**
+`Run.replaced_seconds` says how much of the classical run the quantum side
+actually takes over; Dinic logs the layering sweeps separately from the
+blocking-flow phases (`sweep_seconds` per record), because quantum BFS replaces
+the sweeps and nothing else. So the quantum column is *the replaced part costed
+plus the retained part measured*, and the required rate divides by the replaced
+part alone. This matters more than it sounds: the sweeps are around a tenth of
+Dinic's time, so charging the count against the whole solve made the route look
+like it cleared the speed record when it does not.
+
+The comparison view ends with a **log-scale chart** carrying the numbers on the
+bars: the hybrid quantum total against the classical time measured on this
+machine, one pair per route, each route timed against the classical algorithm
+that produced its own log. On a sixty-node network the thesis's own shape
+reappears -- the breadth-first route needs a few nanoseconds per gate, within a
+factor of two of the record and on the wrong side of it, while the simplex route
+needs about `2.7e-18 s`, some 2.4 billion times faster than anything measured.
 
 ## The QTG search, and where the square root lives
 
@@ -610,4 +620,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1804 tests.
+interface and a CLI. 1809 tests.
