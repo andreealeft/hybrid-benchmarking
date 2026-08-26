@@ -5,28 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hybrid-benchmarking</title>
 <style>
-  /* The palette from the Classiq work: a deep pink carrying the primary line,
-     an olive yellow beside it, and a deep indigo for the controls.
+  /* Three colours, and the pink leads.
 
-     The teal the Classiq set shipped as its cool colour sat wrong here: it is
-     a blue with green in it, and everything around it is warm.  Indigo is a
-     cousin of the plum black the text is set in, so it belongs to the same
-     family as the ink and the pink rather than arguing with both.
+     Deep pink is the identity.  Indigo and gold are its companions, and they
+     were chosen for it rather than inherited: the olive the Classiq set used
+     went with its own scheme and read as a third opinion beside this one, and
+     the teal it used for controls is a blue with green in it, which sat wrong
+     against neutrals this warm.
+
+     What holds the three together is that each is a darkened, low-chroma
+     version of a hue at even spacing around the wheel: red-violet, blue-violet,
+     amber.  Indigo is also a cousin of the plum black the text is set in, so
+     the controls belong to the same family as the ink.
 
      The division of labour is deliberate.  Pink marks *what a thing is*: the
-     rule down the side of a result, a selected problem, a bar in the chart.
-     Blue is *what you can do*: buttons, the labels on the fields you fill in,
-     the outline on whatever has focus, and links.  Pink on every control at
-     once was too loud, and pink beside an input box reads as a warning rather
-     than as an invitation.  Both
-     themes are defined here rather than one of them being left to inherit,
-     because the drawings are painted in these variables and a colour that
-     resolved to nothing would leave a blank panel. */
+     rule down the side of a result, a selected problem, the quantum bar in the
+     chart, the drawings.  Indigo is *what you can do*: buttons, the labels on
+     the fields you fill in, the focus outline, links.  Pink on every control
+     at once was too loud, and pink beside an input box reads as a warning
+     rather than as an invitation.  Gold is *what was measured or what needs
+     care*: the classical bar, and the cautions.
+
+     Both themes are written out rather than one being left to inherit, because
+     the drawings are painted in these variables and a colour that resolved to
+     nothing would leave a blank panel. */
   :root {
     --ground: #fbfaf9; --surface: #ffffff; --sunk: #f4f1f0;
     --ink: #1a1418; --muted: #55494f; --faint: #8a7c82;
     --rule: #e2dbdd; --accent: #a4133c; --accent-soft: #f8e7eb;
-    --warn: #8a5a10; --warn-soft: #f7eddc; --good: #5f7a0e;
+    --warn: #8a5a10; --warn-soft: #f7eddc; --good: #8a5a10;
     --cool: #2f3566; --cool-soft: #e8e9f4;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -36,7 +43,7 @@
       --ground: #131013; --surface: #1b171a; --sunk: #221d21;
       --ink: #f3eef0; --muted: #b7abb0; --faint: #877a80;
       --rule: #322b30; --accent: #e4677f; --accent-soft: #381a23;
-      --warn: #d9a343; --warn-soft: #2c2119; --good: #d7f75b;
+      --warn: #d9a343; --warn-soft: #2c2119; --good: #d9a343;
       --cool: #9aa6e2; --cool-soft: #1d1f38;
     }
   }
