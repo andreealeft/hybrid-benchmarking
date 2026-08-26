@@ -156,6 +156,13 @@ def _route_data(route: Route, problem_key: str = "") -> Dict[str, Any]:
     }
 
 
+def figures() -> List[Dict[str, Any]]:
+    """The published results, redrawn, for the introduction."""
+    from .figures import all_figures
+
+    return all_figures()
+
+
 def problems() -> List[Dict[str, Any]]:
     """Every problem the library can cost, under the name people use.
 
@@ -492,6 +499,8 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(catalogue())
         if self.path == "/api/problems":
             return self._json(problems())
+        if self.path == "/api/figures":
+            return self._json(figures())
         if self.path.startswith("/api/beginner/"):
             try:
                 return self._json(beginner_form(self.path.rsplit("/", 1)[-1]))

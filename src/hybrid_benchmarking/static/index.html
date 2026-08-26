@@ -294,6 +294,28 @@
   .picture { margin: 0; }
   .picture svg { width: 100%; height: auto; display: block; }
   .story { margin: 0; color: var(--ink); font-size: .93rem; max-width: 60ch; }
+  /* the published results, redrawn */
+  #findings { display: grid; gap: 1rem; margin: .3rem 0 1.4rem; }
+  @media (min-width: 860px) { #findings { grid-template-columns: 1fr 1fr; } }
+  .finding {
+    border: 1px solid var(--rule); border-radius: 6px; background: var(--surface);
+    padding: .85rem .95rem;
+  }
+  .finding h4 { margin: 0 0 .1rem; font-size: .92rem; }
+  .finding .plot { margin: .5rem 0 .55rem; }
+  .finding .plot svg { width: 100%; height: auto; display: block; }
+  .finding p { margin: 0 0 .4rem; font-size: .84rem; color: var(--muted); }
+  .finding .sources { font-size: .78rem; }
+  .finding .sources a { color: var(--act); text-decoration: none; }
+  .finding .sources a:hover { text-decoration: underline; }
+  .finding .sources span { color: var(--faint); margin: 0 .35rem; }
+  .kind {
+    display: inline-block; font-size: .68rem; letter-spacing: .04em;
+    text-transform: uppercase; font-weight: 700; padding: .1rem .45rem;
+    border-radius: 3px; vertical-align: .1rem; margin-left: .4rem;
+  }
+  .kind.redrawn { background: var(--accent-soft); color: var(--accent); }
+  .kind.schematic { background: var(--warn-soft); color: var(--warn); }
   .chart { margin: .2rem 0 .6rem; }
   .timelegend { display: grid; gap: .45rem; margin-bottom: 1rem; }
   .timerow { font-size: .84rem; }
@@ -391,6 +413,13 @@
           built in.</p>
       </div>
     </div>
+
+    <h3>What these studies found</h3>
+    <p class="lede">Each of the analyses this reimplements ended in a number,
+    and the numbers are the reason the tool is worth running. Every chart below
+    says whether its values are as published or a schematic of the shape, and
+    links to the paper and, where it is public, the code.</p>
+    <div id="findings"><p class="none">Loading the results…</p></div>
 
     <h3>Where to start</h3>
     <p class="lede">Pick your problem from the menu on the left. Seventy-one of
@@ -883,6 +912,32 @@ async function runComposition() {
 
 let PROBLEMS = [], problem = null, route = null, logText = "";
 
+/* The figures are redrawings of published results, so they carry their own
+   provenance: which paper, which code, and whether the values are as published
+   or a schematic.  Rendered as markup because the SVG is ours; the captions
+   are escaped like any other text. */
+async function bootFigures() {
+  let figures = [];
+  try {
+    figures = await (await fetch("/api/figures")).json();
+  } catch (error) { figures = []; }
+
+  if (!figures.length) { $("findings").innerHTML = ""; return; }
+
+  $("findings").innerHTML = figures.map(f => `
+    <div class="finding">
+      <h4>${esc(f.title)}<span class="kind ${f.kind === "redrawn"
+        ? "redrawn" : "schematic"}">${esc(f.kind)}</span></h4>
+      <div class="plot">${f.figure}</div>
+      <p>${esc(f.caption)}</p>
+      ${f.method ? `<p class="sub">${esc(f.method)}</p>` : ""}
+      <p class="sources"><a href="${esc(f.paper_url)}" target="_blank"
+        rel="noopener">${esc(f.paper)}</a>${f.code_url
+        ? `<span>&middot;</span><a href="${esc(f.code_url)}" target="_blank"
+            rel="noopener">the code</a>` : ""}</p>
+    </div>`).join("");
+}
+
 async function boot_problems() {
   PROBLEMS = await (await fetch("/api/problems")).json();
   drawProblemList();
@@ -1361,6 +1416,7 @@ $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
    there to be clicked.  The registry is not fetched at all until Browse is
    entered, which cannot happen from the menu as it stands. */
 $("home").onclick = showWelcome;
+bootFigures();
 $("filter").hidden = false;
 boot_problems();
 </script>

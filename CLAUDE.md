@@ -300,6 +300,36 @@ random probing when ARPACK does not converge, which underestimated `κ` by 8× a
 11.5× on two instances of ours — his `κ` is a lower bound by construction, ours
 is exact.
 
+## What the studies found, on the front page
+
+`figures.py` and `static/figures.json` hold one chart per publication, redrawn
+in the page's own colour variables and served at `/api/figures`. Each declares
+`kind`: **redrawn** means the values are as published or computed from real
+data, with `method` saying which and how; **schematic** means the shape only,
+and its caption must begin with the word. There is no third kind. A chart is a
+number wearing a picture, so it falls under rule one.
+
+All six came back `redrawn`, and two of them earned it the hard way: the
+knapsack figure was digitised from the published figure's own source PDF in
+`~/Documents/papers-quantum-tree-generator`, and the linear-solver figure was
+computed from `qls-comparison`'s `queries.csv` rather than from the paper's
+plots.
+
+**That computation turned up a discrepancy worth resolving.** On the 10,233
+simplex-derived systems, Chebyshev is the cheapest solver in **100 %** of rows
+and QSVT is third, where the paper's abstract reports the QSVT method as the
+best performer. Independently re-checked here on the raw file, with the
+authors' own columns and with the plain ones: same answer either way. QSVT does
+win the random set, and the simplex systems have median condition number 1.0
+and median sparsity 1, which is the regime the Chebyshev bound is cheapest in,
+so the likely reading is that the abstract's claim is about the instances where
+the functional assumptions hold exactly. Andreea's to rule on; the caption
+currently states it per data set.
+
+One agent claim was wrong and is corrected in the data: instance generation is
+seeded from the answers, so a repeated request reproduces the same instance and
+the same numbers. Verified rather than assumed.
+
 ## Names, and the problems under them
 
 Each of the seventy-one now opens with **a paragraph and a drawing**, held in
@@ -644,4 +674,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2453 tests.
+interface and a CLI. 2517 tests.
