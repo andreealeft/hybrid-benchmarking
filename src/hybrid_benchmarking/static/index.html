@@ -5,39 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hybrid-benchmarking</title>
 <style>
-  /* Cool neutrals, a pink, and a green opposite it.
+  /* Three colours out of the Dopely card: magenta, slate blue, gold.
 
-     The warm experiment is over: cream paper and brown black ink pulled every
-     colour into one tonal band and the page went flat.  Back to the plum black
-     and the near white, which are cold enough to let a colour sit on them
-     without warming into the paper.
+     The card offers five and the plum and the teal are left out on purpose:
+     the plum is so close to the magenta that the two would read as one at a
+     small size, and the teal is what the page already rejected once.  What is
+     left is a genuinely contrasting set, magenta against gold with a slate to
+     hold them apart.
 
-     Pink and green are the contrast, and they are nearly opposite: pink is
-     *what a thing is*, the rule down the side of a result, the quantum bar,
-     the drawings.  Green is *what you can do and what was measured*: buttons,
-     field labels, focus, links, the chosen problem in the menu, and the
-     classical bar the quantum one is set against.  Amber is left for one job
-     only, the cautions, so a caution no longer looks like a control.
+     Magenta is *what a thing is*: the rule beside a result, the quantum bar,
+     the drawings.  Slate is *what you can do*: buttons, field labels, focus,
+     links, the section headings.  Gold is *measurement and warning*: the
+     classical bar, the chosen problem in the menu, the cautions.
 
-     Both themes are written out rather than one being left to inherit, because
-     the drawings are painted in these variables and a colour that resolved to
-     nothing would leave a blank panel. */
+     The gold is darkened for the light theme, where the card's own #F3AA20 is
+     too pale to read as text on white, and restored at full strength on the
+     dark ground where it belongs.  Both themes are written out rather than one
+     being left to inherit, because the drawings are painted in these variables
+     and a colour that resolved to nothing would leave a blank panel. */
   :root {
-    --ground: #fbfaf9; --surface: #ffffff; --sunk: #f4f1f0;
-    --ink: #15111a; --muted: #514a5c; --faint: #857e91;
-    --rule: #e0dce4; --accent: #a4133c; --accent-soft: #f8e7eb;
-    --good: #55700c; --good-soft: #eef3dd;
-    --warn: #8a5a10; --warn-soft: #f7eddc;
+    --ground: #f9fafb; --surface: #ffffff; --sunk: #eef0f4;
+    --ink: #191320; --muted: #4e4a5c; --faint: #837e91;
+    --rule: #dfdce6; --accent: #841e62; --accent-soft: #f9e8f2;
+    --act: #2a445e; --act-soft: #e7edf3;
+    --good: #b8790a; --good-soft: #fdf0d6;
+    --warn: #b8790a; --warn-soft: #fdf0d6;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --ground: #101013; --surface: #18181d; --sunk: #202027;
-      --ink: #f0eef4; --muted: #b0aabc; --faint: #837d90;
-      --rule: #2e2c36; --accent: #e4677f; --accent-soft: #381a23;
-      --good: #c7e35a; --good-soft: #232b12;
-      --warn: #d9a343; --warn-soft: #2c2119;
+      --ground: #0f0c14; --surface: #171320; --sunk: #1f1a29;
+      --ink: #f1eef6; --muted: #ada7bb; --faint: #837e91;
+      --rule: #2b2537; --accent: #e07ab8; --accent-soft: #2a0b23;
+      --act: #8fb2d4; --act-soft: #16233a;
+      --good: #f3aa20; --good-soft: #2e2210;
+      --warn: #f3aa20; --warn-soft: #2e2210;
     }
   }
   * { box-sizing: border-box; }
@@ -62,7 +65,7 @@
     width: 100%; padding: .5rem .65rem; font: inherit; color: var(--ink);
     background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
   }
-  #filter:focus { outline: 2px solid var(--good); outline-offset: 1px; }
+  #filter:focus { outline: 2px solid var(--act); outline-offset: 1px; }
   ul { list-style: none; margin: .8rem 0 0; padding: 0; }
   li button {
     width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
@@ -99,7 +102,7 @@
   .summary { color: var(--muted); margin: 0 0 1.2rem; max-width: 68ch; }
   h3 {
     font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
-    color: var(--faint); margin: 1.6rem 0 .55rem; font-weight: 700;
+    color: var(--act); margin: 1.6rem 0 .55rem; font-weight: 700;
   }
   .tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .9rem; }
   .tabs button {
@@ -108,7 +111,7 @@
     border: 1px solid var(--rule); border-radius: 999px;
   }
   .tabs button[aria-pressed="true"] {
-    background: var(--good); border-color: var(--good); color: var(--ground);
+    background: var(--act); border-color: var(--act); color: var(--ground);
   }
   pre {
     background: var(--sunk); border: 1px solid var(--rule); border-radius: 5px;
@@ -129,18 +132,18 @@
   form { display: grid; gap: .7rem; margin-bottom: 1rem; }
   .field { display: grid; grid-template-columns: 1fr; gap: .2rem; }
   @media (min-width: 620px) { .field { grid-template-columns: 170px 1fr; align-items: center; gap: .8rem; } }
-  .field label { font-family: var(--mono); font-size: .82rem; color: var(--good); }
+  .field label { font-family: var(--mono); font-size: .82rem; color: var(--act); }
   .field input {
     font: inherit; font-family: var(--mono); font-size: .84rem; padding: .4rem .55rem;
     background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; width: 100%;
   }
-  .field input:focus { outline: 2px solid var(--good); outline-offset: 1px; }
+  .field input:focus { outline: 2px solid var(--act); outline-offset: 1px; }
   .actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
   button.primary {
     font: inherit; font-weight: 600; padding: .45rem 1.1rem; cursor: pointer;
-    background: var(--good); color: var(--ground);
-    border: 1px solid var(--good); border-radius: 4px;
+    background: var(--act); color: var(--ground);
+    border: 1px solid var(--act); border-radius: 4px;
   }
   button.ghost {
     font: inherit; padding: .45rem .9rem; cursor: pointer; color: var(--muted);
@@ -189,13 +192,13 @@
     background: var(--ground); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; max-width: 100%;
   }
-  select:focus { outline: 2px solid var(--good); outline-offset: 1px; }
+  select:focus { outline: 2px solid var(--act); outline-offset: 1px; }
   .slot {
     margin: .55rem 0 0 1rem; padding-left: .8rem;
     border-left: 2px solid var(--accent-soft);
   }
   .slot > .label {
-    font-family: var(--mono); font-size: .76rem; color: var(--good);
+    font-family: var(--mono); font-size: .76rem; color: var(--act);
     display: block; margin-bottom: .3rem;
   }
   .drop { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; }
@@ -219,7 +222,7 @@
     padding: .6rem; background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 4px; resize: vertical;
   }
-  textarea:focus { outline: 2px solid var(--good); outline-offset: 1px; }
+  textarea:focus { outline: 2px solid var(--act); outline-offset: 1px; }
   .sub { color: var(--faint); font-size: .8rem; font-family: var(--mono); }
 
   /* ---- the introduction ---- */
@@ -267,7 +270,7 @@
     margin-bottom: .3rem;
   }
   ul.refs li b { display: block; font-weight: 600; font-size: .89rem; }
-  ul.refs a { color: var(--good); text-decoration: none; }
+  ul.refs a { color: var(--act); text-decoration: none; }
   ul.refs a:hover { text-decoration: underline; }
   ul.refs li span {
     display: block; color: var(--muted); font-size: .84rem; margin-top: .1rem;
