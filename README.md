@@ -4,6 +4,10 @@ Resource analysis of fault-tolerant quantum algorithms without a quantum
 computer. Quantum subroutines with their costs, composable into published
 analyses, and honest about where every number came from.
 
+**Never used it before?** [Getting started](GETTING-STARTED.md) installs it in
+four commands and runs it in your browser, with no Python needed. The rest of
+this page assumes you write code.
+
 The shortest useful thing you can do needs no data at all:
 
 ```python
@@ -260,6 +264,11 @@ hybrid-benchmarking cost QLS-Chebyshev -u QUERIES \
 pip install -e ".[dev]"
 python -m pytest
 ```
+
+Or four commands, spelled out for someone who has not done this before, in
+[Getting started](GETTING-STARTED.md) — which also lists the instance formats
+that can be read today, and what to read in the source if you would rather do
+the counts yourself.
 
 Python 3.9 or newer. Both sympy and numpy are installed. numpy is imported only
 by the instrumented classical solvers, so reading formulas, composing analyses
