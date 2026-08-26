@@ -55,14 +55,17 @@
     font-family: var(--sans); font-size: 14px; line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }
+  /* A title bar, not a banner: it names the tool and then gets out of the way,
+     since everything worth reading is below it. */
   header {
-    padding: 1rem 1.5rem; border-bottom: 1px solid var(--rule);
-    display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
+    padding: .45rem 1.1rem; border-bottom: 1px solid var(--rule);
+    display: flex; align-items: baseline; gap: .7rem; flex-wrap: wrap;
     background: var(--surface);
   }
-  header h1 { font-family: var(--mono); font-size: 1rem; font-weight: 600; margin: 0; }
-  header p { margin: 0; color: var(--faint); font-size: .82rem; }
-  main { display: grid; grid-template-columns: 1fr; gap: 0; min-height: calc(100vh - 60px); }
+  header h1 { font-family: var(--mono); font-size: .85rem; font-weight: 600; margin: 0; }
+  header p { margin: 0; color: var(--faint); font-size: .74rem; }
+  .brand { font-size: .85rem; }
+  main { display: grid; grid-template-columns: 1fr; gap: 0; min-height: calc(100vh - 38px); }
   @media (min-width: 900px) { main { grid-template-columns: 290px minmax(0,1fr); } }
 
   /* ---- list ---- */
