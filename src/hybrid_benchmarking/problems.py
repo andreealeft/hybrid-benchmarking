@@ -358,7 +358,7 @@ def _lp_routes(shape: Shape) -> Tuple[Route, ...]:
 def _quadratic_route() -> Route:
     return Route(
         key="tree-generator",
-        label="Quantum tree generator",
+        label="Quantum tree generator based search",
         classical="An exact solver for the quadratic knapsack",
         replaces="the whole search, with a quantum state that superposes "
                  "feasible choices weighted towards profitable ones, amplified "
@@ -377,7 +377,7 @@ def _quadratic_route() -> Route:
 def _multidimensional_route() -> Route:
     return Route(
         key="tree-generator",
-        label="Quantum tree generator",
+        label="Quantum tree generator based search",
         classical="An exact solver for the multidimensional knapsack",
         replaces="the whole search, with a quantum state that superposes "
                  "feasible choices weighted towards profitable ones, amplified "
@@ -396,7 +396,7 @@ def _multidimensional_route() -> Route:
 def _knapsack_route() -> Route:
     return Route(
         key="tree-generator",
-        label="Quantum tree generator search",
+        label="Quantum tree generator based search",
         classical="COMBO, the state-of-the-art dynamic programming solver",
         replaces="the whole search, with a quantum state that superposes "
                  "feasible packings weighted towards profitable ones, "

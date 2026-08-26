@@ -5,7 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hybrid-benchmarking</title>
 <style>
-  /* Two colours: a deep pink and an amber, over warm neutrals.
+  /* Ember: brick red, honey, and a taupe for whatever was measured.
+
+     The warmth is mostly in the paper rather than in the accents.  The ground
+     is a cream and the ink a brown black, so every colour on top of them reads
+     warm; the previous near white and plum black cooled whatever sat on them.
+
+     The classical bar is taupe rather than a third colour, because it is the
+     measured baseline and a baseline painted in a neutral says so.  It also
+     gives the amber its job back: amber was doing buttons, menu, cautions and
+     the classical bar at once, and the cautions were disappearing into the
+     furniture.
 
      Everything that was blue is amber now.  Two colours is a harder discipline
      than three and a calmer page for it, and the pair works because they are
@@ -26,19 +36,19 @@
      the drawings are painted in these variables and a colour that resolved to
      nothing would leave a blank panel. */
   :root {
-    --ground: #fbfaf9; --surface: #ffffff; --sunk: #f4f1f0;
-    --ink: #1a1418; --muted: #55494f; --faint: #8a7c82;
-    --rule: #e2dbdd; --accent: #a4133c; --accent-soft: #f8e7eb;
-    --warn: #8a5a10; --warn-soft: #f7eddc; --good: #8a5a10;
+    --ground: #fdf9f3; --surface: #fffefb; --sunk: #f5eee3;
+    --ink: #241a13; --muted: #5f4d3f; --faint: #95816f;
+    --rule: #e6dccd; --accent: #a63c22; --accent-soft: #fbe9e0;
+    --warn: #9a6a10; --warn-soft: #f8eeda; --good: #8a7361;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --ground: #131013; --surface: #1b171a; --sunk: #221d21;
-      --ink: #f3eef0; --muted: #b7abb0; --faint: #877a80;
-      --rule: #322b30; --accent: #e4677f; --accent-soft: #381a23;
-      --warn: #d9a343; --warn-soft: #2c2119; --good: #d9a343;
+      --ground: #161110; --surface: #1f1917; --sunk: #28201d;
+      --ink: #f6efe6; --muted: #bda99a; --faint: #8d7b6d;
+      --rule: #352c27; --accent: #e8734f; --accent-soft: #33201a;
+      --warn: #e0ab4c; --warn-soft: #2d2318; --good: #b59d88;
     }
   }
   * { box-sizing: border-box; }
@@ -412,7 +422,7 @@
           instances.</span></li>
       <li><b><a href="https://www.nature.com/articles/s41534-025-01097-8" target="_blank" rel="noopener">A quantum algorithm for solving 0-1 Knapsack problems</a></b>
         <span>npj Quantum Information 11, 146, 2025. Where the quantum tree
-          generator comes from, and the cycle count built on it.</span></li>
+          generator based search comes from, and the cycle count built on it.</span></li>
       <li><b><a href="https://ieeexplore.ieee.org/document/11250149" target="_blank" rel="noopener">A quantum search method for quadratic and multidimensional
         knapsack problems</a></b>
         <span>IEEE Quantum Computing and Engineering (QCE) 2025,
