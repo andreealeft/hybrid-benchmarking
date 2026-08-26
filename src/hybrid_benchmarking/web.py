@@ -157,16 +157,28 @@ def _route_data(route: Route, problem_key: str = "") -> Dict[str, Any]:
 
 
 def problems() -> List[Dict[str, Any]]:
-    """Every problem the library can cost, under the name people use."""
+    """Every problem the library can cost, under the name people use.
+
+    Ordered by the menu's headings, so the page can group by runs of equal
+    ``category`` without knowing what the headings are or what order they go in.
+    Seventy-one names in one alphabetical column is a list nobody reads to the
+    end of; the same names under nine headings is a list you scan.
+    """
+    from .problems import CATEGORIES, category_of
+
+    order = {key: index for index, (key, _) in enumerate(CATEGORIES)}
+    heading = dict(CATEGORIES)
     return [
         {
             "key": p.key,
             "label": p.label,
             "technical": p.technical,
             "blurb": p.blurb,
+            "category": category_of(p.key),
+            "category_label": heading[category_of(p.key)],
             "routes": [_route_data(r, p.key) for r in p.routes],
         }
-        for p in PROBLEMS
+        for p in sorted(PROBLEMS, key=lambda p: order[category_of(p.key)])
     ]
 
 

@@ -341,8 +341,20 @@ The interface now meets people at three depths. **Describe it** asks for the
 problem in its own nouns -- how many people, how many shifts -- builds an
 instance of that shape, runs the real classical solvers on it, and costs every
 route side by side. **I have a data file** is the path that was there before.
-The **Browse** and **Build** tabs remain for anyone who wants the registry
-itself.
+The **Browse** and **Build** tabs are still served and still work, but their
+buttons are hidden and the tab bar with them: the page opens on the problems and
+shows nothing else. Unhide the two buttons in `static/index.html` to restore.
+
+The seventy-one names are grouped under nine headings, and the headings
+deliberately **cut across the families**. Grouping by family would put siting a
+satellite next to siting a charging point and announce that they are one
+problem, which is the classification the catalogue exists to spare people; so
+the headings are kinds of task -- choosing what to fund, deciding where to put
+things, avoiding clashes -- and four of the nine mix families while
+`quadratic-knapsack` is spread over three. `web.problems()` sorts by heading so
+the page groups runs of equal `category` without knowing what the headings are;
+`tests/test_categories.py` holds the grouping to that, and to headings free of
+the vocabulary the names are there to avoid.
 
 The first level is the one with a hazard, and it is handled in two places rather
 than one. `classical/synthesise.py` generates the instance, and every run built
@@ -511,4 +523,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1751 tests.
+interface and a CLI. 1768 tests.

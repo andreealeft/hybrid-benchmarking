@@ -51,6 +51,21 @@
     display: flex; justify-content: space-between; gap: .5rem; align-items: baseline;
   }
   li button:hover { background: var(--sunk); }
+  /* headings: nine groups of names, cutting across the families on purpose --
+     grouping by family would put siting a satellite next to siting a charging
+     point and give away that they are one problem. */
+  #list details { margin: 0 0 .15rem; }
+  #list summary {
+    cursor: pointer; list-style: none; padding: .35rem .55rem; border-radius: 4px;
+    font-size: .8rem; letter-spacing: .01em; color: var(--faint);
+    display: flex; justify-content: space-between; gap: .5rem; align-items: baseline;
+  }
+  #list summary::-webkit-details-marker { display: none; }
+  #list summary:hover { background: var(--sunk); color: var(--ink); }
+  #list details[open] > summary { color: var(--ink); font-weight: 600; }
+  #list summary .count { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
+  #list details ul { margin: .1rem 0 .5rem; }
+  #list details li button { padding-left: 1.1rem; }
   li button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
   li button span { font-family: var(--mono); font-size: .78rem; color: var(--faint); }
   li button[aria-current="true"] span { color: var(--accent); }
@@ -189,16 +204,20 @@
 <header>
   <h1>hybrid-benchmarking</h1>
   <p>Quantum subroutines and what they cost. Nothing leaves this machine.</p>
-  <div class="tabs" id="modes" style="margin-left:auto">
+  <!-- One mode is on the menu, so the bar itself is off it.  The buttons stay
+       in the document: the handler, and anything that restores them, work. -->
+  <div class="tabs" id="modes" style="margin-left:auto" hidden>
     <button data-mode="problems" aria-pressed="true">Problems</button>
-    <button data-mode="build" aria-pressed="false">Build</button>
-    <button data-mode="browse" aria-pressed="false">Subroutines</button>
+    <!-- Build and Subroutines are the registry's own view: still served, still
+         reachable by URL, but off the menu for now.  Restore by unhiding. -->
+    <button data-mode="build" aria-pressed="false" hidden>Build</button>
+    <button data-mode="browse" aria-pressed="false" hidden>Subroutines</button>
   </div>
 </header>
 
 <main>
   <nav>
-    <input id="filter" type="search" placeholder="Search" autocomplete="off">
+    <input id="filter" type="search" placeholder="Search the problems" autocomplete="off">
     <ul id="list"></ul>
   </nav>
   <article id="detail"><p class="none">Loading the registry…</p></article>
@@ -596,14 +615,35 @@ function drawProblemList() {
   const needle = $("filter").value.toLowerCase();
   const shown = PROBLEMS.filter(p =>
     !needle || (p.label + " " + p.blurb).toLowerCase().includes(needle));
-  $("list").innerHTML = shown.map(p => `
+
+  /* The server sends the problems already ordered by heading, so a group is a
+     run of equal category and the page never has to know what the headings are
+     or which order they belong in. */
+  const groups = [];
+  for (const p of shown) {
+    const last = groups[groups.length - 1];
+    if (last && last.key === p.category) last.items.push(p);
+    else groups.push({key: p.category, label: p.category_label, items: [p]});
+  }
+
+  const item = p => `
     <li><button data-problem="${esc(p.key)}"
         aria-current="${p.key === (problem && problem.key)}"
         style="display:block">
       <span style="font-family:var(--sans);color:inherit">${esc(p.label)}</span>
-    </button></li>`).join("")
-    || `<li><p class="none">Nothing matches that.</p></li>`;
-  $("list").querySelectorAll("button").forEach(b =>
+    </button></li>`;
+
+  /* Open the group holding the current problem, and every group while a search
+     is running -- a heading that hid a match would read as no match. */
+  $("list").innerHTML = groups.map(g => {
+    const open = needle || g.items.some(p => p.key === (problem && problem.key));
+    return `<li><details ${open ? "open" : ""}>
+      <summary>${esc(g.label)}<span class="count">${g.items.length}</span></summary>
+      <ul>${g.items.map(item).join("")}</ul>
+    </details></li>`;
+  }).join("") || `<li><p class="none">Nothing matches that.</p></li>`;
+
+  $("list").querySelectorAll("button[data-problem]").forEach(b =>
     b.onclick = () => pickProblem(b.dataset.problem));
 }
 
@@ -892,8 +932,11 @@ $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
   if (mode === "problems") drawProblemList();
 });
 
+/* Problems is the mode the page opens in and the only one on the menu, so the
+   search box opens with it rather than waiting for a tab that is no longer
+   there to be clicked. */
 $("detail").hidden = true;
-$("filter").hidden = true;
+$("filter").hidden = false;
 boot();
 boot_problems();
 </script>

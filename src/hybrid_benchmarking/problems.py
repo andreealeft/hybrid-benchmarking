@@ -879,6 +879,63 @@ NOUNS: Dict[str, Tuple[str, str]] = {
 }
 
 
+#: How the menu is grouped.  Deliberately **not** by family: putting siting a
+#: satellite next to siting a charging point would announce that they are one
+#: problem, which is the thing the catalogue exists to spare people.  These cut
+#: across families instead, by the kind of task someone thinks they have --
+#: which is also how they will look for it.
+CATEGORIES: Tuple[Tuple[str, str], ...] = (
+    ("choosing", "Choosing what to fund or build"),
+    ("placing", "Deciding where to put things"),
+    ("limits", "Fitting within several limits at once"),
+    ("groups", "Picking people and groups"),
+    ("clashes", "Avoiding clashes"),
+    ("flow", "Getting things through a network"),
+    ("matching", "Matching things up"),
+    ("planning", "Planning and allocating"),
+    ("physical", "Solving a physical system"),
+)
+
+_CATEGORY_OF: Dict[str, str] = {
+    "choosing": ("knapsack capital-budgeting release-planning ad-budget "
+                 "cache-contents observing-night maintenance-backlog "
+                 "quadratic-knapsack"),
+    "placing": ("satellite-siting charging-stations sensor-overlap cell-towers "
+                "depot-siting store-network vertex-cover camera-placement "
+                "network-monitors checkpoints pipeline-inspection "
+                "patch-priority"),
+    "limits": ("multidimensional-knapsack container-loading cloud-packing "
+               "multi-budget-portfolio menu-planning production-run "
+               "grant-allocation payload-selection rack-filling "
+               "commissioning-slate"),
+    "groups": ("team-selection committee research-portfolio product-bundles "
+               "clique community compatible-parts trading-group "
+               "fragment-matching"),
+    "clashes": ("independent-set transmitters booking-clashes "
+                "compatible-machines spaced-seating ad-slots"),
+    "flow": ("maximum-flow evacuation supply-chain weakest-link "
+             "image-separation"),
+    "matching": ("shift-assignment school-places job-machines elimination "
+                 "project-prerequisites"),
+    "planning": ("linear-programming production-planning blending logistics "
+                 "rostering energy-dispatch diet-problem revenue-management"),
+    "physical": ("linear-systems heat-distribution electrostatics "
+                 "structural-load circuit-analysis groundwater deblurring "
+                 "least-squares"),
+}
+
+#: Problem key to category key, expanded once from the readable form above.
+CATEGORY: Dict[str, str] = {
+    key: category
+    for category, keys in _CATEGORY_OF.items() for key in keys.split()
+}
+
+
+def category_of(problem_key: str) -> str:
+    """Which heading a problem sits under, for the menu."""
+    return CATEGORY.get(problem_key, "planning")
+
+
 def beginner_asks(problem_key: str) -> Tuple[Field, ...]:
     """The questions this problem puts to someone who has no file.
 
