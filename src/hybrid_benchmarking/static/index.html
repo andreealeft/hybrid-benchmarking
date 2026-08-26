@@ -5,42 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hybrid-benchmarking</title>
 <style>
-  /* Three colours out of the Dopely card: magenta, slate blue, gold.
+  /* Blue against orange, from the second Dopely card.
 
-     The card offers five and the plum and the teal are left out on purpose:
-     the plum is so close to the magenta that the two would read as one at a
-     small size, and the teal is what the page already rejected once.  What is
-     left is a genuinely contrasting set, magenta against gold with a slate to
-     hold them apart.
+     The card gives a family rather than five separate colours: a pale cyan, a
+     mid blue, a deep navy, a gold and an orange.  So the blue does two jobs at
+     two depths and the warm pair does the other two.
 
-     Magenta is *what a thing is*: the rule beside a result, the quantum bar,
-     the drawings.  Slate is *what you can do*: buttons, field labels, focus,
-     links, the section headings.  Gold is *measurement and warning*: the
-     classical bar, the chosen problem in the menu, the cautions.
+     Deep navy is *what a thing is*: the rule beside a result, the quantum bar,
+     the drawings.  The mid blue is *what you can do*: buttons, field labels,
+     focus, links, the section headings.  Orange is *what was measured*, the
+     classical bar the quantum one is set against, and the chosen problem in
+     the menu.  Gold is the cautions, near enough to the orange to belong and
+     far enough to be told apart in a panel of its own.
 
-     The gold is darkened for the light theme, where the card's own #F3AA20 is
-     too pale to read as text on white, and restored at full strength on the
-     dark ground where it belongs.  Both themes are written out rather than one
+     Both warm colours are darkened for the light theme, where the card's own
+     values are too pale to read as text on white, and restored at full
+     strength on the dark ground.  Both themes are written out rather than one
      being left to inherit, because the drawings are painted in these variables
      and a colour that resolved to nothing would leave a blank panel. */
   :root {
-    --ground: #f9fafb; --surface: #ffffff; --sunk: #eef0f4;
-    --ink: #191320; --muted: #4e4a5c; --faint: #837e91;
-    --rule: #dfdce6; --accent: #841e62; --accent-soft: #f9e8f2;
-    --act: #2a445e; --act-soft: #e7edf3;
-    --good: #b8790a; --good-soft: #fdf0d6;
-    --warn: #b8790a; --warn-soft: #fdf0d6;
+    --ground: #f8fafb; --surface: #ffffff; --sunk: #edf2f5;
+    --ink: #0d1b24; --muted: #46606e; --faint: #7d919c;
+    --rule: #d9e3e9; --accent: #053f5c; --accent-soft: #e3eef4;
+    --act: #0f5f80; --act-soft: #e6f2f7;
+    --good: #c26608; --good-soft: #fdeedd;
+    --warn: #a6720a; --warn-soft: #fdf2dc;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --ground: #0f0c14; --surface: #171320; --sunk: #1f1a29;
-      --ink: #f1eef6; --muted: #ada7bb; --faint: #837e91;
-      --rule: #2b2537; --accent: #e07ab8; --accent-soft: #2a0b23;
-      --act: #8fb2d4; --act-soft: #16233a;
-      --good: #f3aa20; --good-soft: #2e2210;
-      --warn: #f3aa20; --warn-soft: #2e2210;
+      --ground: #0b1218; --surface: #121c23; --sunk: #18242c;
+      --ink: #eef6fa; --muted: #a3b8c2; --faint: #7a8f9a;
+      --rule: #24343e; --accent: #9fe7f5; --accent-soft: #0d2a38;
+      --act: #7cc9e8; --act-soft: #10222e;
+      --good: #f27f0c; --good-soft: #2b1a0c;
+      --warn: #f7ad19; --warn-soft: #2c2210;
     }
   }
   * { box-sizing: border-box; }
