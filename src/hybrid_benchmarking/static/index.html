@@ -249,6 +249,20 @@
   ul.refs li span {
     display: block; color: var(--muted); font-size: .84rem; margin-top: .1rem;
   }
+  .chart { margin: .2rem 0 .6rem; }
+  .timelegend { display: grid; gap: .45rem; margin-bottom: 1rem; }
+  .timerow {
+    display: grid; gap: .1rem .7rem; font-size: .84rem;
+    grid-template-columns: 1fr auto auto;
+  }
+  .timerow b { grid-column: 1; font-weight: 600; }
+  .timerow .q { color: var(--accent); font-family: var(--mono); font-size: .8rem; }
+  .timerow .c { color: var(--good); font-family: var(--mono); font-size: .8rem; }
+  .timerow em { grid-column: 1 / -1; color: var(--muted); font-style: normal;
+    font-size: .82rem; }
+  .swatch { padding: .05rem .3rem; border-radius: 3px; }
+  .swatch.q { background: var(--accent-soft); color: var(--accent); }
+  .swatch.c { background: var(--sunk); color: var(--good); }
   .brand {
     font: inherit; font-family: var(--mono); font-size: 1rem; font-weight: 600;
     background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
@@ -951,6 +965,99 @@ async function drawBeginner() {
   $("askform").onsubmit = (e) => { e.preventDefault(); runBeginner(form); };
 }
 
+/* Seconds, at the scale these numbers actually live on: a classical solve is
+   milliseconds and a quantum projection can be years. */
+function humaniseSeconds(s) {
+  if (!(s > 0)) return "0";
+  const small = [[1e-18, "as"], [1e-15, "fs"], [1e-12, "ps"],
+                 [1e-9, "ns"], [1e-6, "\u00b5s"], [1e-3, "ms"]];
+  for (const [size, name] of small)
+    if (s < size * 1000) return `${(s / size).toPrecision(3) / 1} ${name}`;
+  if (s < 90) return `${(s).toPrecision(3) / 1} s`;
+  if (s < 5400) return `${(s / 60).toPrecision(3) / 1} min`;
+  if (s < 172800) return `${(s / 3600).toPrecision(3) / 1} h`;
+  if (s < 6.3e7) return `${(s / 86400).toPrecision(3) / 1} days`;
+  const years = s / 3.15576e7;
+  if (years < 1e3) return `${years.toPrecision(3) / 1} years`;
+  if (years < 1.38e10) return `${(years / 1e3).toPrecision(3) / 1}k years`;
+  return `${(years / 1.38e10).toPrecision(3) / 1}\u00d7 the universe`;
+}
+
+/* Measured classical time against projected quantum time, one pair per route.
+   Log scale, because the two can be thirty orders of magnitude apart and a
+   linear axis would draw every classical bar as nothing. */
+function timeChart(routes) {
+  const rows = routes.filter(r => r.timing && r.timing.seconds > 0);
+  const untimed = routes.filter(r => r.timing && !r.timing.seconds && !r.error);
+  if (!rows.length) return "";
+
+  const values = [];
+  rows.forEach(r => values.push(r.timing.seconds, r.timing.classical_seconds));
+  const lo = Math.floor(Math.log10(Math.min(...values.filter(v => v > 0))));
+  const hi = Math.ceil(Math.log10(Math.max(...values)));
+  const span = Math.max(1, hi - lo);
+  const x = v => 100 * (Math.log10(Math.max(v, Math.pow(10, lo))) - lo) / span;
+
+  const rowH = 46, top = 22, height = top + rows.length * rowH + 26;
+  const ticks = [];
+  const step = span > 12 ? 3 : (span > 6 ? 2 : 1);
+  for (let p = lo; p <= hi; p += step) ticks.push(p);
+
+  let svg = `<svg viewBox="0 0 100 ${height}" preserveAspectRatio="none"
+    role="img" aria-label="measured classical time against projected quantum
+    time" style="width:100%;height:${height * 3.2}px">`;
+
+  svg += ticks.map(p => `
+    <line x1="${x(Math.pow(10, p))}" y1="${top - 8}" x2="${x(Math.pow(10, p))}"
+      y2="${height - 24}" stroke="var(--rule)" stroke-width=".12"/>`).join("");
+
+  rows.forEach((r, i) => {
+    const y = top + i * rowH;
+    const q = Math.max(x(r.timing.seconds), 0.4);
+    const c = Math.max(x(r.timing.classical_seconds), 0.4);
+    svg += `
+      <rect x="0" y="${y + 6}" width="${q}" height="11" fill="var(--accent)"/>
+      <rect x="0" y="${y + 21}" width="${c}" height="11" fill="var(--good)"/>`;
+  });
+  svg += `</svg>`;
+
+  // Labels go in HTML beside the bars rather than inside the SVG: the viewBox
+  // is stretched horizontally, which would stretch any text drawn in it.
+  const legend = rows.map((r, i) => `
+    <div class="timerow">
+      <b>${esc(r.label)}</b>
+      <span class="q">${esc(humanphrase(r.timing.quantum))} quantum</span>
+      <span class="c">${esc(humanphrase(r.timing.classical))} classical</span>
+      <em>${esc(r.timing.summary)}</em>
+    </div>`).join("");
+
+  const missing = untimed.map(r => `<li>${esc(r.label)}: ${
+    esc(r.timing.why_not || "not timed")}</li>`).join("");
+
+  return `<h3>How long that would take</h3>
+    <p class="meta">Each pair is one method: <b class="swatch q">quantum</b>,
+      if every counted operation took ${humaniseSeconds(rows[0].timing.rate)} —
+      the speed record for an isolated gate operation — against
+      <b class="swatch c">classical</b>, measured on this machine just now.
+      The scale is logarithmic; each gridline is a factor of
+      ${Math.pow(10, span > 12 ? 3 : (span > 6 ? 2 : 1))}.</p>
+    <div class="chart">${svg}</div>
+    <div class="timelegend">${legend}</div>
+    ${missing ? `<ul class="notes">${missing}</ul>` : ""}
+    <p class="meta"><b>The required rate is the number that does not age.</b>
+      A projection assumes a clock; the rate a method would need in order to
+      match the classical solver on this instance is measured, and hardware
+      either reaches it later or does not. It is also generous: a measured
+      classical time divided by a lower bound on the count is an upper bound on
+      what the quantum side needs.</p>
+    <details><summary>Why the quantum bars are optimistic</summary>
+      <ul class="notes">${(rows[0].timing.assumptions || []).map(a =>
+        `<li>${esc(a)}</li>`).join("")}</ul></details>`;
+}
+
+/* The server already humanised these; this only tidies the unit it chose. */
+function humanphrase(text) { return String(text || "").replace(/^us /, "\u00b5s "); }
+
 async function runBeginner(form) {
   const values = {};
   form.asks.forEach(a => values[a.name] = $("ask_" + a.name).value.trim());
@@ -995,6 +1102,8 @@ async function runBeginner(form) {
      bound and assumptions, which says it without the paragraph.  The data
      still says it too: compare() returns comparable:false and the units
      present, and the cost algebra still refuses to add gates to cycles. */
+
+  html += timeChart(res.routes);
 
   if (res.warnings.length) html += res.warnings.map(w =>
     `<p class="warn">⚠ ${esc(w)}</p>`).join("");

@@ -362,6 +362,10 @@ def _run_phase(matrix: np.ndarray, rhs: np.ndarray, cost: np.ndarray,
         # subroutines would see them, so it is written before the pivot.
         record = _record(basis_matrix, inverse, direction, state.rows, phase)
         record["t_improving"] = int(improving.size)
+        # When this iteration was reached, in classical seconds.  Consecutive
+        # stamps differ by what one iteration cost, which is the denominator of
+        # the required-gate-time question.
+        record["at_seconds"] = round(budget.elapsed, 6)
         state.records.append(record)
 
         positive = direction > TOLERANCE

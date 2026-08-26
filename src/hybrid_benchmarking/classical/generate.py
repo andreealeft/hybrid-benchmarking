@@ -381,6 +381,8 @@ def compare(problem: str, values: Dict[str, Any],
                          records=report["logged_records"],
                          instance=made.instance.describe(),
                          result=made.run.result or {})
+            entry["timing"] = timing(report["total"], report["unit"],
+                                     made.run.elapsed)
         except (GenerationError, ValueError) as error:
             entry["error"] = str(error)
         results.append(entry)
@@ -395,6 +397,48 @@ def compare(problem: str, values: Dict[str, Any],
                "different units and rest on different assumptions, so they sit "
                "side by side and are never added or ranked against each other.",
     }
+
+
+def timing(total: float, unit_name: str,
+           classical_seconds: float) -> Dict[str, Any]:
+    """Put a costed route beside the classical solver that produced its log.
+
+    Returns the projection, the required rate, and why -- or, for a unit with
+    no duration, only why not.  It never raises: a route that cannot be timed
+    is a column in the same table as one that can, and the reason is more
+    useful than a gap.
+    """
+    from ..provenance import Unit
+    from ..runtime import NoClock, RECORD_SECONDS, humanise, project
+
+    block: Dict[str, Any] = {"classical_seconds": round(classical_seconds, 6),
+                             "classical": humanise(classical_seconds)}
+    # The report names a unit as ``GATES``; the enum answers to that and to
+    # ``gates``, and which one arrives depends on who called.
+    try:
+        unit = Unit[unit_name] if unit_name in Unit.__members__ else Unit(unit_name)
+    except (KeyError, ValueError):
+        block["why_not"] = "unknown unit {}".format(unit_name)
+        return block
+    try:
+        projection = project(total, unit, classical_seconds)
+    except NoClock as error:
+        block["why_not"] = str(error)
+        return block
+
+    block.update(
+        seconds=projection.seconds,
+        quantum=humanise(projection.seconds),
+        rate=projection.rate,
+        rate_named=projection.rate_named,
+        required=projection.required,
+        required_named=humanise(projection.required or 0.0),
+        shortfall=projection.shortfall,
+        summary=projection.describe(),
+        assumptions=list(projection.assumptions),
+        reference=RECORD_SECONDS,
+    )
+    return block
 
 
 def _for(route, chosen: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -427,6 +471,10 @@ def cost(generated: Generated,
     report = cost_log(generated.route, generated.data, chosen)
     report["instance"] = generated.instance.name
     report["advice"] = generated.run.advice()
+    # The classical run that produced this log was timed, so the count can be
+    # put beside it without assuming anything the log does not already carry.
+    report["timing"] = timing(report["total"], report["unit"],
+                              generated.run.elapsed)
     return report
 
 

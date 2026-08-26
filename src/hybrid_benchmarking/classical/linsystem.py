@@ -147,6 +147,7 @@ def solve(instance: Matrix, budget: Budget,
         "d": density,
         "x_norm": float(np.linalg.norm(solution)),
         "A_max": float(np.max(np.abs(scaled))),
+        "at_seconds": round(budget.elapsed, 6),
     }
     return Run(
         implementation=IMPLEMENTATION,

@@ -302,6 +302,7 @@ def solve(form: StandardForm, budget: Budget, system: str = "mnes") -> Run:
                        "no condition number")
 
     record["gamma"] = record["d"] * record["kappa"]
+    record["at_seconds"] = round(budget.elapsed, 6)
     return Run(
         implementation=IMPLEMENTATION,
         status=Status.COMPLETE,

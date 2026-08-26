@@ -18,6 +18,7 @@ are.
 from __future__ import annotations
 
 from .cost import Cost, UnitMismatch, ValidityWarning, exact, lower_bound
+from . import runtime  # noqa: F401
 from .provenance import Bound, Derivation, Provenance, Unit
 from .registry import (
     Implementation,

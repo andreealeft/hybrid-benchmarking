@@ -185,7 +185,11 @@ def solve(network: Network, budget: Budget) -> Run:
         # The sweep happened whether or not it reached the sink, so it is a
         # record either way -- including the final one, which is how Dinic
         # discovers that it is finished.
-        records.append({"layers": layer_sizes(level)})
+        # Stamped with the elapsed classical time, so a reader can ask what one
+        # sweep cost the classical solver and compare that with what the
+        # quantum count says the same sweep would cost.
+        records.append({"layers": layer_sizes(level),
+                        "at_seconds": round(budget.elapsed, 6)})
 
         if level[network.sink_vertex] < 0:
             break

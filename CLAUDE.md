@@ -424,6 +424,47 @@ total, its own bound, derivation and assumptions, `compare()` refuses to
 reconcile them, and the cost algebra still raises if anything tries to add gates
 to cycles.
 
+## Counts on a clock, and the number that does not age
+
+`runtime.py` turns a count into seconds and, more usefully, seconds back into a
+required rate. The construction is Chapter 4's: the simplex study does not
+assume a gate time and report a duration, it **inverts** -- for each instance it
+computes the time per gate the quantum side would need to match the classical
+solver, and compares that with `6.5e-9 s`, the record for an *isolated* gate
+operation (the ultrafast Rydberg experiment, reference [95] in the thesis). A
+required rate is falsifiable and does not go stale; a projected duration ages
+the moment hardware moves.
+
+Both directions are offered and they are not equally safe. **The required rate
+is a measured classical wall clock over a lower-bounded count**, so it is an
+upper bound on the requirement -- generous to quantum, like everything else
+here. **The projection is illustrative only**, and every reason it flatters the
+quantum side is carried on it in `PROJECTION_ASSUMPTIONS`: no error correction
+(a logical operation is `d` rounds of syndrome extraction, measurement-limited,
+so orders of magnitude slower), a record for an isolated operation rather than a
+sustained rate, and a gate model that charges a synthesised rotation the same as
+a Toffoli. All three point the same way, which is what makes a negative result
+drawn from it robust and a positive one worthless.
+
+**Only gates and cycles can be timed.** Queries and subroutine calls raise
+`NoClock`: nothing here fixes what answering a query costs, so a duration would
+be invented rather than derived. The interface shows the reason in the same
+table rather than leaving a gap.
+
+The denominator comes from the loggers: all four instrumented solvers now stamp
+every record with `at_seconds`, the elapsed classical time at which that
+iteration was reached, so consecutive stamps differ by one iteration's cost and
+`per_iteration()` recovers the per-iteration series Figure 4.5 is built from. A
+log written by somebody else has no stamps and gets `()` rather than a guess.
+
+The comparison view ends with a **log-scale chart**: projected quantum time
+against the classical time measured on this machine, one pair per route, since
+each route runs its own classical algorithm and is timed against that one. On a
+sixty-node network the shape of the thesis's own result reappears -- the
+breadth-first route needs about 40 ns per gate, which the record already
+provides, while the simplex route needs `2.4e-18 s`, about 2.7 billion times
+faster than anything ever measured.
+
 ## The QTG search, and where the square root lives
 
 Checked against the original's driver, `_qtg_bindings.cpp::execute_q_max_search`.
@@ -569,4 +610,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1778 tests.
+interface and a CLI. 1804 tests.
