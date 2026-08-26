@@ -81,17 +81,33 @@ def test_every_source_the_registry_names_is_credited_on_the_page():
     assert not missing, missing
 
 
-def test_the_four_primary_studies_are_named():
+def test_the_primary_studies_are_named():
+    """Including the three the thesis is made of, and the paper the tree
+    generator itself came from -- which is not the same paper as the variants
+    that extend it."""
     for work in ("Hybrid benchmarking of quantum algorithms",
+                 "Realistic runtime analysis for quantum simplex computation",
+                 "comparing functional quantum linear\n        solvers",
+                 "A quantum algorithm for solving 0-1 knapsack problems",
+                 "quadratic and multidimensional\n        knapsack problems",
                  "Quantum breadth-first search for maximum flow",
-                 "Practical lower bounds for hybrid quantum interior point",
-                 "quadratic and multidimensional\n        knapsack problems"):
+                 "Practical lower bounds for hybrid quantum interior point"):
         assert work in PAGE, work
 
 
+def test_the_identifiers_the_thesis_bibliography_gives():
+    for identifier in ("arXiv:2311.09995", "arXiv:2503.21420",
+                       "arXiv:2503.22325", "arXiv:2604.24362",
+                       "npj Quantum Information 11, 146, 2025"):
+        assert identifier in PAGE, identifier
+
+
 def test_the_people_behind_them_are_named():
-    for person in ("Lefterovici", "Lelakowski", "Perk", "Binkowski",
-                   "Wilkening", "Funck", "Karimov", "Fekete", "Osborne"):
+    """Everyone on the author list of a work this library reimplements."""
+    for person in ("Ammann", "Binkowski", "Fekete", "Funck", "Goedicke",
+                   "Gross", "Hess", "Karimov", "Lefterovici", "Lelakowski",
+                   "Osborne", "Perk", "Ramacciotti", "Rotundo", "Skelton",
+                   "Steinbach", "Stiller", "Wilkening", "de Wolff"):
         assert person in PAGE, person
 
 

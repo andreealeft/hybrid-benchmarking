@@ -355,8 +355,13 @@ also fixed a real bug: the subroutine list and the problem menu are the same
 menu -- so a menu of problems sometimes came up holding subroutines. Browse now
 loads when Browse is entered, which cannot happen while its button is hidden.
 
-The introduction also **credits every work the library reimplements**: the four
-studies, the quantum results they are built on, the classical algorithms and
+The introduction also **credits every work the library reimplements**: the seven
+studies -- the thesis, its three case-study papers (the simplex runtime analysis
+arXiv:2311.09995, the linear-solver comparison arXiv:2503.21420, and the 0-1
+knapsack paper in npj Quantum Information 11, 146, which is where the quantum
+tree generator itself comes from), the knapsack variants at QCE 2025, the
+max-flow study and the interior point paper -- the quantum results they are
+built on, the classical algorithms and
 instance formats that actually run here, and the five repositories checked
 against but never copied from. `tests/test_credits.py` holds it to the registry
 -- every provenance source must name something the page names, so a routine
@@ -547,4 +552,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1776 tests.
+interface and a CLI. 1777 tests.
