@@ -355,6 +355,15 @@ also fixed a real bug: the subroutine list and the problem menu are the same
 menu -- so a menu of problems sometimes came up holding subroutines. Browse now
 loads when Browse is entered, which cannot happen while its button is hidden.
 
+The introduction also **credits every work the library reimplements**: the four
+studies, the quantum results they are built on, the classical algorithms and
+instance formats that actually run here, and the five repositories checked
+against but never copied from. `tests/test_credits.py` holds it to the registry
+-- every provenance source must name something the page names, so a routine
+added with a new citation fails until the credit goes up. It folds diacritics,
+because the registry writes Hoyer and Gilyen where the page writes Høyer and
+Gilyén; the page is right and neither is a missing credit.
+
 The seventy-one names are grouped under nine headings, and the headings
 deliberately **cut across the families**. Grouping by family would put siting a
 satellite next to siting a charging point and announce that they are one
@@ -538,4 +547,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1770 tests.
+interface and a CLI. 1776 tests.

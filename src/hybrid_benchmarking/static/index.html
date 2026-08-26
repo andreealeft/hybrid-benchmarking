@@ -235,6 +235,18 @@
     font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
     font-weight: 700; color: var(--good);
   }
+  .refhead {
+    font-weight: 600; font-size: .88rem; margin: 1.1rem 0 .35rem; color: var(--ink);
+  }
+  ul.refs { list-style: none; margin: 0 0 .4rem; padding: 0; max-width: 70ch; }
+  ul.refs li {
+    padding: .45rem 0 .45rem .8rem; border-left: 2px solid var(--rule);
+    margin-bottom: .3rem;
+  }
+  ul.refs li b { display: block; font-weight: 600; font-size: .89rem; }
+  ul.refs li span {
+    display: block; color: var(--muted); font-size: .84rem; margin-top: .1rem;
+  }
   .brand {
     font: inherit; font-family: var(--mono); font-size: 1rem; font-weight: 600;
     background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
@@ -323,6 +335,85 @@
       what to fund, deciding where to put things, avoiding clashes. If none is
       exactly yours, take the closest: several of those names are the same
       problem underneath, so approximately right is usually right.</p>
+
+    <h3>Where this comes from</h3>
+    <p class="lede">Everything here is <b>reimplemented from the published
+      statements</b> — the lemma, not somebody's code. The original repositories
+      are used to check the results against, never copied from. These are the
+      works that were read.</p>
+
+    <p class="refhead">The four studies this puts in one place</p>
+    <ul class="refs">
+      <li><b>Hybrid benchmarking of quantum algorithms</b>
+        <span>Lefterovici — PhD thesis, Leibniz Universität Hannover, 2026.
+          Chapters 4 to 6 and Appendices A, B and C: the quantum simplex, the
+          linear solvers, the knapsack tree generator.</span></li>
+      <li><b>Quantum breadth-first search for maximum flow</b>
+        <span>Lefterovici, Lelakowski and Perk.</span></li>
+      <li><b>Practical lower bounds for hybrid quantum interior point methods</b>
+        <span>Binkowski — arXiv:2604.24362.</span></li>
+      <li><b>A quantum search method for quadratic and multidimensional
+        knapsack problems</b>
+        <span>Wilkening, Lefterovici, Binkowski, Funck, Perk, Karimov, Fekete
+          and Osborne — arXiv:2503.22325.</span></li>
+    </ul>
+
+    <p class="refhead">The quantum results they are built on</p>
+    <ul class="refs">
+      <li><b>Fast quantum subroutines for the simplex method</b>
+        <span>Nannicini — the pricing, ratio-test and optimality subroutines
+          costed throughout Chapter 4.</span></li>
+      <li><b>Tight bounds on quantum searching</b>
+        <span>Boyer, Brassard, Høyer and Tapp — the schedule behind every
+          search here, after Grover.</span></li>
+      <li><b>Quantum amplitude amplification and estimation</b>
+        <span>Brassard, Høyer, Mosca and Tapp — arXiv:quant-ph/0005055.</span></li>
+      <li><b>Quantum algorithm for linear systems of equations</b>
+        <span>Harrow, Hassidim and Lloyd.</span></li>
+      <li><b>Quantum linear systems by Fourier and Chebyshev approaches</b>
+        <span>Childs, Kothari and Somma.</span></li>
+      <li><b>Quantum singular value transformation</b>
+        <span>Gilyén, Su, Low and Wiebe.</span></li>
+      <li><b>Hamiltonian simulation by qubitization</b>
+        <span>Low and Chuang.</span></li>
+      <li><b>Simulating sparse Hamiltonians with fractional queries</b>
+        <span>Berry, Childs, Cleve, Kothari and Somma.</span></li>
+      <li><b>Quantifying Grover speed-ups beyond asymptotic analysis</b>
+        <span>Cade, Folkertsma, Niesen and Weggemans — arXiv:2203.04975, with
+          QUBRABENCH.</span></li>
+      <li><b>A shortcut to an optimal quantum linear system solver</b>
+        <span>Dalzell — arXiv:2305.11352.</span></li>
+    </ul>
+
+    <p class="refhead">The classical side, which is what actually runs here</p>
+    <ul class="refs">
+      <li><b>Maximum flow by blocking flows</b>
+        <span>Dinic — instrumented here to log the layer sizes the quantum
+          version's cost depends on.</span></li>
+      <li><b>The simplex method</b>
+        <span>Dantzig — revised, with steepest-edge pricing and Bland's rule as
+          the anti-cycling fallback.</span></li>
+      <li><b>Instance formats and benchmark sets</b>
+        <span>DIMACS for graphs and flow networks; Pisinger and
+          Martello–Toth for knapsacks; Billionnet–Soutif for the quadratic set;
+          OR-Library, after Chu and Beasley, for the multidimensional one;
+          Matrix Market for linear systems; MPS for linear programmes.</span></li>
+    </ul>
+
+    <p class="refhead">Checked against, never copied from</p>
+    <p class="meta">QUBRABENCH; <span class="sub">simplex-benchmarks</span> and
+      the instrumented GLPK fork it uses; <span class="sub">qls-comparison</span>;
+      <span class="sub">qipm</span>; and the quantum tree generator for the 0-1
+      knapsack. Where this library differs from any of them, the difference is
+      written down and attributed rather than averaged away.</p>
+
+    <h3>People</h3>
+    <p class="lede">The four studies above are the work of
+      <b>Lefterovici, Lelakowski, Perk, Binkowski, Wilkening, Funck, Karimov,
+      Fekete</b> and <b>Osborne</b>. Everyone else whose result is counted here
+      is named beside it, in the list above and on every number the tool
+      produces — which is the point: a formula arrives with the person who
+      proved it attached.</p>
 
     <p class="meta">Every number that comes out carries where it came from —
       which lemma, what it assumes, the regime it was derived in, and whether it
