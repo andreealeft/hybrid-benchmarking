@@ -5,3 +5,7 @@ __pycache__/
 build/
 dist/
 .venv/
+
+# a clone of this project made inside this project -- see the note in
+# GETTING-STARTED.md about where to run git clone
+/hybrid-benchmarking/
