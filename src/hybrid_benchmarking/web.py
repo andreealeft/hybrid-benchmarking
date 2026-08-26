@@ -183,12 +183,17 @@ def problems() -> List[Dict[str, Any]]:
 
 
 def problem_detail(key: str) -> Dict[str, Any]:
+    from .illustrations import picture, story
+
     problem = get_problem(key)
     return {
         "key": problem.key,
         "label": problem.label,
         "technical": problem.technical,
         "blurb": problem.blurb,
+        # What the situation is, in the reader's nouns, and what it looks like.
+        "story": story(problem.key),
+        "picture": picture(problem.key),
         "routes": [_route_data(r, problem.key) for r in problem.routes],
         "incomparable": len(problem.routes) > 1,
     }

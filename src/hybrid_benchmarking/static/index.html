@@ -249,6 +249,16 @@
   ul.refs li span {
     display: block; color: var(--muted); font-size: .84rem; margin-top: .1rem;
   }
+  /* the situation: a drawing of the problem, and a paragraph about it */
+  .situation {
+    display: grid; gap: .9rem; align-items: start; margin: 0 0 1.2rem;
+    padding: .9rem 1rem; border: 1px solid var(--rule); border-radius: 6px;
+    background: var(--surface);
+  }
+  @media (min-width: 720px) { .situation { grid-template-columns: 300px 1fr; } }
+  .picture { margin: 0; }
+  .picture svg { width: 100%; height: auto; display: block; }
+  .story { margin: 0; color: var(--ink); font-size: .93rem; max-width: 60ch; }
   .chart { margin: .2rem 0 .6rem; }
   .timelegend { display: grid; gap: .45rem; margin-bottom: 1rem; }
   .timerow { font-size: .84rem; }
@@ -903,9 +913,18 @@ let level = "beginner";
 
 function drawProblem() {
   const p = problem;
+  /* The story and the drawing come from the server as trusted content: the
+     story is escaped like any other text, the picture is inline SVG we wrote
+     ourselves and is inserted as markup, which is why illustrations.json is
+     validated on the way in rather than sanitised here. */
   let html = `<h2>${esc(p.label)}</h2>
-    <p class="summary">${esc(p.blurb)}</p>
-    <div class="tabs levels">
+    <p class="summary">${esc(p.blurb)}</p>`;
+
+  if (p.story || p.picture) html += `<div class="situation">
+    ${p.picture ? `<figure class="picture">${p.picture}</figure>` : ""}
+    ${p.story ? `<p class="story">${esc(p.story)}</p>` : ""}</div>`;
+
+  html += `<div class="tabs levels">
       <button data-level="beginner" aria-pressed="${level === "beginner"}"
         >Describe it</button>
       <button data-level="file" aria-pressed="${level === "file"}"

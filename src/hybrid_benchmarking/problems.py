@@ -872,7 +872,7 @@ NOUNS: Dict[str, Tuple[str, str]] = {
     "heat-distribution": ("points on the component", "point"),
     "electrostatics": ("points in the region", "point"),
     "structural-load": ("points on the structure", "point"),
-    "circuit-analysis": ("nodes in the circuit", "node"),
+    "circuit-analysis": ("junctions in the circuit", "junction"),
     "groundwater": ("points in the rock", "point"),
     "deblurring": ("pixels", "pixel"),
     "least-squares": ("parameters to fit", "parameter"),

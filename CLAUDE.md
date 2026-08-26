@@ -302,6 +302,28 @@ is exact.
 
 ## Names, and the problems under them
 
+Each of the seventy-one now opens with **a paragraph and a drawing**, held in
+`static/illustrations.json` and served through `problem_detail`. The paragraph
+is the situation in the reader's own nouns with real quantities in it, since a
+number is what makes somebody recognise their own case; the drawing is inline
+SVG in the page's colour variables, so it follows the theme and fetches nothing.
+Seventy-one separate drawings, not nine: a satellite over a horizon, a van and
+its stops, a spacecraft bay with mass and power gauges, a rota grid.
+
+Two rules are tested rather than trusted, in `tests/test_illustrations.py`. **No
+mathematics reaches the reader**: no jargon in a story, and no story telling
+somebody their problem is another one in disguise, which would undo the masking
+the catalogue exists for. What a story may do is offer a second set of nouns for
+the same picture, where a neighbouring field would recognise itself. **And the
+drawings fetch nothing**: no scripts, addresses, external images or fonts, no
+literal colours, no dashed strokes.
+
+Writing them turned up a leak in the catalogue itself: `circuit-analysis` asked
+"how many nodes in the circuit", and *node* is on the forbidden list. Its nouns
+are junctions now, so the paragraph and the questions agree.
+
+
+
 A problem in the interface is a **name and a story**; the *family* underneath
 owns the routes, the fields and the shapes. Siting satellites and siting
 charging points are one family with two names, and someone arriving with either
@@ -622,4 +644,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 1809 tests.
+interface and a CLI. 2453 tests.
