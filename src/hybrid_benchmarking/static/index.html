@@ -986,9 +986,7 @@ async function bootFigures() {
           ? `<span class="kind schematic">schematic</span>` : ""}</h4>
         <p>${esc(f.short || f.caption)}</p>
         <p class="sources"><a href="${esc(f.paper_url)}" target="_blank"
-          rel="noopener">${esc(f.paper)}</a>${f.code_url
-          ? `<span>&middot;</span><a href="${esc(f.code_url)}" target="_blank"
-              rel="noopener">the code</a>` : ""}</p>
+          rel="noopener">${esc(f.paper)}</a></p>
         ${f.method || f.caption ? `<details><summary>How this was made</summary>
           <ul class="notes"><li>${esc(f.caption)}</li>${
             f.method ? `<li>${esc(f.method)}</li>` : ""}</ul></details>` : ""}
