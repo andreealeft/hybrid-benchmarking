@@ -51,10 +51,7 @@ if you would like a hand.
 
 It keeps running quietly after you close the browser tab, so opening it again
 is instant, and double-clicking the icon while it is already running simply
-brings the page back. On a Mac there is a second icon beside it, **Stop hybrid
-benchmarking**, which ends it; on Windows it ends when you restart, or from the
-Task Manager, where it is called pythonw. Either way it stops when you restart
-the machine.
+brings the page back. It stops when you restart the machine.
 
 ### Using it
 

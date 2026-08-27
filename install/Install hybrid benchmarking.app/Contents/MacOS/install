@@ -78,14 +78,8 @@ if ! /usr/bin/curl -s -o /dev/null --max-time 1 http://127.0.0.1:8765/; then
 fi
 exec "$VENV/bin/hybrid-benchmarking" open >> "$LOG" 2>&1'
 
-make_app "Stop hybrid benchmarking" "stop-it" '#!/bin/sh
-PIDS=$(/usr/sbin/lsof -ti :8765 -sTCP:LISTEN 2>/dev/null)
-if [ -n "$PIDS" ]; then
-    echo "$PIDS" | xargs kill 2>/dev/null
-    /usr/bin/osascript -e '"'"'display notification "Stopped." with title "Hybrid benchmarking"'"'"' >/dev/null 2>&1
-else
-    /usr/bin/osascript -e '"'"'display notification "It was not running." with title "Hybrid benchmarking"'"'"' >/dev/null 2>&1
-fi'
+# An installation from before this change left a second icon; take it away.
+rm -rf "$HOME/Desktop/Stop hybrid benchmarking.app"
 
-tell "Installed.\n\nThere is now an icon on your Desktop called Hybrid benchmarking. Double-click it whenever you want the tool: it opens in your browser.\n\nIt keeps itself up to date, and the icon beside it stops it."
+tell "Installed.\n\nThere is now an icon on your Desktop called Hybrid benchmarking. Double-click it whenever you want the tool: it opens in your browser.\n\nIt keeps itself up to date, and it stops when you restart the Mac."
 open "$HOME/Desktop"
