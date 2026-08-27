@@ -1,21 +1,50 @@
 # hybrid-benchmarking
 
 Resource analysis of fault-tolerant quantum algorithms without a quantum
-computer. Quantum subroutines with their costs, composable into published
-analyses, and honest about where every number came from.
+computer: what a quantum computer would have to do, counted before there is one.
 
-**Never used it before?** Paste one line into a terminal, once, and use the
-icon it puts on your Desktop from then on:
+## Install it
+
+Open a terminal and paste one line. That is the whole of it, and it is the only
+time a terminal is involved.
+
+**Mac and Linux**
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.sh | sh
 ```
 
+**Windows**
+
+```powershell
+irm https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.ps1 | iex
+```
+
 ![Opening a terminal, pasting the line, and the tool starting](docs/install.gif)
 
- [Getting started](GETTING-STARTED.md)
-spells it out with nothing assumed. The rest of this page assumes you write
-code.
+It takes about a minute, installs into a folder of its own, opens in your
+browser, and leaves an icon on your Desktop. **Double-click that icon from then
+on.** It keeps itself up to date.
+
+### Where is the terminal?
+
+It is a window you type commands into. Every computer has one; it is kept out of
+the way.
+
+* **Mac**: hold `Cmd`, press the space bar, type `terminal`, press return.
+  Paste with `Cmd-V`.
+* **Windows**: press the Windows key, type `powershell`, press return. Paste
+  with `Ctrl-V`.
+* **Linux**: press `Ctrl-Alt-T`, or search the applications menu for
+  `terminal`. Paste with `Ctrl-Shift-V`.
+
+If Python is missing, the line says so and tells you what to do, and you paste
+it again afterwards. [Getting started](GETTING-STARTED.md) says all of this at
+more length, assuming nothing.
+
+## For people who write code
+
+The rest of this page is for them.
 
 The shortest useful thing you can do needs no data at all:
 
