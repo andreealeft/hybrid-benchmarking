@@ -90,19 +90,23 @@ def test_every_source_the_registry_names_belongs_to_a_listed_work():
     assert not unlisted, unlisted
 
 
-def test_the_authors_are_off_the_page_but_not_out_of_the_provenance():
-    """Andreea asked for the papers alone on the page.
+def test_the_authors_are_named_on_the_page_and_in_the_provenance():
+    """Both copies matter.
 
-    The credit did not go anywhere: every cost still carries the names in its
-    provenance, so a number handed to somebody still arrives with the people who
-    proved it attached.  That is the copy that matters and it is tested here.
+    The page credits whoever wrote the work; the provenance credits whoever
+    proved the result, and travels with the number after it leaves the page.
     """
+    for name in ("Ammann", "Binkowski", "Dalzell", "Dantzig", "Dinitz",
+                 "Fekete", "Funck", "Goedicke", "Gross", "Hess", "Karimov",
+                 "Lefterovici", "Lelakowski", "Nannicini", "Osborne", "Perk",
+                 "Ramacciotti", "Rotundo", "Skelton", "Steinbach", "Stiller",
+                 "Wilkening", "de Wolff"):
+        assert name in PAGE, name
+
     named = {name for source in sources() for name in
              ("Nannicini", "Cade", "Binkowski", "Wilkening", "Lefterovici",
               "Dalzell", "Brassard") if name in source}
     assert len(named) >= 5, named
-    for name in ("Ammann", "Goedicke", "de Wolff", "Ramacciotti", "Steinbach"):
-        assert name not in PAGE, name
 
 
 def test_the_primary_studies_are_named():
@@ -126,13 +130,21 @@ def test_the_primary_studies_are_named():
         assert " ".join(work.split()) in flat, work
 
 
-def test_the_identifiers_the_thesis_bibliography_gives():
-    for identifier in ("arXiv:2311.09995", "arXiv:2503.21420",
-                       "arXiv:2503.22325", "arXiv:2604.24362",
-                       "arXiv:2604.24962",
-                       "IEEE Transactions on Quantum Engineering",
-                       "npj Quantum Information 11, 146, 2025"):
+def test_a_preprint_is_cited_by_its_arxiv_number():
+    for identifier in ("arXiv:2311.09995", "arXiv:2604.24362",
+                       "arXiv:2604.24962", "arXiv:2305.11352"):
         assert identifier in PAGE, identifier
+
+
+def test_a_published_work_is_cited_by_its_journal_and_not_by_arxiv():
+    """Once a paper is out, the preprint number is noise beside the citation."""
+    for journal in ("IEEE Transactions on Quantum Engineering",
+                    "npj Quantum Information 11, 146, 2025",
+                    "IEEE Quantum Computing and Engineering",
+                    "Operations Research", "Quantum 7, 1133, 2023"):
+        assert journal in PAGE, journal
+    for superseded in ("arXiv:2503.21420", "arXiv:2503.22325"):
+        assert superseded not in PAGE, superseded
 
 
 def test_the_page_says_the_results_are_reimplemented_not_vendored():
