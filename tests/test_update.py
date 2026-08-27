@@ -157,7 +157,7 @@ class TestItInstallsWhatItDecidedOn:
     """
 
     @staticmethod
-    def _calls_of_an_update(monkeypatch, target, codes=(0, 0)):
+    def _calls_of_an_update(monkeypatch, target, codes=(0, 0), landed=True):
         calls = []
         codes = list(codes)
 
@@ -172,6 +172,7 @@ class TestItInstallsWhatItDecidedOn:
         monkeypatch.setattr(up, "from_a_checkout", lambda: False)
         monkeypatch.setattr(up, "what_to_install", lambda: target)
         monkeypatch.setattr(up, "latest", lambda: "0.0.1")
+        monkeypatch.setattr(up, "arrived", lambda commit: landed)
         monkeypatch.setattr(up.subprocess, "run", watch)
         up.check_and_update()
         return calls
@@ -225,6 +226,35 @@ class TestItInstallsWhatItDecidedOn:
         argv = self._argv_of_an_update(monkeypatch, "0.9.9")
         assert "--no-cache-dir" in argv, argv
         assert any("refs/heads/main" in part for part in argv), argv
+
+    def test_a_commit_that_did_not_land_is_not_recorded_as_done(
+            self, elsewhere, monkeypatch):
+        """The state that stuck a real install here: pip exited zero, the
+        files were not replaced, and the stamp said the commit had arrived.
+        After that the copy reports itself current and asks nothing further,
+        so the damage is permanent rather than merely one missed update."""
+        self._calls_of_an_update(monkeypatch, "e" * 40, landed=False)
+        assert up.stamp() is None
+
+    def test_it_reads_the_landing_from_the_metadata_on_disk(self, tmp_path,
+                                                            monkeypatch):
+        """pip records the URL it installed from, so this is checkable rather
+        than a matter of trusting the exit code."""
+        site = tmp_path / "site-packages"
+        info = site / "hybrid_benchmarking-0.2.3.dist-info"
+        info.mkdir(parents=True)
+        (info / "direct_url.json").write_text(
+            '{"url": "https://github.com/o/r/archive/' + "f" * 40 + '.zip"}')
+        monkeypatch.setattr(up, "__file__", str(site / "hb" / "update.py"))
+        assert up.arrived("f" * 40)
+        assert not up.arrived("0" * 40)
+
+    def test_an_unreadable_answer_counts_as_not_arrived(self, tmp_path,
+                                                        monkeypatch):
+        """Retrying an update that was fine costs seconds; skipping one that
+        was not costs every update after it."""
+        monkeypatch.setattr(up, "__file__", str(tmp_path / "nowhere" / "u.py"))
+        assert not up.arrived("f" * 40)
 
     def test_a_failed_install_is_not_recorded_as_done(
             self, elsewhere, monkeypatch):

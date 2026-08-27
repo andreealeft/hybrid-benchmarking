@@ -819,6 +819,16 @@ and installs the commit that was decided on rather than whatever `main` has
 become a moment later; the branch fallback passes `--no-cache-dir`, and so do
 both installers, since a re-run of one would have hit the same cache.
 
+**The stamp records only what actually landed.** pip writes the URL it
+installed from into the distribution's metadata, so `arrived()` reads that back
+and the stamp is written only if it names the commit that was asked for. This
+is not belt and braces: a stamp is what stops the work being attempted again,
+so one written for a commit that never arrived leaves a copy stuck for good,
+reporting itself current and asking nothing further. That happened to the real
+install on Andreea's own machine during this work, which is how it was found.
+An unreadable answer counts as not arrived, since retrying an update that was
+fine costs seconds and skipping one that was not costs every update after it.
+
 What the running copy was built from is written to `installed-commit` in the
 same data directory the installers put the venv in — **outside** the venv,
 since installing over it is precisely what would erase it. A copy with no stamp
@@ -842,4 +852,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2561 tests.
+interface and a CLI. 2568 tests.
