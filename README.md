@@ -5,7 +5,7 @@ computer. Quantum subroutines with their costs, composable into published
 analyses, and honest about where every number came from.
 
 **Never used it before?** Download the installer for
-[Mac](install/macOS-install.command) or
+[Mac](install/Install-hybrid-benchmarking-mac.zip) or
 [Windows](install/Windows-install.bat), open it once, and use the icon it puts
 on your Desktop. Nothing to type; [Getting started](GETTING-STARTED.md) has the
 details and the command line version. The rest of this page assumes you write

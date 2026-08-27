@@ -12,11 +12,12 @@ Nothing to type. Download one file, open it once, and from then on there is an
 icon on your Desktop.
 
 **On a Mac.** Download
-[macOS-install.command](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/macOS-install.command).
-In your Downloads folder, **right-click it and choose Open**, then Open again
-when the Mac asks. That right-click matters: a plain double-click will refuse,
-because the file came from the internet and is not signed by a registered
-developer. A window appears, tells you what it is doing, and closes.
+[Install-hybrid-benchmarking-mac.zip](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/Install-hybrid-benchmarking-mac.zip).
+Your Mac unpacks it into an app called **Install hybrid benchmarking**.
+**Right-click that app and choose Open**, then Open again when the Mac asks.
+That right-click matters: a plain double-click will refuse, because the app came
+from the internet and is not signed by a registered developer. It works quietly
+and tells you when it is finished.
 
 **On Windows.** Download
 [Windows-install.bat](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/Windows-install.bat)
@@ -28,8 +29,11 @@ what to do; install it and open the installer again.
 
 When it finishes there is an icon on the Desktop called **Hybrid benchmarking**.
 Double-click it whenever you want the tool. It starts on your own machine and
-opens in your browser after a few seconds. Nothing is uploaded, and it works
-with the network unplugged.
+opens in your browser after a few seconds.
+
+Everything it needs lives in one folder of its own, under Application Support on
+a Mac and under AppData on Windows, so the rest of your computer is untouched
+and uninstalling is deleting that folder and the icons.
 
 **It updates itself.** Each time you open it, it asks GitHub whether there is a
 newer version and installs one if there is. That request is the only thing this

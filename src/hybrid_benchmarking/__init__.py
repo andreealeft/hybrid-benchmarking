@@ -41,7 +41,11 @@ from .instances import Instance, InstanceError
 from .instances import read as read_instance
 from .classical import Budget, Generated, GenerationError, generate, generate_from_file
 
-__version__ = "0.1.0.dev0"
+try:                                   # the version is in the metadata, and
+    from importlib.metadata import version  # writing it twice is how the two
+    __version__ = version("hybrid-benchmarking")   # come to disagree
+except Exception:                      # running from a tree with no install
+    __version__ = "0+unknown"
 
 __all__ = [
     "Bound",

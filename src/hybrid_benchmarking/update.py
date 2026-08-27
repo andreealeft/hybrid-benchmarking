@@ -72,6 +72,11 @@ def from_a_checkout() -> bool:
                    for part in here.parts)
 
 
+def in_an_environment() -> bool:
+    """Whether this is running inside a virtual environment of its own."""
+    return sys.prefix != getattr(sys, "base_prefix", sys.prefix)
+
+
 def latest() -> Optional[str]:
     """The version on offer, or nothing if the question could not be asked."""
     from urllib.request import urlopen
@@ -101,9 +106,13 @@ def check_and_update(announce=None) -> Optional[str]:
 
     if announce:
         announce("Updating to {}.".format(there))
+
+    # Inside its own environment, which is where the desktop installer puts it,
+    # pip installs there and --user is not merely unnecessary but refused.
+    where = [] if in_an_environment() else ["--user"]
     done = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--user", "--upgrade",
-         "--quiet", PACKAGE],
+        [sys.executable, "-m", "pip", "install", "--upgrade", "--quiet"]
+        + where + [PACKAGE],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
     )
     return there if done.returncode == 0 else None
