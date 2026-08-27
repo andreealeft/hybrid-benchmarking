@@ -9,10 +9,17 @@
 
 set -e
 
-HOME_DIR="$HOME/Library/Application Support/hybrid-benchmarking"
-VENV="$HOME_DIR/venv"
 SOURCE="https://github.com/andreealeft/hybrid-benchmarking/archive/refs/heads/main.zip"
-DESKTOP_APP="$HOME/Desktop/Hybrid benchmarking.app"
+
+# Where a machine of this kind keeps such a thing.  One folder either way, so
+# uninstalling is deleting it and the icon.
+case "$(uname -s)" in
+    Darwin)
+        HOME_DIR="$HOME/Library/Application Support/hybrid-benchmarking" ;;
+    *)
+        HOME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/hybrid-benchmarking" ;;
+esac
+VENV="$HOME_DIR/venv"
 
 echo ""
 echo "  Hybrid benchmarking"
@@ -23,9 +30,18 @@ echo ""
 PY=/usr/bin/python3
 [ -x "$PY" ] || PY=$(command -v python3 || true)
 if [ -z "$PY" ] || ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' 2>/dev/null; then
-    echo "  This needs Python, which is not on this Mac yet."
-    echo "  Opening the download page. Install it, then run this again."
-    open "https://www.python.org/downloads/macos/" 2>/dev/null || true
+    echo "  This needs Python 3.9 or newer, which is not here yet."
+    case "$(uname -s)" in
+        Darwin)
+            echo "  Opening the download page. Install it, then run this again."
+            open "https://www.python.org/downloads/macos/" 2>/dev/null || true ;;
+        *)
+            echo "  Install it with your package manager, then run this again:"
+            echo ""
+            echo "      sudo apt install python3 python3-venv     # Debian, Ubuntu, Mint"
+            echo "      sudo dnf install python3                  # Fedora"
+            echo "      sudo pacman -S python                     # Arch" ;;
+    esac
     exit 1
 fi
 
@@ -37,10 +53,14 @@ mkdir -p "$HOME_DIR"
 "$VENV/bin/python" -m pip install --upgrade --quiet "$SOURCE"
 
 # ---------------------------------------------------------------- the icon
-# Written here rather than downloaded, which is the point: an app made on this
-# machine carries no quarantine flag, so macOS never questions it.  A download
-# would be refused with a message about malware until somebody dug through
-# System Settings, and that is the barrier this path exists to avoid.
+# Written here rather than downloaded, which is the point: something made on
+# this machine carries no quarantine flag, so macOS never questions it.  A
+# download would be refused with a message about malware until somebody dug
+# through System Settings, and that is the barrier this path exists to avoid.
+
+if [ "$(uname -s)" = "Darwin" ]; then
+
+DESKTOP_APP="$HOME/Desktop/Hybrid benchmarking.app"
 rm -rf "$DESKTOP_APP" "$HOME/Desktop/Stop hybrid benchmarking.app"
 mkdir -p "$DESKTOP_APP/Contents/MacOS"
 
@@ -76,8 +96,37 @@ exec "$VENV/bin/hybrid-benchmarking" open >> "$LOG" 2>&1
 RUN
 chmod +x "$DESKTOP_APP/Contents/MacOS/open-it"
 
+else
+
+# On Linux the same idea is a launcher entry: one in the applications menu, and
+# a copy on the Desktop for anyone who looks there first.  Newer desktops want
+# it marked as trusted before they will run it, which gio does where it exists.
+ENTRY="$HOME/.local/share/applications/hybrid-benchmarking.desktop"
+mkdir -p "$(dirname "$ENTRY")"
+cat > "$ENTRY" <<ENTRYEOF
+[Desktop Entry]
+Type=Application
+Name=Hybrid benchmarking
+Comment=Resource estimates for quantum algorithms
+Exec=$VENV/bin/hybrid-benchmarking open
+Terminal=false
+Categories=Science;Education;
+ENTRYEOF
+chmod +x "$ENTRY"
+
+DESKTOP_DIR=$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")
+if [ -d "$DESKTOP_DIR" ]; then
+    cp "$ENTRY" "$DESKTOP_DIR/hybrid-benchmarking.desktop"
+    chmod +x "$DESKTOP_DIR/hybrid-benchmarking.desktop"
+    gio set "$DESKTOP_DIR/hybrid-benchmarking.desktop" \
+        metadata::trusted true >/dev/null 2>&1 || true
+fi
+
+fi
+
 echo ""
-echo "  Done. There is now an icon on your Desktop called Hybrid benchmarking."
+echo "  Done. There is now an icon called Hybrid benchmarking: on the Desktop,"
+echo "  and in the applications menu if this machine has one."
 echo "  Double-click it whenever you want the tool: it opens in your browser."
 echo "  It keeps itself up to date, so this is the last time you need a terminal."
 echo ""

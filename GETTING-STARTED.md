@@ -8,40 +8,65 @@ library directly.
 
 ## If you just want a number
 
-One command, once. After that there is an icon on your Desktop and you never
+One command, once. After that there is an icon you double-click, and you never
 need a terminal again.
 
 ![Opening a terminal, pasting the line, and the tool starting](docs/install.gif)
 
-**On a Mac.** Open **Terminal**: press `Cmd-Space`, type `terminal`, press
-return. A window with text in it appears. Copy the line below, paste it into
-that window, and press return.
+### First, open a terminal
+
+A terminal is a window you type commands into. Every computer has one; it is
+just kept out of the way. Find yours:
+
+**On a Mac** it is called **Terminal**. Hold `Cmd` and press the space bar, type
+`terminal`, and press return. A window with plain text in it appears. (It also
+lives in Applications, in the Utilities folder, if you would rather look for
+it.)
+
+**On Windows** it is called **PowerShell**. Press the Windows key, type
+`powershell`, and press return. A blue window with plain text appears. Windows
+11 may call it **Terminal** instead; either is fine.
+
+**On Linux** it is usually called **Terminal**. On most desktops
+`Ctrl-Alt-T` opens one. Otherwise open the applications menu and search for
+`terminal`: depending on the desktop it may be called Terminal, GNOME Terminal,
+Konsole, or xfce4-terminal. All of them do the same thing here.
+
+Nothing you paste can run without you pressing return, and nothing here asks for
+your password except Linux, if Python has to be installed first.
+
+### Then paste one line
+
+**Mac and Linux**, copy this, paste it into the terminal window, and press
+return:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.sh | sh
 ```
 
-**On Windows.** Open **PowerShell**: press the Windows key, type `powershell`,
-press return. Copy the line below, paste it in, and press return.
+**Windows**, copy this one instead:
 
 ```powershell
 irm https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.ps1 | iex
 ```
 
-It takes about a minute. It installs Python's part of the work into a folder of
-its own, writes an icon onto your Desktop, and opens the tool in your browser
-straight away.
+To paste into a terminal: `Cmd-V` on a Mac, `Ctrl-V` on Windows,
+`Ctrl-Shift-V` on Linux.
 
-If Python is missing, it says so and opens the download page. Install Python,
-then paste the same line again.
+It takes about a minute. It installs into a folder of its own, writes an icon
+onto your Desktop, and opens the tool in your browser straight away.
 
-**From then on, double-click the Desktop icon.** It opens in your browser in a
-few seconds, and it keeps itself up to date, so this is the only time a terminal
-is involved.
+If Python is missing it says so: on a Mac it opens the download page, and on
+Linux it prints the one command your system needs. Install it, then paste the
+same line again.
 
-Everything lives in one folder of its own, under Application Support on a Mac
-and AppData on Windows, so the rest of your computer is untouched. Uninstalling
-is deleting that folder and the icon.
+**From then on, double-click the icon.** It opens in your browser in a few
+seconds and keeps itself up to date, so this is the only time a terminal is
+involved.
+
+Everything lives in one folder of its own: under Application Support on a Mac,
+AppData on Windows, and `.local/share` on Linux. The rest of your computer is
+untouched, and uninstalling is deleting that folder and the icon.
 
 ### Using it
 
