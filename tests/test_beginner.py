@@ -18,6 +18,8 @@ add them. Those two properties are the ones that quietly stop being true.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 import hybrid_benchmarking as hb
@@ -135,6 +137,36 @@ class TestTheNumberSaysWhatItIs:
         report = cost(generate_from_file("tests/fixtures/tiny.max",
                                          budget=Budget(60)))
         assert CAVEAT not in report["assumptions"]
+
+
+class TestTheAnswerComesBeforeItsEvidence:
+    """The chart is what somebody arriving with a problem actually asked for.
+
+    They came to find out how long it would take. The counts are the evidence
+    for that answer rather than the answer itself, and a row of totals in a
+    unit they have never met is a poor first thing to meet. So the clock leads
+    and the columns follow it, with only the caveat above both, since that is
+    the difference between these numbers and an answer at all.
+    """
+
+    PAGE = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+
+    def _positions(self):
+        chart = self.PAGE.index("html += timeChart(res.routes)")
+        costs = self.PAGE.index("What each approach would cost")
+        caveat = self.PAGE.index("This is a problem of your shape")
+        return caveat, chart, costs
+
+    def test_the_clock_comes_before_the_counts(self):
+        caveat, chart, costs = self._positions()
+        assert chart < costs, "the counts are being shown before the chart"
+
+    def test_the_caveat_still_comes_before_both(self):
+        caveat, chart, costs = self._positions()
+        assert caveat < chart < costs
+
+    def test_the_chart_is_rendered_once(self):
+        assert self.PAGE.count("html += timeChart(res.routes)") == 1
 
 
 class TestTheColumnsAreNotARace:

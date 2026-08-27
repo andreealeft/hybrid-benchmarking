@@ -1290,6 +1290,14 @@ async function runBeginner(form) {
   let html = `<div class="caution"><b>This is a problem of your shape, not your
     problem.</b> ${esc(res.caveat)}</div>`;
 
+  /* The chart leads, and the columns follow it.  Somebody arriving with a
+     problem is asking how long it would take, not how many gates it is: the
+     count is the evidence for the answer rather than the answer, and a
+     column of numbers in a unit they have never met is a poor first thing to
+     meet.  The caveat still comes above both, because it is the difference
+     between these numbers and an answer. */
+  html += timeChart(res.routes);
+
   html += `<h3>What each approach would cost</h3>
     <div class="parallel">` + res.routes.map(r => {
       if (r.error) return `<div class="column bad">
@@ -1313,8 +1321,6 @@ async function runBeginner(form) {
      bound and assumptions, which says it without the paragraph.  The data
      still says it too: compare() returns comparable:false and the units
      present, and the cost algebra still refuses to add gates to cycles. */
-
-  html += timeChart(res.routes);
 
   if (res.warnings.length) html += res.warnings.map(w =>
     `<p class="warn">⚠ ${esc(w)}</p>`).join("");
