@@ -60,51 +60,77 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleVersion</key><string>1</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleExecutable</key><string>open-it</string>
+  <!-- An agent rather than a windowed app.  It has no windows of its own: the
+       interface is the browser.  Without this the Dock shows an icon for a
+       process that may exit a second later, having only opened a page, and
+       macOS then reports that the application is not open anymore, which reads
+       as a crash. -->
+  <key>LSUIElement</key><true/>
 </dict>
 </plist>
 PLIST
 
 cat > "$APP/Contents/MacOS/open-it" <<'RUN'
 #!/bin/sh
-# Start the tool and open it in the browser.  Quitting this icon stops it.
+# Open the tool, starting it first if it is not already running.
 #
-# An app launched from the Finder gets a bare PATH, so the interpreter and the
-# command are found by their full paths rather than by name, and anything that
-# goes wrong is written down where it can be read afterwards.
+# The work is in "hybrid-benchmarking open", which checks whether it is already
+# running, starts it detached if not, and shows it either way.  This icon only
+# rings the doorbell: an app that stayed running would be one the Finder
+# refuses to launch a second time, since it would merely try to bring it to the
+# front and an app with no windows has no front to come to.
+#
+# An app launched from the Finder gets a bare PATH, so everything is found by
+# full path, and whatever goes wrong is written down where it can be read.
 LOG="$HOME/Library/Logs/hybrid-benchmarking.log"
+URL="http://127.0.0.1:8765/"
+
 PY=/usr/bin/python3
 [ -x "$PY" ] || PY=$(command -v python3)
-
 VERSION=$("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])')
 INSTALLED="$HOME/Library/Python/$VERSION/bin/hybrid-benchmarking"
 
-URL=http://127.0.0.1:8765/
-echo "--- started $(date)" >> "$LOG"
+echo "--- opened $(date)" >> "$LOG"
 
-# Already running from an earlier double-click: show it rather than starting a
-# second one, which would fail on the port and look like a broken app.
-if /usr/bin/curl -s -o /dev/null --max-time 1 "$URL"; then
-    open "$URL"
-    exit 0
+if ! /usr/bin/curl -s -o /dev/null --max-time 1 "$URL"; then
+    /usr/bin/osascript -e 'display notification "Starting. Your browser will open in a few seconds." with title "Hybrid benchmarking"' >/dev/null 2>&1
 fi
-
-# It takes a few seconds to start, and a Dock icon with nothing happening is
-# how somebody ends up double-clicking three times.
-/usr/bin/osascript -e 'display notification "Starting. Your browser will open in a few seconds." with title "Hybrid benchmarking"' >/dev/null 2>&1
 
 if [ -x "$INSTALLED" ]; then
-    exec "$INSTALLED" >> "$LOG" 2>&1
+    exec "$INSTALLED" open >> "$LOG" 2>&1
 fi
-exec "$PY" -m hybrid_benchmarking.cli serve >> "$LOG" 2>&1
+exec "$PY" -m hybrid_benchmarking.cli open >> "$LOG" 2>&1
 RUN
 chmod +x "$APP/Contents/MacOS/open-it"
+
+STOP="$HOME/Desktop/Stop hybrid benchmarking.app"
+rm -rf "$STOP"
+mkdir -p "$STOP/Contents/MacOS"
+sed 's/Hybrid benchmarking/Stop hybrid benchmarking/; s/open-it/stop-it/' \
+    "$APP/Contents/Info.plist" > "$STOP/Contents/Info.plist"
+
+cat > "$STOP/Contents/MacOS/stop-it" <<'RUN'
+#!/bin/sh
+# Stop the tool.  It is a local server and nothing else, so this ends the one
+# process that is listening and says so.
+PIDS=$(/usr/sbin/lsof -ti :8765 -sTCP:LISTEN 2>/dev/null)
+if [ -n "$PIDS" ]; then
+    echo "$PIDS" | xargs kill 2>/dev/null
+    /usr/bin/osascript -e 'display notification "Stopped." with title "Hybrid benchmarking"' >/dev/null 2>&1
+else
+    /usr/bin/osascript -e 'display notification "It was not running." with title "Hybrid benchmarking"' >/dev/null 2>&1
+fi
+RUN
+chmod +x "$STOP/Contents/MacOS/stop-it"
 
 echo ""
 echo "  Done."
 echo ""
 echo "  There is now an icon on your Desktop called Hybrid benchmarking."
 echo "  Double-click it whenever you want the tool: it opens in your browser."
-echo "  To stop it, quit that icon from the Dock."
+echo "  It keeps running quietly after you close the tab, so opening it again"
+echo "  is instant. There is a second icon beside it to stop it, and it stops"
+echo "  by itself when you restart the Mac."
 echo ""
 echo "  Press return to close this window."
 read _ignored

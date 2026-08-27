@@ -31,9 +31,12 @@ Double-click it whenever you want the tool. It starts on your own machine and
 opens in your browser after a few seconds. Nothing is uploaded, and it works
 with the network unplugged.
 
-To stop it, quit the icon from the Dock on a Mac, or close it from the Task
-Manager on Windows. Double-clicking it again while it is already running simply
-brings the page back.
+It keeps running quietly after you close the browser tab, so opening it again
+is instant, and double-clicking the icon while it is already running simply
+brings the page back. On a Mac there is a second icon beside it, **Stop hybrid
+benchmarking**, which ends it; on Windows it ends when you restart, or from the
+Task Manager, where it is called pythonw. Either way it stops when you restart
+the machine.
 
 ### Using it
 

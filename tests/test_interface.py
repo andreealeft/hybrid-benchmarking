@@ -310,3 +310,55 @@ class TestTheDependencyPromise:
         out = subprocess.run([sys.executable, "-c", probe], capture_output=True,
                              text=True, check=True).stdout.strip()
         assert out == "True"
+
+
+class TestOpeningItWithoutATerminal:
+    """What the desktop icons call.
+
+    The icons are shell and batch, which no test suite of ours will ever run,
+    so the part that has to be right lives here instead: is it already running,
+    start it if not, show it either way.
+    """
+
+    def test_it_can_tell_whether_something_is_listening(self):
+        from hybrid_benchmarking.cli import listening
+
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        try:
+            import threading
+
+            thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+            thread.start()
+            assert listening("127.0.0.1", port)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+        assert not listening("127.0.0.1", port)
+
+    def test_a_running_one_is_shown_rather_than_started_again(self, monkeypatch):
+        """The failure this prevents is the ugly one: a second double-click
+        starting a second server, dying on the port, and looking broken."""
+        import argparse
+        import threading
+
+        from hybrid_benchmarking import cli
+
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+
+        started, opened = [], []
+        monkeypatch.setattr(cli.subprocess, "Popen",
+                            lambda *a, **k: started.append(a))
+        monkeypatch.setattr(cli.webbrowser, "open", lambda link: opened.append(link))
+        try:
+            code = cli._command_open(argparse.Namespace(
+                host="127.0.0.1", port=port, wait=5))
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+        assert code == 0
+        assert not started, "it started a second server on a live port"
+        assert opened == ["http://127.0.0.1:{}/".format(port)]

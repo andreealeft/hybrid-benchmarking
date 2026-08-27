@@ -18,7 +18,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
 import sys
+import time
+import webbrowser
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -49,6 +53,57 @@ def _command_serve(args: argparse.Namespace) -> int:
         print("\nstopped")
     finally:
         httpd.server_close()
+    return 0
+
+
+def listening(host: str, port: int, timeout: float = 0.4) -> bool:
+    """Whether a server is already answering there."""
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(timeout)
+        return probe.connect_ex((host, port)) == 0
+
+
+def _command_open(args: argparse.Namespace) -> int:
+    """Open the interface, starting it first if it is not already up.
+
+    This is what the desktop icons call, and it is here rather than in a shell
+    script because the same three steps have to work on every platform: is it
+    running, start it if not, show it either way.
+
+    The server is started **detached**, outliving the process that asked for it.
+    That is what makes a second double-click work: the icon is a doorbell, not
+    the house, and an icon that stayed running would be one the desktop refuses
+    to launch again.
+    """
+    url = "http://{}:{}/".format(args.host, args.port)
+
+    if not listening(args.host, args.port):
+        log = Path.home() / "hybrid-benchmarking.log"
+        detach = {}
+        if os.name == "nt":                       # no console window
+            detach["creationflags"] = 0x00000008 | 0x08000000
+        else:
+            detach["start_new_session"] = True
+        with open(log, "a") as record:
+            subprocess.Popen(
+                [sys.executable, "-m", "hybrid_benchmarking.cli", "serve",
+                 "--no-browser", "--host", args.host,
+                 "--port", str(args.port)],
+                stdout=record, stderr=record, stdin=subprocess.DEVNULL,
+                **detach
+            )
+        for _ in range(args.wait * 2):
+            if listening(args.host, args.port):
+                break
+            time.sleep(0.5)
+        else:
+            print("it did not start within {}s; see {}".format(args.wait, log))
+            return 1
+
+    webbrowser.open(url)
+    print("hybrid-benchmarking is at {}".format(url))
     return 0
 
 
@@ -439,6 +494,14 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--no-browser", action="store_true",
                      help="do not open a browser window")
     run.set_defaults(handler=_command_serve)
+
+    show = sub.add_parser("open", help="open the interface, starting it if "
+                                       "it is not already running")
+    show.add_argument("--host", default="127.0.0.1")
+    show.add_argument("--port", type=int, default=8765)
+    show.add_argument("--wait", type=int, default=20,
+                      help="seconds to wait for it to come up")
+    show.set_defaults(handler=_command_open)
 
     listing = sub.add_parser("list", help="what can be counted, and in what")
     listing.set_defaults(handler=_command_list)

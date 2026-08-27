@@ -44,7 +44,7 @@ for /f "delims=" %%i in ('%PY% -c "import sys, os; print(os.path.join(os.path.di
 powershell -NoProfile -Command ^
   "$s = (New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Hybrid benchmarking.lnk');" ^
   "$s.TargetPath = '%PYW%';" ^
-  "$s.Arguments  = '-m hybrid_benchmarking.cli serve';" ^
+  "$s.Arguments  = '-m hybrid_benchmarking.cli open';" ^
   "$s.Description = 'Resource estimates for quantum algorithms';" ^
   "$s.Save()"
 
@@ -53,6 +53,8 @@ echo   Done.
 echo.
 echo   There is now an icon on your Desktop called Hybrid benchmarking.
 echo   Double-click it whenever you want the tool: it opens in your browser.
-echo   To stop it, close the browser tab and end it from the Task Manager.
+echo   It keeps running quietly after you close the tab, so opening it again
+echo   is instant. It stops when you restart the computer, or from the Task
+echo   Manager, where it is called pythonw.
 echo.
 pause
