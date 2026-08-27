@@ -244,6 +244,13 @@
 
   /* ---- the introduction ---- */
   #welcome { max-width: 1180px; }
+  /* Anything not inside a card or a panel takes the full column: a cap that
+     is right for a line of prose leaves half a wide screen empty. */
+  #welcome > .lede,
+  #welcome > .meta,
+  #welcome > p,
+  #welcome .hero h2,
+  #welcome .hero .lede { max-width: none; }
   .hero h2 {
     font-family: var(--sans); font-size: clamp(1.5rem, 2.6vw, 2.1rem);
     line-height: 1.25; font-weight: 600; margin: .4rem 0 .7rem; max-width: 18ch;
@@ -350,7 +357,9 @@
     text-transform: uppercase; font-weight: 700; padding: .1rem .45rem;
     border-radius: 3px; vertical-align: .1rem; margin-left: .4rem;
   }
-  .kind.redrawn { background: var(--accent-soft); color: var(--accent); }
+  /* Only a schematic is labelled.  A figure whose values are real is the
+     ordinary case and does not need a badge saying so; the method behind
+     "how this was made" says it for anyone who wants it. */
   .kind.schematic { background: var(--warn-soft); color: var(--warn); }
   .chart { margin: .2rem 0 .6rem; }
   .timelegend { display: grid; gap: .45rem; margin-bottom: 1rem; }
@@ -977,8 +986,8 @@ async function bootFigures() {
       <div class="plot">${f.figure}
         <p class="zoom">click to enlarge</p></div>
       <div>
-        <h4>${esc(f.title)}<span class="kind ${f.kind === "redrawn"
-          ? "redrawn" : "schematic"}">${esc(f.kind)}</span></h4>
+        <h4>${esc(f.title)}${f.kind === "schematic"
+          ? `<span class="kind schematic">schematic</span>` : ""}</h4>
         <p>${esc(f.short || f.caption)}</p>
         <p class="sources"><a href="${esc(f.paper_url)}" target="_blank"
           rel="noopener">${esc(f.paper)}</a>${f.code_url
