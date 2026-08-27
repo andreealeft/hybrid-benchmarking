@@ -4,11 +4,17 @@ Resource analysis of fault-tolerant quantum algorithms without a quantum
 computer. Quantum subroutines with their costs, composable into published
 analyses, and honest about where every number came from.
 
-**Never used it before?** Download the installer for
-[Mac](install/Install-hybrid-benchmarking-mac.zip) or
-[Windows](install/Windows-install.bat), open it once, and use the icon it puts
-on your Desktop. Nothing to type; [Getting started](GETTING-STARTED.md) has the
-details and the command line version. The rest of this page assumes you write
+**Never used it before?** Paste one line into a terminal, once, and use the
+icon it puts on your Desktop from then on:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.sh | sh
+```
+
+![Opening a terminal, pasting the line, and the tool starting](docs/install.gif)
+
+ [Getting started](GETTING-STARTED.md)
+spells it out with nothing assumed. The rest of this page assumes you write
 code.
 
 The shortest useful thing you can do needs no data at all:

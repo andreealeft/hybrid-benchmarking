@@ -8,63 +8,40 @@ library directly.
 
 ## If you just want a number
 
-Nothing to type. Download one file, open it once, and from then on there is an
-icon on your Desktop.
+One command, once. After that there is an icon on your Desktop and you never
+need a terminal again.
 
-**On a Mac.** Download
-[Install-hybrid-benchmarking-mac.zip](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/Install-hybrid-benchmarking-mac.zip).
-Your Mac unpacks it into an app called **Install hybrid benchmarking**.
+![Opening a terminal, pasting the line, and the tool starting](docs/install.gif)
 
-Double-click it. **Your Mac will refuse the first time**, with a message saying
-Apple could not verify the app is free of malware. That is what macOS says about
-any app not signed by a registered developer, and it says the same thing whether
-the app is harmless or not. Getting past it takes four clicks:
+**On a Mac.** Open **Terminal**: press `Cmd-Space`, type `terminal`, press
+return. A window with text in it appears. Copy the line below, paste it into
+that window, and press return.
 
-1. Press **Done**. Do not press *Move to Bin*, which is the highlighted button.
-2. Open **System Settings**, then **Privacy & Security**.
-3. Scroll down to the Security section. There is a line saying the app was
-   blocked, with an **Open Anyway** button beside it. It appears only for about
-   an hour after you tried, so if it is not there, double-click the app again
-   and come back.
-4. Press **Open Anyway**, confirm with your password or Touch ID, then **Open**.
+```sh
+curl -fsSL https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.sh | sh
+```
 
-You do this once, for the installer only. The icon it puts on your Desktop is
-made on your own machine and is never checked or blocked.
+**On Windows.** Open **PowerShell**: press the Windows key, type `powershell`,
+press return. Copy the line below, paste it in, and press return.
 
-**On Windows.** Download
-[Windows-install.bat](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/Windows-install.bat)
-and double-click it. If Windows says it protected your PC, choose **More info**
-and then **Run anyway**, for the same reason: the file is not signed, and
-Windows says so whether or not there is anything wrong with it.
+```powershell
+irm https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.ps1 | iex
+```
 
-Either way, if Python is missing the installer opens the download page and says
-what to do; install it and open the installer again.
+It takes about a minute. It installs Python's part of the work into a folder of
+its own, writes an icon onto your Desktop, and opens the tool in your browser
+straight away.
 
-When it finishes there is an icon on the Desktop called **Hybrid benchmarking**.
-Double-click it whenever you want the tool. It starts on your own machine and
-opens in your browser after a few seconds.
+If Python is missing, it says so and opens the download page. Install Python,
+then paste the same line again.
 
-Everything it needs lives in one folder of its own, under Application Support on
-a Mac and under AppData on Windows, so the rest of your computer is untouched
-and uninstalling is deleting that folder and the icons.
+**From then on, double-click the Desktop icon.** It opens in your browser in a
+few seconds, and it keeps itself up to date, so this is the only time a terminal
+is involved.
 
-**It updates itself.** Each time you open it, it asks GitHub whether there is a
-newer version and installs one if there is. That request is the only thing this
-tool ever sends anywhere: your instances, your answers and your files stay on
-your machine. If the check cannot be made, because you are offline or the
-network is slow, the tool opens anyway on what is already installed.
-
-**What you get from the interface is a feel for the size of the numbers**, on a
-small made-up instance of the size you describe. The charts on the front page
-come from real benchmark instances, which are far harder than anything the
-interface will build for you. Putting your own instances through it is done
-from the command line or from Python, below, and
-[andreea.lefterovici@gmail.com](mailto:andreea.lefterovici@gmail.com) will help
-if you would like a hand.
-
-It keeps running quietly after you close the browser tab, so opening it again
-is instant, and double-clicking the icon while it is already running simply
-brings the page back. It stops when you restart the machine.
+Everything lives in one folder of its own, under Application Support on a Mac
+and AppData on Windows, so the rest of your computer is untouched. Uninstalling
+is deleting that folder and the icon.
 
 ### Using it
 
