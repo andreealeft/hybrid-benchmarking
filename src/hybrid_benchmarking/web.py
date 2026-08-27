@@ -479,6 +479,14 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        # The package underneath this server is replaced in place by the
+        # updater, at an address that never changes.  A browser holding the
+        # old page would then show the old interface over the new code, and
+        # the reader would have no way of telling: no version is on screen,
+        # and reloading is not something one thinks to do with an app that
+        # was opened from a desktop icon.  Nothing here crosses a network, so
+        # there is no bandwidth to weigh against saying so plainly.
+        self.send_header("Cache-Control", "no-store, must-revalidate")
         self.end_headers()
         self.wfile.write(body)
 

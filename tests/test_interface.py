@@ -225,6 +225,19 @@ class TestOverHttp:
         status, body = self._get("/")
         assert status == 200 and b"hybrid-benchmarking" in body
 
+    def test_nothing_is_cached_by_the_browser(self):
+        """The updater replaces the package underneath this server, at an
+        address that never changes.  A browser holding the old page would show
+        the old interface over the new code, with nothing on screen to say so
+        and no reason for somebody who opened an icon to think of reloading.
+
+        Local traffic costs nothing, so there is no reason to allow it.
+        """
+        for path in ("/", "/api/routines", "/api/figures", "/api/problems"):
+            with urllib.request.urlopen(self.url.rstrip("/") + path) as answer:
+                told = answer.headers.get("Cache-Control", "")
+            assert "no-store" in told, path
+
     def test_the_catalogue_is_served(self):
         status, body = self._get("/api/routines")
         assert status == 200 and len(json.loads(body)) == len(hb.names())

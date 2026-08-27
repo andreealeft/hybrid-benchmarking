@@ -752,8 +752,43 @@ must not stay running, or the Finder refuses the second double-click with
 `-600`. `update.py` runs first and installs a newer version if there is one,
 never over a checkout, silently on failure, and it stops a running server
 through `POST /api/quit` so the new code takes over rather than waiting for a
-reboot. `raw.githubusercontent.com` caches for minutes, so a push is not
-visible to the check immediately.
+reboot.
+
+**It updates on the commit, not on the version number**, and that was a bug
+that looked exactly like working code. It compared `version` in
+`pyproject.toml` and installed only when that number rose, so six consecutive
+pushes reached nobody: five of them changed what a reader sees, none bumped a
+version, and the updater reported success by saying nothing at all. Remembering
+to bump a number by hand is the step that was missed six times running, so the
+question it asks is now which commit `main` is on, and pushing is shipping.
+Nothing else was needed on the delivery side: pip reinstalls a package from a
+URL even when the version is unchanged, which was checked rather than assumed.
+
+The source moved for a second reason, independent of the first.
+`raw.githubusercontent.com` serves `cache-control: max-age=300`, so the file it
+hands back can be five minutes behind the push — which is how an app installed
+minutes ago could still miss what was already on `main`. The commit feed at
+`commits/main.atom` is served `max-age=0, must-revalidate` and is current the
+moment a push lands. The version is still read, but only for the sentence a
+person sees and as the fallback when the feed cannot be reached, so an outage
+degrades to the old behaviour rather than to none.
+
+What the running copy was built from is written to `installed-commit` in the
+same data directory the installers put the venv in — **outside** the venv,
+since installing over it is precisely what would erase it. A copy with no stamp
+counts as out of date, which is what makes this self-healing: every install
+made before the stamp existed updates once, writes one, and settles.
+
+**And the page itself is served `Cache-Control: no-store`.** The package is
+replaced underneath a server at an address that never changes, so a browser
+holding the old page would show the old interface over the new code, with
+nothing on screen to say so and no reason for somebody who opened a desktop
+icon to think of reloading. Local traffic costs nothing, so there was never
+anything to weigh against saying it plainly.
+
+`tests/test_update.py` holds all of it, and it is new: this was the only
+machinery in the library whose job is to run on a stranger's machine, and the
+only machinery with no test at all.
 
 ## Where it stands
 
@@ -761,4 +796,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2534 tests.
+interface and a CLI. 2548 tests.
