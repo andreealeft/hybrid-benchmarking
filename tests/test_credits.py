@@ -45,7 +45,6 @@ WORKS = (
     ("Low-Chuang", "Hamiltonian simulation by qubitization"),
     ("Berry et al.", "Exponential improvement in precision for simulating"),
     ("Cade, Folkertsma", "Quantifying Grover speed-ups beyond asymptotic"),
-    ("Dalzell", "A shortcut to an optimal quantum linear system solver"),
     ("Binkowski", "Practical lower bounds for hybrid quantum interior point"),
     ("Wilkening", "A quantum search method for quadratic and multidimensional"),
     ("breadth-first search",
@@ -54,8 +53,21 @@ WORKS = (
 )
 
 
+#: Sources whose work is deliberately absent from the page.  The routine stays
+#: in the registry and still cites it, so the credit survives on the number
+#: even where the reference list no longer carries it.
+UNLISTED = {
+    "Dalzell": "dropped from the reference list at Andreea's request; "
+               "Cade-linalg still implements it and still cites it",
+}
+
+
 def works_for(source: str):
     return [title for fragment, title in WORKS if fragment in source]
+
+
+def unlisted(source: str):
+    return [why for name, why in UNLISTED.items() if name in source]
 
 
 def sources():
@@ -78,16 +90,18 @@ def test_every_source_the_registry_names_belongs_to_a_listed_work():
     grows.
     """
     flat = " ".join(PAGE.split())
-    orphans, unlisted = [], []
+    orphans, absent = [], []
     for source in sources():
+        if unlisted(source):
+            continue
         titles = works_for(source)
         if not titles:
             orphans.append(source)
             continue
         if not any(" ".join(title.split()) in flat for title in titles):
-            unlisted.append((source, titles))
+            absent.append((source, titles))
     assert not orphans, orphans
-    assert not unlisted, unlisted
+    assert not absent, absent
 
 
 def test_the_authors_are_named_on_the_page_and_in_the_provenance():
@@ -96,7 +110,7 @@ def test_the_authors_are_named_on_the_page_and_in_the_provenance():
     The page credits whoever wrote the work; the provenance credits whoever
     proved the result, and travels with the number after it leaves the page.
     """
-    for name in ("Ammann", "Binkowski", "Dalzell", "Dantzig", "Dinitz",
+    for name in ("Ammann", "Binkowski", "Dantzig", "Dinitz",
                  "Fekete", "Funck", "Goedicke", "Gross", "Hess", "Karimov",
                  "Lefterovici", "Lelakowski", "Nannicini", "Osborne", "Perk",
                  "Ramacciotti", "Rotundo", "Skelton", "Steinbach", "Stiller",
@@ -107,6 +121,18 @@ def test_the_authors_are_named_on_the_page_and_in_the_provenance():
              ("Nannicini", "Cade", "Binkowski", "Wilkening", "Lefterovici",
               "Dalzell", "Brassard") if name in source}
     assert len(named) >= 5, named
+
+
+def test_an_unlisted_work_is_still_cited_by_the_routine_that_uses_it():
+    """An exemption that stopped being true would quietly become a gap.
+
+    Dalzell is off the reference list by request, and the entry that
+    implements that result still names it, which is where the credit has to
+    survive.
+    """
+    for name in UNLISTED:
+        assert any(name in source for source in sources()), name
+        assert name not in PAGE, name
 
 
 def test_the_primary_studies_are_named():
@@ -132,7 +158,7 @@ def test_the_primary_studies_are_named():
 
 def test_a_preprint_is_cited_by_its_arxiv_number():
     for identifier in ("arXiv:2311.09995", "arXiv:2604.24362",
-                       "arXiv:2604.24962", "arXiv:2305.11352"):
+                       "arXiv:2604.24962"):
         assert identifier in PAGE, identifier
 
 
