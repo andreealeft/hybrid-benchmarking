@@ -65,8 +65,13 @@
   header h1 { font-family: var(--mono); font-size: .85rem; font-weight: 600; margin: 0; }
   header p { margin: 0; color: var(--faint); font-size: .74rem; }
   .brand { font-size: .85rem; }
+  /* The menu takes a share of the width rather than a fixed slab, and the
+     content column is allowed to grow: a fixed 900px article on a wide screen
+     left the figures rendering at a third of their size. */
   main { display: grid; grid-template-columns: 1fr; gap: 0; min-height: calc(100vh - 38px); }
-  @media (min-width: 900px) { main { grid-template-columns: 290px minmax(0,1fr); } }
+  @media (min-width: 900px) {
+    main { grid-template-columns: clamp(230px, 20vw, 320px) minmax(0, 1fr); }
+  }
 
   /* ---- list ---- */
   nav { border-right: 1px solid var(--rule); background: var(--surface); padding: .9rem; }
@@ -106,7 +111,10 @@
   li button[aria-current="true"] span { color: var(--good); }
 
   /* ---- detail ---- */
-  article { padding: 1.4rem 1.6rem 4rem; max-width: 900px; }
+  article {
+    padding: clamp(1rem, 1.8vw, 2rem) clamp(1rem, 2.2vw, 2.4rem) 4rem;
+    max-width: 1240px; min-width: 0;
+  }
   h2 { font-family: var(--mono); font-size: 1.25rem; margin: 0 0 .35rem; font-weight: 600; }
   .summary { color: var(--muted); margin: 0 0 1.2rem; max-width: 68ch; }
   h3 {
@@ -235,10 +243,10 @@
   .sub { color: var(--faint); font-size: .8rem; font-family: var(--mono); }
 
   /* ---- the introduction ---- */
-  #welcome { max-width: 780px; }
+  #welcome { max-width: 1180px; }
   .hero h2 {
-    font-family: var(--sans); font-size: 1.5rem; line-height: 1.3;
-    font-weight: 600; margin: .4rem 0 .7rem; max-width: 20ch;
+    font-family: var(--sans); font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+    line-height: 1.25; font-weight: 600; margin: .4rem 0 .7rem; max-width: 18ch;
   }
   .lede { font-size: 1rem; color: var(--muted); max-width: 62ch; margin: 0 0 1rem; }
   .lede b { color: var(--ink); font-weight: 600; }
@@ -290,7 +298,9 @@
     padding: .9rem 1rem; border: 1px solid var(--rule); border-radius: 6px;
     background: var(--surface);
   }
-  @media (min-width: 720px) { .situation { grid-template-columns: 300px 1fr; } }
+  @media (min-width: 720px) {
+    .situation { grid-template-columns: minmax(240px, 34%) 1fr; }
+  }
   .picture { margin: 0; }
   .picture svg { width: 100%; height: auto; display: block; }
   .story { margin: 0; color: var(--ink); font-size: .93rem; max-width: 60ch; }
@@ -304,8 +314,20 @@
   .finding { padding: .9rem 1rem; border-top: 1px solid var(--rule); }
   .finding:first-child { border-top: 0; }
   @media (min-width: 720px) {
-    .finding { display: grid; grid-template-columns: 300px 1fr; gap: 1.1rem;
-      align-items: start; }
+    .finding { display: grid; grid-template-columns: minmax(320px, 44%) 1fr;
+      gap: 1.2rem; align-items: start; }
+  }
+  @media (min-width: 1180px) {
+    .finding { grid-template-columns: minmax(420px, 50%) 1fr; }
+  }
+  /* Any chart can be opened to the full width of the box, because a figure
+     with axis labels on it is only useful at a size where they can be read. */
+  .finding .plot { cursor: zoom-in; }
+  .finding.open { grid-template-columns: 1fr; }
+  .finding.open .plot { cursor: zoom-out; }
+  .finding .zoom {
+    font-size: .72rem; color: var(--faint); margin: .15rem 0 0;
+    font-family: var(--mono);
   }
   .finding .plot svg { width: 100%; height: auto; display: block; }
   .finding h4 { margin: 0 0 .25rem; font-size: .9rem; }
@@ -932,7 +954,8 @@ async function bootFigures() {
      provenance is one click away rather than three lines of every row. */
   $("findings").innerHTML = figures.map(f => `
     <div class="finding">
-      <div class="plot">${f.figure}</div>
+      <div class="plot">${f.figure}
+        <p class="zoom">click to enlarge</p></div>
       <div>
         <h4>${esc(f.title)}<span class="kind ${f.kind === "redrawn"
           ? "redrawn" : "schematic"}">${esc(f.kind)}</span></h4>
@@ -946,6 +969,10 @@ async function bootFigures() {
             f.method ? `<li>${esc(f.method)}</li>` : ""}</ul></details>` : ""}
       </div>
     </div>`).join("");
+
+  $("findings").querySelectorAll(".plot").forEach(plot => {
+    plot.onclick = () => plot.closest(".finding").classList.toggle("open");
+  });
 }
 
 async function boot_problems() {
