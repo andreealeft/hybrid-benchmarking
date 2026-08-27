@@ -20,7 +20,15 @@ that was forgotten six times running.  Asking which commit ``main`` is on makes
 pushing and shipping the same event, and pip reinstalls a package from a URL
 even when its version is unchanged, so the delivery half needs nothing else.
 
-Delivery had a bug of its own hiding behind that one. pip keeps an HTTP cache
+Delivery had two bugs of its own hiding behind that one, and both reported
+success. ``pip install --upgrade`` against a URL does not reliably replace a
+package whose version has not moved: it did in one environment here and did not
+in another, and the one where it did not exited zero and left the old files
+untouched. Since every version from here on carries the same version number as
+the last, that is now the ordinary case rather than a corner of it, so the
+package's own files are forced.
+
+The other one: pip keeps an HTTP cache
 keyed on the URL, and the branch archive's URL never changes, so once the
 trigger was fixed pip still answered ``Using cached`` and installed a zip from
 the first time it had ever run: the check fired, the install reported success,
@@ -251,17 +259,27 @@ def check_and_update(announce=None) -> Optional[str]:
     # Inside its own environment, which is where the desktop installer puts it,
     # pip installs there and --user is not merely unnecessary but refused.
     where = [] if in_an_environment() else ["--user"]
-    if by_commit:
-        source = [ARCHIVE.format(target)]
-    else:
-        source = ["--no-cache-dir", PACKAGE]
-    done = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "--quiet"]
-        + where + source,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-    )
-    if done.returncode != 0:
-        return None
+    source = [ARCHIVE.format(target)] if by_commit else ["--no-cache-dir",
+                                                         PACKAGE]
+
+    # Two passes, and the second is the one that does the work.  ``--upgrade``
+    # against a URL does *not* reliably replace a package whose version has not
+    # moved -- it did in one venv here and did not in another, and the one
+    # where it did not reported success and left the old files in place, which
+    # is the whole failure this module exists to prevent.  So the package's own
+    # files are forced.
+    #
+    # The first pass is what ``--no-deps`` on the second gives up: it resolves
+    # the requirement normally, so a release that adds a dependency gets it.
+    # Skipping it would leave a copy that installs cleanly and cannot import.
+    for pip_args in (["--upgrade"], ["--force-reinstall", "--no-deps"]):
+        done = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--quiet"]
+            + pip_args + where + source,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        )
+        if done.returncode != 0:
+            return None
 
     if by_commit:
         write_stamp(target)

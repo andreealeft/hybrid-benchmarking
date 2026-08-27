@@ -795,6 +795,17 @@ moment a push lands. The version is still read, but only for the sentence a
 person sees and as the fallback when the feed cannot be reached, so an outage
 degrades to the old behaviour rather than to none.
 
+**Delivery is two pip passes, and it has to be.** `pip install --upgrade`
+against a URL does *not* reliably replace a package whose version has not
+moved: it did in one venv here and did not in another, and the one where it did
+not exited zero and left the old files in place. Now that a version bump is no
+longer what triggers an update, an unchanged version number is the ordinary
+case rather than a corner of it. So the second pass carries
+`--force-reinstall --no-deps` and is what actually replaces the files, and the
+first is an ordinary resolving install, which is what `--no-deps` gives up: a
+release that adds a dependency would otherwise install cleanly and fail to
+import. Both must exit zero before the stamp is written.
+
 **And it fetches the commit by name, because pip caches.** This was a third
 bug sitting behind the other two, and the worst of the three: pip keeps an HTTP
 cache keyed on the URL, the branch archive's URL never changes, so pip answered
@@ -831,4 +842,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2558 tests.
+interface and a CLI. 2561 tests.

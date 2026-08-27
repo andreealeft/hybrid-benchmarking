@@ -157,14 +157,16 @@ class TestItInstallsWhatItDecidedOn:
     """
 
     @staticmethod
-    def _argv_of_an_update(monkeypatch, target):
-        seen = {}
-
-        class Done:
-            returncode = 0
+    def _calls_of_an_update(monkeypatch, target, codes=(0, 0)):
+        calls = []
+        codes = list(codes)
 
         def watch(argv, **kwargs):
-            seen["argv"] = argv
+            calls.append(argv)
+
+            class Done:
+                returncode = codes[len(calls) - 1] if len(calls) <= len(codes) else 0
+
             return Done()
 
         monkeypatch.setattr(up, "from_a_checkout", lambda: False)
@@ -172,7 +174,36 @@ class TestItInstallsWhatItDecidedOn:
         monkeypatch.setattr(up, "latest", lambda: "0.0.1")
         monkeypatch.setattr(up.subprocess, "run", watch)
         up.check_and_update()
-        return seen["argv"]
+        return calls
+
+    def _argv_of_an_update(self, monkeypatch, target):
+        return self._calls_of_an_update(monkeypatch, target)[-1]
+
+    def test_the_package_files_are_forced_not_merely_upgraded(
+            self, elsewhere, monkeypatch):
+        """``--upgrade`` against a URL does not reliably replace a package
+        whose version has not moved: in one environment here it did and in
+        another it did not, and the one where it did not exited zero and left
+        the old files in place.  Every version this ships from now on has the
+        same version number as the last, so that is the ordinary case."""
+        calls = self._calls_of_an_update(monkeypatch, "b" * 40)
+        assert len(calls) == 2, calls
+        assert "--force-reinstall" in calls[-1], calls[-1]
+
+    def test_the_first_pass_still_resolves_dependencies(
+            self, elsewhere, monkeypatch):
+        """The forcing pass carries ``--no-deps``, so on its own a release
+        that adds a dependency would install cleanly and fail to import."""
+        calls = self._calls_of_an_update(monkeypatch, "b" * 40)
+        assert "--no-deps" not in calls[0], calls[0]
+        assert "--no-deps" in calls[-1], calls[-1]
+
+    def test_a_failure_in_either_pass_stops_it(
+            self, elsewhere, monkeypatch):
+        for codes in ((1, 0), (0, 1)):
+            up._stamp_file().unlink(missing_ok=True)
+            self._calls_of_an_update(monkeypatch, "b" * 40, codes=codes)
+            assert up.stamp() is None, codes
 
     def test_the_archive_it_fetches_names_the_commit(
             self, elsewhere, monkeypatch):
