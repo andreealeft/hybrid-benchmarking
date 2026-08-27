@@ -61,6 +61,24 @@ class TestNothingLeavesTheMachine:
         assert "Your data never leaves this machine" in flat
         assert "check for a newer version" in flat
 
+    def test_the_search_box_filters_the_list_that_is_on_screen(self):
+        """A regression, and a nasty one: the box decided what to redraw by
+        asking whether the problems article was hidden.  That article is hidden
+        whenever the introduction is showing, so typing on the front page
+        redrew the subroutine list instead, which is empty until Browse is
+        entered and Browse is no longer reachable.  The menu emptied, and
+        clearing the box could not bring it back.
+        """
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        flat = " ".join(page.split())
+        assert '$("filter").oninput = () => ($("detail").hidden ?' in flat
+        assert '($("problems").hidden ? drawList()' not in flat
+
+    def test_a_search_that_finds_nothing_offers_the_way_back(self):
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        assert 'id="clearfilter"' in page
+        assert "Show all of them" in page
+
     def test_the_data_file_route_is_off_the_page(self):
         """Hidden, not removed: the readers and the route are untouched and
         still reachable from the command line."""

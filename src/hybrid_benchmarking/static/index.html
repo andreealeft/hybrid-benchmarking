@@ -736,8 +736,14 @@ async function run(copyOnly) {
     <h3>The same call, as code</h3><pre>${esc(res.snippet)}</pre>`;
 }
 
+/* Which list the box filters is decided by which one is on screen, and that
+   has to be asked of the registry view rather than of the problems view.  The
+   problems article is hidden whenever the introduction is showing, so testing
+   it meant that typing on the front page redrew the subroutine list instead:
+   that list is empty until Browse is entered, which it now never is, so the
+   menu emptied and clearing the box could not bring it back. */
 $("filter").oninput = () =>
-  ($("problems").hidden ? drawList() : drawProblemList());
+  ($("detail").hidden ? drawProblemList() : drawList());
 
 /* ------------------------------------------------------------------ build */
 
@@ -1011,9 +1017,10 @@ function showWelcome() {
 }
 
 function drawProblemList() {
-  const needle = $("filter").value.toLowerCase();
-  const shown = PROBLEMS.filter(p =>
-    !needle || (p.label + " " + p.blurb).toLowerCase().includes(needle));
+  const needle = $("filter").value.trim().toLowerCase();
+  const shown = PROBLEMS.filter(p => !needle ||
+    (p.label + " " + p.blurb + " " + (p.category_label || ""))
+      .toLowerCase().includes(needle));
 
   /* The server sends the problems already ordered by heading, so a group is a
      run of equal category and the page never has to know what the headings are
@@ -1040,10 +1047,14 @@ function drawProblemList() {
       <summary>${esc(g.label)}<span class="count">${g.items.length}</span></summary>
       <ul>${g.items.map(item).join("")}</ul>
     </details></li>`;
-  }).join("") || `<li><p class="none">Nothing matches that.</p></li>`;
+  }).join("") || `<li><p class="none">Nothing matches “${esc(needle)}”.
+    <button class="ghost" id="clearfilter">Show all of them</button></p></li>`;
 
   $("list").querySelectorAll("button[data-problem]").forEach(b =>
     b.onclick = () => pickProblem(b.dataset.problem));
+
+  const clear = $("clearfilter");
+  if (clear) clear.onclick = () => { $("filter").value = ""; drawProblemList(); };
 }
 
 async function pickProblem(key) {
