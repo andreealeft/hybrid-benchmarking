@@ -711,10 +711,54 @@ nothing quantum simulated.
 form and ours does not, so our logged Newton-system dimension runs larger on any
 instance with removable structure. Unquantified — `highspy` is not installed.
 
+## The look of it, and the two branches
+
+The palette is **deep navy against orange**, from a Dopely card Andreea chose,
+over cool neutrals: navy `#032c42` carries the identity and the controls both,
+orange `#c26608` is what was measured, gold `#a6720a` is the cautions, and the
+dark theme lightens all three. It arrived after several rejected schemes, and
+the rejections are the useful part: a Classiq pink and olive read as two
+opinions, a warm Ember scheme went flat because cream paper and brown ink pull
+everything into one tonal band, and a mid blue was too light to hold a page
+down. **Every drawing and figure is painted in the theme variables**, never in
+literal colours, which is what made each of those swaps a five-line edit rather
+than seventy-one.
+
+`docs/` and the `pages` branch hold a **browser build**: the same page with
+Pyodide starting Python in the tab and answering `/api` from a dispatcher
+instead of a server. It works and it is published, and Andreea did not want it,
+so it is unlinked from everywhere. Delete the branch and turn off Pages if it
+is ever in the way.
+
+**Figures are rendered and looked at, not merely parsed.** Substitute the
+palette into the SVG, `qlmanage -t` it, and read the PNG. Two faults surfaced
+that way and would not have otherwise: swatches struck through centred labels,
+and a legend landed on top of a label it had replaced. The scratchpad script
+that does it is worth rebuilding rather than working blind.
+
+## Installed by a pasted line, and kept current by itself
+
+`install/install.sh` (macOS and Linux) and `install/install.ps1` (Windows,
+untested) are what the README tells people to paste. They build a venv of their
+own under Application Support, `.local/share` or AppData, install from a zip of
+`main`, and **write the desktop icon locally**, which is the whole trick: an
+icon made on the machine carries no quarantine flag, where a downloaded app is
+refused by macOS 26 with a message about malware and a highlighted *Move to
+Bin*. Downloadable installers were built, signed nothing, and were removed for
+exactly that reason.
+
+The icon calls `hybrid-benchmarking open`: check, start **detached**, show. It
+must not stay running, or the Finder refuses the second double-click with
+`-600`. `update.py` runs first and installs a newer version if there is one,
+never over a checkout, silently on failure, and it stops a running server
+through `POST /api/quit` so the new code takes over rather than waiting for a
+reboot. `raw.githubusercontent.com` caches for minutes, so a push is not
+visible to the check immediately.
+
 ## Where it stands
 
 Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2520 tests.
+interface and a CLI. 2534 tests.
