@@ -281,6 +281,32 @@ def check_and_update(announce=None) -> Optional[str]:
         if done.returncode != 0:
             return None
 
-    if by_commit:
+    # Only record the commit if it is the one that actually landed.  pip
+    # writes the URL it installed from into the distribution's metadata, so
+    # this can be checked rather than assumed -- and it has to be, because a
+    # stamp is what stops the work being attempted again.  Writing one for a
+    # commit that did not arrive is how a copy gets stuck for good: it reports
+    # itself current, asks nothing further, and every visible sign agrees.
+    # That happened here, to a real install, which is why this exists.
+    if by_commit and arrived(target):
         write_stamp(target)
     return name
+
+
+def arrived(commit: str) -> bool:
+    """Whether the installed distribution really came from that commit.
+
+    Read from the metadata on disk rather than through ``importlib``, whose
+    view of this process was fixed at import time and predates the install.
+    An unreadable answer counts as *not* arrived: retrying an update that was
+    already fine costs a few seconds, and skipping one that was not costs
+    everything after it.
+    """
+    site = Path(__file__).resolve().parent.parent
+    for info in site.glob("hybrid_benchmarking-*.dist-info/direct_url.json"):
+        try:
+            if commit in info.read_text():
+                return True
+        except Exception:
+            continue
+    return False
