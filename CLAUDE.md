@@ -730,6 +730,25 @@ instead of a server. It works and it is published, and Andreea did not want it,
 so it is unlinked from everywhere. Delete the branch and turn off Pages if it
 is ever in the way.
 
+**Python in a tab freezes the tab, so the browser build now says so.**
+`py.runPython` is synchronous and runs on the page's own thread, so nothing
+paints while a solve is running: the line the page writes before it calls
+fetch, "Building an instance and solving it", never reached the screen on the
+published build, though it shows on the installed one, where a server answers
+and the thread stays free. The fetch shim now writes that same line to the
+banner at the foot of the tab and yields for a paint before handing over to
+Python, two animation frames and then a timeout, since one frame only queues
+the paint and the second returns after it has happened. It says "Done!"
+afterwards, which clears itself. Only the POSTs announce anything: the GETs are
+lists and forms, and a banner on every keystroke in the search box is worse
+than silence. `say()` grew a guard at the same time, because its clear is
+deferred a second and a half: two runs closer together than that had the first
+"Done!" take the second run's banner down with it, leaving the tab frozen and
+silent, which it never had to survive while it ran once per line at start-up.
+Checked by counting animation frames in the tab rather than by reading the
+code: frames advance only when the thread is free, so a frame between the two
+messages is a frame that was rendered with the first one on screen.
+
 **Figures are rendered and looked at, not merely parsed.** Substitute the
 palette into the SVG, `qlmanage -t` it, and read the PNG. Three faults surfaced
 that way and would not have otherwise: swatches struck through centred labels,

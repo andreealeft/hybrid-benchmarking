@@ -28,6 +28,7 @@
 
   var realFetch = window.fetch.bind(window);
   var starting = null;
+  var said = 0;
 
   function say(text, done) {
     var box = document.getElementById("booting");
@@ -41,7 +42,17 @@
       document.body.appendChild(box);
     }
     box.textContent = text;
-    if (done) { setTimeout(function () { box.remove(); }, 1500); }
+    said += 1;
+
+    /* Clearing is deferred, so it has to check that it is still clearing its
+       own message: two runs less than a second and a half apart would
+       otherwise have the first "Done!" take the second run's banner down with
+       it, and the tab would sit there frozen and saying nothing.  This did not
+       arise while say() only ran once per line during start-up. */
+    if (done) {
+      var mine = said;
+      setTimeout(function () { if (said === mine) { box.remove(); } }, 1500);
+    }
   }
 
   async function start() {
@@ -70,6 +81,34 @@
     return py;
   }
 
+  /* Python runs on the page's own thread, so a call that computes anything
+     freezes the tab for as long as it takes, and a frozen tab paints nothing:
+     the line the page writes before it calls fetch ("Building an instance and
+     solving it...") never reaches the screen, and the button stays looking
+     unpressed.  On the installed version there is a server on the other end
+     of that fetch and the line shows.  Yielding for a paint before handing
+     over to Python is what puts it back, and the banner says the same thing a
+     second time at the bottom of the tab, where it cannot be scrolled past.
+
+     Two animation frames and then a timeout: one frame only queues the paint,
+     the second returns after it has happened. */
+  function paint() {
+    return new Promise(function (ok) {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { setTimeout(ok, 0); });
+      });
+    });
+  }
+
+  /* What the wait is for.  Only the two addresses that make an instance and
+     solve it claim to be doing that; the rest of the POSTs cost something
+     already in hand, so they say the neutral thing rather than a wrong one. */
+  function working(path) {
+    return path === "/api/problem/compare" || path === "/api/problem/generate"
+      ? "Building an instance and solving it\u2026"
+      : "Working it out\u2026";
+  }
+
   /* Every /api call goes to Python instead of to a server.  Anything else,
      the page's own files, still goes to the network as it did. */
   window.fetch = function (url, options) {
@@ -77,13 +116,18 @@
     if (path.indexOf("/api/") !== 0) { return realFetch(url, options); }
     if (!starting) { starting = start(); }
 
-    return starting.then(function (py) {
+    return starting.then(async function (py) {
       var method = (options && options.method) || "GET";
       var body = (options && options.body) || "";
+      /* The GETs are lists and forms and return in a blink; announcing those
+         would flash a banner on every keystroke in the search box. */
+      var computing = method !== "GET";
+      if (computing) { say(working(path)); await paint(); }
       py.globals.set("REQ_PATH", path);
       py.globals.set("REQ_METHOD", method);
       py.globals.set("REQ_BODY", typeof body === "string" ? body : "");
       var answer = py.runPython("api.handle(REQ_PATH, REQ_METHOD, REQ_BODY)");
+      if (computing) { say("Done!", true); }
       return new Response(answer,
         { status: 200, headers: { "Content-Type": "application/json" } });
     }).catch(function (error) {
