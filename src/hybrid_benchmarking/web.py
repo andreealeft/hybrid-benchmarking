@@ -163,6 +163,21 @@ def figures() -> List[Dict[str, Any]]:
     return all_figures()
 
 
+def running_version() -> Dict[str, Any]:
+    """Which build is answering, so that a reader can tell.
+
+    Nothing on screen said this, and that is what let a stale copy pass for a
+    current one: the tool updates itself in the background at an address that
+    never changes, so there was no moment at which anybody could have noticed
+    they were looking at last week's numbers.  A version somebody can read out
+    is what makes "are you on the latest?" a question with an answer.
+    """
+    from .update import installed, stamp
+
+    built = stamp()
+    return {"version": installed(), "built_from": built[:7] if built else None}
+
+
 def problems() -> List[Dict[str, Any]]:
     """Every problem the library can cost, under the name people use.
 
@@ -509,6 +524,8 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(problems())
         if self.path == "/api/figures":
             return self._json(figures())
+        if self.path == "/api/version":
+            return self._json(running_version())
         if self.path.startswith("/api/beginner/"):
             try:
                 return self._json(beginner_form(self.path.rsplit("/", 1)[-1]))

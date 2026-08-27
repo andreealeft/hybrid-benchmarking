@@ -238,6 +238,17 @@ class TestOverHttp:
                 told = answer.headers.get("Cache-Control", "")
             assert "no-store" in told, path
 
+    def test_it_says_which_build_is_answering(self):
+        """Nothing on screen said this, and that is what let a stale copy pass
+        for a current one: the tool replaces itself in the background at an
+        address that never changes, so there was no moment at which anybody
+        could have noticed they were reading last week's numbers."""
+        status, body = self._get("/api/version")
+        build = json.loads(body)
+        assert status == 200
+        assert build["version"]
+        assert "built_from" in build, "absent is fine, missing is not"
+
     def test_the_catalogue_is_served(self):
         status, body = self._get("/api/routines")
         assert status == 200 and len(json.loads(body)) == len(hb.names())

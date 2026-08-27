@@ -558,6 +558,7 @@
       computed here and nothing you type is sent anywhere. The one thing that
       does go out is a check for a newer version each time the tool starts, so
       that a copy kept for months does not quietly fall behind the results.</p>
+        <p class="meta" id="build"></p>
       </div>
     </div>
 
@@ -994,6 +995,18 @@ async function bootFigures() {
   $("findings").querySelectorAll(".plot").forEach(plot => {
     plot.onclick = () => plot.closest(".finding").classList.toggle("open");
   });
+}
+
+/* Which build is answering.  It updates itself in the background at an
+   address that never changes, so without this there is no moment at which
+   anybody could notice they are reading last week's numbers.  Quiet, and
+   absent rather than wrong if the question cannot be answered. */
+async function bootVersion() {
+  try {
+    const build = await (await fetch("/api/version")).json();
+    $("build").textContent = "This copy is version " + build.version
+      + (build.built_from ? ", build " + build.built_from : "") + ".";
+  } catch (error) { /* leave it empty */ }
 }
 
 async function boot_problems() {
@@ -1478,6 +1491,7 @@ $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
    entered, which cannot happen from the menu as it stands. */
 $("home").onclick = showWelcome;
 bootFigures();
+bootVersion();
 $("filter").hidden = false;
 boot_problems();
 </script>
