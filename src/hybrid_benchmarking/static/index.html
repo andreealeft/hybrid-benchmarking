@@ -116,7 +116,7 @@
     max-width: 1240px; min-width: 0;
   }
   h2 { font-family: var(--mono); font-size: 1.25rem; margin: 0 0 .35rem; font-weight: 600; }
-  .summary { color: var(--muted); margin: 0 0 1.2rem; max-width: 68ch; }
+  .summary { color: var(--muted); margin: 0 0 1.2rem; max-width: 84ch; }
   h3 {
     font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
     color: var(--act); margin: 1.6rem 0 .55rem; font-weight: 700;
@@ -135,7 +135,7 @@
     padding: .8rem .9rem; overflow-x: auto; font-family: var(--mono);
     font-size: .8rem; margin: 0 0 1rem; line-height: 1.45;
   }
-  .meta { font-size: .82rem; color: var(--muted); margin: 0 0 .5rem; }
+  .meta { font-size: .82rem; color: var(--muted); margin: 0 0 .5rem; max-width: 90ch; }
   .meta b { color: var(--ink); font-weight: 600; }
   ul.notes { margin: 0 0 1rem; padding-left: 1.1rem; color: var(--muted); font-size: .85rem; }
   ul.notes li { margin-bottom: .25rem; }
@@ -228,11 +228,11 @@
   }
   .route[aria-pressed="true"] { background: var(--accent-soft); }
   .route h4 { margin: 0 0 .3rem; font-size: .95rem; }
-  .route p { margin: 0 0 .4rem; color: var(--muted); font-size: .87rem; max-width: 70ch; }
+  .route p { margin: 0 0 .4rem; color: var(--muted); font-size: .87rem; }
   .route .model { color: var(--warn); font-size: .82rem; margin: 0; }
   .caution {
     border-left: 3px solid var(--warn); background: var(--warn-soft);
-    padding: .8rem 1rem; margin: 0 0 1.2rem; font-size: .87rem; max-width: 70ch;
+    padding: .8rem 1rem; margin: 0 0 1.2rem; font-size: .87rem;
   }
   textarea {
     font-family: var(--mono); font-size: .8rem; width: 100%; min-height: 7rem;
@@ -248,7 +248,7 @@
     font-family: var(--sans); font-size: clamp(1.5rem, 2.6vw, 2.1rem);
     line-height: 1.25; font-weight: 600; margin: .4rem 0 .7rem; max-width: 18ch;
   }
-  .lede { font-size: 1rem; color: var(--muted); max-width: 62ch; margin: 0 0 1rem; }
+  .lede { font-size: 1rem; color: var(--muted); max-width: 78ch; margin: 0 0 1rem; }
   .lede b { color: var(--ink); font-weight: 600; }
   .kicker {
     font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
@@ -266,13 +266,14 @@
   }
   .card p { margin: 0; font-size: .85rem; color: var(--muted); }
   .steps { display: grid; gap: .8rem; margin: .4rem 0 1.4rem; }
+  @media (min-width: 860px) { .steps { grid-template-columns: 1fr 1fr; } }
   .step {
     border: 1px solid var(--rule); border-left: 3px solid var(--accent);
     border-radius: 0 6px 6px 0; background: var(--surface); padding: .9rem 1.1rem;
   }
   .step.real { border-left-color: var(--good); }
   .step h4 { margin: 0 0 .35rem; font-size: .95rem; }
-  .step p { margin: 0 0 .4rem; color: var(--muted); font-size: .88rem; max-width: 68ch; }
+  .step p { margin: 0 0 .4rem; color: var(--muted); font-size: .88rem; }
   .step p:last-child { margin-bottom: 0; }
   .step .tag {
     font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
@@ -281,10 +282,11 @@
   .refhead {
     font-weight: 600; font-size: .88rem; margin: 1.1rem 0 .35rem; color: var(--ink);
   }
-  ul.refs { list-style: none; margin: 0 0 .4rem; padding: 0; max-width: 70ch; }
+  ul.refs { list-style: none; margin: 0 0 .4rem; padding: 0; }
+  @media (min-width: 900px) { ul.refs { columns: 2; column-gap: 1.8rem; } }
   ul.refs li {
     padding: .45rem 0 .45rem .8rem; border-left: 2px solid var(--rule);
-    margin-bottom: .3rem;
+    margin-bottom: .3rem; break-inside: avoid;
   }
   ul.refs li b { display: block; font-weight: 600; font-size: .89rem; }
   ul.refs a { color: var(--act); text-decoration: none; }
@@ -303,7 +305,13 @@
   }
   .picture { margin: 0; }
   .picture svg { width: 100%; height: auto; display: block; }
-  .story { margin: 0; color: var(--ink); font-size: .93rem; max-width: 60ch; }
+  .story { margin: 0; color: var(--ink); font-size: .93rem; }
+  /* Where to start and the note about provenance stand side by side: two
+     short paragraphs stacked in a narrow column left half the page empty. */
+  .closing { display: grid; gap: 1rem 1.8rem; margin-bottom: 1rem; }
+  @media (min-width: 900px) { .closing { grid-template-columns: 1fr 1fr; } }
+  .closing p { margin: 0; }
+
   /* The published results: one box, and inside it one row per study, the
      drawing on the left and a couple of lines about it on the right.  Six
      separate cards read as six separate claims; they are one body of work. */
@@ -448,6 +456,7 @@
     <div id="findings"><p class="none">Loading the results…</p></div>
 
     <h3>Where to start</h3>
+    <div class="closing">
     <p class="lede">Pick your problem from the menu on the left. Seventy-one of
       them, grouped by the kind of task rather than by the mathematics: choosing
       what to fund, deciding where to put things, avoiding clashes. If none is
@@ -544,6 +553,7 @@
       is a bound or exact. A plausible number without that is the thing this
       tool exists to prevent. Nothing leaves this machine: the page loads nothing
       from the internet, and no file you point it at is uploaded anywhere.</p>
+    </div>
   </article>
   <article id="detail" hidden><p class="none">Loading the registry…</p></article>
   <article id="builder" hidden></article>
