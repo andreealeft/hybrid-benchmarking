@@ -279,11 +279,16 @@
     font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
     font-weight: 700; color: var(--good);
   }
+  /* Two columns with names on them: what the library reimplements, and what
+     those works themselves stand on.  A single list of seventeen entries read
+     as one undifferentiated pile. */
+  .refcols { display: grid; gap: .2rem 2rem; margin-bottom: 1rem; }
+  @media (min-width: 900px) { .refcols { grid-template-columns: 1fr 1fr; } }
   .refhead {
     font-weight: 600; font-size: .88rem; margin: 1.1rem 0 .35rem; color: var(--ink);
   }
+  .refcols > div > .refhead:first-child { margin-top: .2rem; }
   ul.refs { list-style: none; margin: 0 0 .4rem; padding: 0; }
-  @media (min-width: 900px) { ul.refs { columns: 2; column-gap: 1.8rem; } }
   ul.refs li {
     padding: .45rem 0 .45rem .8rem; border-left: 2px solid var(--rule);
     margin-bottom: .3rem; break-inside: avoid;
@@ -306,11 +311,7 @@
   .picture { margin: 0; }
   .picture svg { width: 100%; height: auto; display: block; }
   .story { margin: 0; color: var(--ink); font-size: .93rem; }
-  /* Where to start and the note about provenance stand side by side: two
-     short paragraphs stacked in a narrow column left half the page empty. */
-  .closing { display: grid; gap: 1rem 1.8rem; margin-bottom: 1rem; }
-  @media (min-width: 900px) { .closing { grid-template-columns: 1fr 1fr; } }
-  .closing p { margin: 0; }
+  .lede.wide { max-width: none; }
 
   /* The published results: one box, and inside it one row per study, the
      drawing on the left and a couple of lines about it on the right.  Six
@@ -456,8 +457,7 @@
     <div id="findings"><p class="none">Loading the results…</p></div>
 
     <h3>Where to start</h3>
-    <div class="closing">
-    <p class="lede">Pick your problem from the menu on the left. Seventy-one of
+    <p class="lede wide">Pick your problem from the menu on the left. Seventy-one of
       them, grouped by the kind of task rather than by the mathematics: choosing
       what to fund, deciding where to put things, avoiding clashes. If none is
       exactly yours, take the closest: several of those names are the same
@@ -469,7 +469,9 @@
       are used to check the results against, never copied from. These are the
       works that were read.</p>
 
-    <p class="refhead">The studies this puts in one place</p>
+    <div class="refcols">
+      <div>
+    <p class="refhead">Works used: the analyses this reimplements</p>
     <ul class="refs">
       <li><b><a href="https://repo.uni-hannover.de/items/c6ec36d6-7ade-42c5-871e-ff5bb13b6c79"
         target="_blank" rel="noopener">Hybrid benchmarking of quantum
@@ -501,8 +503,9 @@
         in linear programming</a></b>
         <span>arXiv:2604.24362.</span></li>
     </ul>
-
-    <p class="refhead">The quantum results they are built on</p>
+      </div>
+      <div>
+    <p class="refhead">Works built upon: the results those rest on</p>
     <ul class="refs">
       <li><b><a href="https://doi.org/10.1287/opre.2022.2341" target="_blank" rel="noopener">Fast quantum subroutines for the simplex method</a></b>
         <span>Operations Research, 2022. The pricing, ratio-test and optimality
@@ -532,7 +535,6 @@
       <li><b><a href="https://arxiv.org/abs/2305.11352" target="_blank" rel="noopener">A shortcut to an optimal quantum linear system solver</a></b>
         <span>arXiv:2305.11352.</span></li>
     </ul>
-
     <p class="refhead">The classical side, which is what actually runs here</p>
     <ul class="refs">
       <li><b>Maximum flow by blocking flows</b>
@@ -547,13 +549,14 @@
           quadratic set; OR-Library for the multidimensional one; Matrix Market
           for linear systems; MPS for linear programmes.</span></li>
     </ul>
+      </div>
+    </div>
 
     <p class="meta">Every number that comes out carries where it came from:
       which lemma, what it assumes, the regime it was derived in, and whether it
       is a bound or exact. A plausible number without that is the thing this
       tool exists to prevent. Nothing leaves this machine: the page loads nothing
       from the internet, and no file you point it at is uploaded anywhere.</p>
-    </div>
   </article>
   <article id="detail" hidden><p class="none">Loading the registry…</p></article>
   <article id="builder" hidden></article>
