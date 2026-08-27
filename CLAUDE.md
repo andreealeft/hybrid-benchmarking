@@ -326,9 +326,15 @@ so the likely reading is that the abstract's claim is about the instances where
 the functional assumptions hold exactly. Andreea's to rule on; the caption
 currently states it per data set.
 
-One agent claim was wrong and is corrected in the data: instance generation is
-seeded from the answers, so a repeated request reproduces the same instance and
-the same numbers. Verified rather than assumed.
+**Determinism was broken and is now fixed.** `synthesise._seed` built its seed
+from `hash(key)` over strings, and Python salts string hashing per process: the
+same answers repeated within one run of the server and produced a *different*
+instance in every new process, so the command line and the server disagreed.
+Found by an agent while sweeping network sizes, verified here, and fixed by
+seeding from `zlib.crc32` of a canonical form of the answers. The promise is
+that a number does not wobble between two askings, which has to hold across
+processes or it is not a promise; `tests/test_beginner.py` now checks it by
+running two interpreters.
 
 ## Names, and the problems under them
 
@@ -674,4 +680,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2517 tests.
+interface and a CLI. 2520 tests.

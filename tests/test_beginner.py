@@ -194,3 +194,42 @@ class TestOverTheInterface:
              shown["snippet"].split("\n\n")[1], namespace)
         assert [r.get("total") for r in namespace["out"]["routes"]] == \
             [r.get("total") for r in shown["routes"]]
+
+
+class TestTheSameAnswersGiveTheSameInstance:
+    """Determinism has to survive leaving the process.
+
+    It did not: the seed was ``hash`` of the answers, Python salts string
+    hashing per process, and so the web server repeated itself while the
+    command line did not.  A number that wobbles between two askings is worse
+    than no number, because somebody will average them.
+    """
+
+    def test_within_one_process(self):
+        from hybrid_benchmarking.classical.synthesise import build
+
+        first = build("maximum-flow", {"things": "200", "links": "600"})
+        second = build("maximum-flow", {"things": "200", "links": "600"})
+        assert first.arcs == second.arcs
+
+    def test_and_across_two_of_them(self):
+        import subprocess
+        import sys
+
+        script = (
+            "import warnings; warnings.filterwarnings('ignore');"
+            "from hybrid_benchmarking.classical.synthesise import build;"
+            "print(build('maximum-flow', {'things': '200', 'links': '600'})"
+            ".arcs[:4])"
+        )
+        runs = {subprocess.run([sys.executable, "-c", script],
+                               capture_output=True, text=True).stdout
+                for _ in range(3)}
+        assert len(runs) == 1, runs
+
+    def test_different_answers_give_different_instances(self):
+        from hybrid_benchmarking.classical.synthesise import build
+
+        first = build("maximum-flow", {"things": "200", "links": "600"})
+        second = build("maximum-flow", {"things": "201", "links": "600"})
+        assert first.arcs != second.arcs

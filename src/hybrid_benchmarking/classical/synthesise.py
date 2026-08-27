@@ -24,6 +24,7 @@ average them.  The seed is derived from the answers themselves.
 from __future__ import annotations
 
 import random
+import zlib
 from typing import Any, Dict, List, Tuple
 
 from ..instances import (
@@ -57,9 +58,19 @@ _VALUE_RANGE = (1, 100)
 
 
 def _seed(problem: str, values: Dict[str, Any]) -> random.Random:
-    """A generator fixed by the answers, so the same answers give one instance."""
-    key = (problem,) + tuple(sorted((k, str(v)) for k, v in values.items()))
-    return random.Random(hash(key) & 0xFFFFFFFF)
+    """A generator fixed by the answers, so the same answers give one instance.
+
+    The seed is a checksum of the answers rather than ``hash`` of them, and the
+    difference is not cosmetic: Python salts string hashing per process, so the
+    old version repeated within one run of the server and produced a different
+    instance in every new one.  The determinism this promises is the reason a
+    number here does not wobble between two askings, so it has to hold across
+    processes, not merely within one.
+    """
+    key = "|".join([problem] + ["{}={}".format(name, value) for name, value
+                                in sorted((str(k), str(v))
+                                          for k, v in values.items())])
+    return random.Random(zlib.crc32(key.encode("utf-8")))
 
 
 def _count(values: Dict[str, Any], name: str, least: int = 1) -> int:
