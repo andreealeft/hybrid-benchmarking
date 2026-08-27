@@ -731,10 +731,32 @@ so it is unlinked from everywhere. Delete the branch and turn off Pages if it
 is ever in the way.
 
 **Figures are rendered and looked at, not merely parsed.** Substitute the
-palette into the SVG, `qlmanage -t` it, and read the PNG. Two faults surfaced
+palette into the SVG, `qlmanage -t` it, and read the PNG. Three faults surfaced
 that way and would not have otherwise: swatches struck through centred labels,
-and a legend landed on top of a label it had replaced. The scratchpad script
-that does it is worth rebuilding rather than working blind.
+a legend landed on top of a label it had replaced, and the classical curve of
+the variants figure ran through the tail of the name of the other one. The
+scratchpad script that does it is worth rebuilding rather than working blind,
+and two things about it are worth getting right, because both cost a wrong
+conclusion: give the standalone file an `xmlns`, or Quick Look renders the
+markup as text rather than as a drawing, and paint the background `--surface`
+rather than `--ground`, because the figures sit on a card — paint the page
+ground and a perfectly correct masking rect reads as a white scar across the
+chart.
+
+**Every key is now named in its own colour, and that is a test rather than a
+habit.** `test_a_key_is_named_in_its_own_colour` walks each figure and holds
+every legend swatch and reference rule to the rule the last three commits kept
+re-establishing by hand. It excludes the data marks themselves, since the bar
+chart's group headings follow its last bar in document order and are headings
+rather than series names. The two the rule had never reached were the two that
+are not line charts: the linear-solver bars, where the four names were in plain
+ink, and the simplex bands, where the record line was introduced in grey. It
+also caught a fourth nobody had looked at, the variants figure's crossover
+annotation.
+
+The variants legend moved out of the left panel and under both of them, which
+is where a legend describing two panels belongs: stacked in the corner it had
+nowhere to go, the band between the two curves being eleven points tall.
 
 ## Installed by a pasted line, and kept current by itself
 
@@ -796,4 +818,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2548 tests.
+interface and a CLI. 2554 tests.
