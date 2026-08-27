@@ -315,7 +315,19 @@ knapsack figure was digitised from the published figure's own source PDF in
 computed from `qls-comparison`'s `queries.csv` rather than from the paper's
 plots.
 
-**That computation turned up a discrepancy worth resolving.** On the 10,233
+**The knapsack variants figure is digitised from the paper's own figure 2**,
+which plots quantum tree generator runtime against Gurobi runtime for both
+variants: 4416 vector markers read out of the PDF, mapped through the gridlines,
+with marker area giving the instance size and marker colour the gap to the best
+known bound. Two things came out of that reading and both are the author's to
+confirm. **The colourbar is inverted** relative to the natural reading, yellow
+being a zero gap; the corrected decoding is what reproduces the paper's own
+Discussion. And **the Results paragraph and the Discussion disagree** on where
+the quadratic advantage is largest, Results saying larger optimality gaps and
+Discussion saying smaller; the digitised data agrees with the Discussion, median
+ratio 129 near a zero gap against 53 above a hundred percent.
+
+**A second computation turned up a discrepancy worth resolving.** On the 10,233
 simplex-derived systems, Chebyshev is the cheapest solver in **100 %** of rows
 and QSVT is third, where the paper's abstract reports the QSVT method as the
 best performer. Independently re-checked here on the raw file, with the
