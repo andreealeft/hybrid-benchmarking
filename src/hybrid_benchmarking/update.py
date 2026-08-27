@@ -216,8 +216,15 @@ def check_and_update(announce=None) -> Optional[str]:
         return None
 
     # Only now is it worth a second request: this is the rare launch, and the
-    # number is for the person watching rather than for the decision.
-    name = latest() or target[:7]
+    # number is for the person watching rather than for the decision.  Most
+    # updates no longer move the version, so saying "updating to 0.2.3" twice
+    # running would read in the log like something stuck in a loop.  Name the
+    # version when it is the thing that changed, and the commit when it is not.
+    version = latest()
+    if version and newer(version, installed()):
+        name = version
+    else:
+        name = target[:7] if re.fullmatch(r"[0-9a-f]{7,40}", target) else target
     if announce:
         announce("Updating to {}.".format(name))
 
