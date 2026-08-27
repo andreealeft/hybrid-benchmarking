@@ -749,6 +749,28 @@ Checked by counting animation frames in the tab rather than by reading the
 code: frames advance only when the thread is free, so a frame between the two
 messages is a frame that was rendered with the first one on screen.
 
+**And it is held for nine hundred milliseconds, because a message nobody can
+read is not a message.** A small instance is costed in about three hundred, and
+a line that appears and is gone inside a third of a second reads as the button
+having done nothing, which is the complaint the banner was added to answer. A
+fast run is therefore reported very slightly after it finished. Nothing waits
+to start, and the results are not held back by more than the remainder of that
+window.
+
+**A third cache, and the same answer as the other two.** GitHub Pages sends
+`cache-control: max-age=600` with no revalidation on every file and cannot be
+told otherwise, since a branch build has no headers to set. A browser with the
+page already open keeps running the old `boot.js` for ten minutes without ever
+asking whether there is a new one, so the first version of this went out
+looking perfect from the outside: pushed, live, the new file confirmed by
+fetching it, and the old behaviour still on the screen of the person who had
+the tab open. `pages/build.sh` now names the script by a hash of its content,
+`boot.js?v=...`, so a changed script is a URL no cache has seen, and it writes
+`boot.js` before the page that has to name it. The wheel is still fetched by a
+name that only moves when the version does, which is the same shape of trap one
+level down: **that one is unfixed and is yours to rule on**, since busting it
+means putting a query on the URL `micropip.install` is given.
+
 **Figures are rendered and looked at, not merely parsed.** Substitute the
 palette into the SVG, `qlmanage -t` it, and read the PNG. Three faults surfaced
 that way and would not have otherwise: swatches struck through centred labels,

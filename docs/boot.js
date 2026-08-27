@@ -122,12 +122,26 @@
       /* The GETs are lists and forms and return in a blink; announcing those
          would flash a banner on every keystroke in the search box. */
       var computing = method !== "GET";
-      if (computing) { say(working(path)); await paint(); }
+      var began = 0;
+      if (computing) { say(working(path)); began = Date.now(); await paint(); }
       py.globals.set("REQ_PATH", path);
       py.globals.set("REQ_METHOD", method);
       py.globals.set("REQ_BODY", typeof body === "string" ? body : "");
       var answer = py.runPython("api.handle(REQ_PATH, REQ_METHOD, REQ_BODY)");
-      if (computing) { say("Done!", true); }
+
+      /* Held for long enough to be read.  A small instance is costed in about
+         three hundred milliseconds, and a message that appears and is replaced
+         inside a third of a second is one nobody can report having seen: it
+         reads as the button doing nothing at all, which is the complaint this
+         was meant to answer.  The cost is that a fast run is reported a little
+         after it was finished, never that it waits to start. */
+      if (computing) {
+        var left = 900 - (Date.now() - began);
+        if (left > 0) {
+          await new Promise(function (ok) { setTimeout(ok, left); });
+        }
+        say("Done!", true);
+      }
       return new Response(answer,
         { status: 200, headers: { "Content-Type": "application/json" } });
     }).catch(function (error) {
