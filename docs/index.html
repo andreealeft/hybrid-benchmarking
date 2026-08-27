@@ -1,0 +1,1461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hybrid-benchmarking</title>
+<style>
+  /* Blue against orange, from the second Dopely card.
+
+     The card gives a family rather than five separate colours: a pale cyan, a
+     mid blue, a deep navy, a gold and an orange.  So the blue does two jobs at
+     two depths and the warm pair does the other two.
+
+     The navy is taken below the card's own middle shade, to #032c42, and the
+     ink is pulled off the blue axis to a neutral #14181e so that the navy
+     still reads as a colour beside it rather than as another black.
+
+     The deep navy does both the identity and the controls: the rule beside a
+     result, the quantum bar, the drawings, and then the buttons, field labels,
+     focus, links and section headings.  The mid blue the card offers was
+     tried in the control role and was too light to hold a page down, so the
+     blue is one shade rather than two and the weight comes from it.  Orange is *what was measured*, the
+     classical bar the quantum one is set against, and the chosen problem in
+     the menu.  Gold is the cautions, near enough to the orange to belong and
+     far enough to be told apart in a panel of its own.
+
+     Both warm colours are darkened for the light theme, where the card's own
+     values are too pale to read as text on white, and restored at full
+     strength on the dark ground.  Both themes are written out rather than one
+     being left to inherit, because the drawings are painted in these variables
+     and a colour that resolved to nothing would leave a blank panel. */
+  :root {
+    --ground: #f8fafb; --surface: #ffffff; --sunk: #edf2f5;
+    --ink: #14181e; --muted: #4a5560; --faint: #7d8792;
+    --rule: #d9e0e6; --accent: #032c42; --accent-soft: #e3eef4;
+    --act: #032c42; --act-soft: #e6f2f7;
+    --good: #c26608; --good-soft: #fdeedd;
+    --warn: #a6720a; --warn-soft: #fdf2dc;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0b1218; --surface: #121c23; --sunk: #18242c;
+      --ink: #eef6fa; --muted: #a3b8c2; --faint: #7a8f9a;
+      --rule: #24343e; --accent: #9fe7f5; --accent-soft: #0d2a38;
+      --act: #58a6cc; --act-soft: #10222e;
+      --good: #f27f0c; --good-soft: #2b1a0c;
+      --warn: #f7ad19; --warn-soft: #2c2210;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* A title bar, not a banner: it names the tool and then gets out of the way,
+     since everything worth reading is below it. */
+  header {
+    padding: .45rem 1.1rem; border-bottom: 1px solid var(--rule);
+    display: flex; align-items: baseline; gap: .7rem; flex-wrap: wrap;
+    background: var(--surface);
+  }
+  header h1 { font-family: var(--mono); font-size: .85rem; font-weight: 600; margin: 0; }
+  header p { margin: 0; color: var(--faint); font-size: .74rem; }
+  .brand { font-size: .85rem; }
+  /* The menu takes a share of the width rather than a fixed slab, and the
+     content column is allowed to grow: a fixed 900px article on a wide screen
+     left the figures rendering at a third of their size. */
+  main { display: grid; grid-template-columns: 1fr; gap: 0; min-height: calc(100vh - 38px); }
+  @media (min-width: 900px) {
+    main { grid-template-columns: clamp(230px, 20vw, 320px) minmax(0, 1fr); }
+  }
+
+  /* ---- list ---- */
+  nav { border-right: 1px solid var(--rule); background: var(--surface); padding: .9rem; }
+  #filter {
+    width: 100%; padding: .5rem .65rem; font: inherit; color: var(--ink);
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
+  }
+  #filter:focus { outline: 2px solid var(--act); outline-offset: 1px; }
+  ul { list-style: none; margin: .8rem 0 0; padding: 0; }
+  li button {
+    width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+    font: inherit; color: var(--ink); padding: .4rem .55rem; border-radius: 4px;
+    display: flex; justify-content: space-between; gap: .5rem; align-items: baseline;
+  }
+  li button:hover { background: var(--sunk); }
+  /* headings: nine groups of names, cutting across the families on purpose --
+     grouping by family would put siting a satellite next to siting a charging
+     point and give away that they are one problem. */
+  #list details { margin: 0 0 .15rem; }
+  #list summary {
+    cursor: pointer; list-style: none; padding: .35rem .55rem; border-radius: 4px;
+    font-size: .8rem; letter-spacing: .01em; color: var(--faint);
+    display: flex; justify-content: space-between; gap: .5rem; align-items: baseline;
+  }
+  #list summary::-webkit-details-marker { display: none; }
+  #list summary:hover { background: var(--sunk); color: var(--ink); }
+  #list details[open] > summary { color: var(--ink); font-weight: 600; }
+  #list summary .count { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
+  #list details ul { margin: .1rem 0 .5rem; }
+  #list details li button { padding-left: 1.1rem; }
+  /* The chosen problem is marked in amber, not in pink.  Pink is loud enough
+     that a highlight in it dominated the whole left column while somebody was
+     still looking for their problem, which is the one moment the menu should
+     be quieter than the page. */
+  li button[aria-current="true"] { background: var(--good-soft); color: var(--good); font-weight: 600; }
+  li button span { font-family: var(--mono); font-size: .78rem; color: var(--faint); }
+  li button[aria-current="true"] span { color: var(--good); }
+
+  /* ---- detail ---- */
+  article {
+    padding: clamp(1rem, 1.8vw, 2rem) clamp(1rem, 2.2vw, 2.4rem) 4rem;
+    max-width: 1240px; min-width: 0;
+  }
+  h2 { font-family: var(--mono); font-size: 1.25rem; margin: 0 0 .35rem; font-weight: 600; }
+  .summary { color: var(--muted); margin: 0 0 1.2rem; }
+  h3 {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--act); margin: 1.6rem 0 .55rem; font-weight: 700;
+  }
+  .tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .tabs button {
+    font: inherit; font-size: .82rem; padding: .3rem .7rem; cursor: pointer;
+    background: var(--surface); color: var(--muted);
+    border: 1px solid var(--rule); border-radius: 999px;
+  }
+  .tabs button[aria-pressed="true"] {
+    background: var(--act); border-color: var(--act); color: var(--ground);
+  }
+  pre {
+    background: var(--sunk); border: 1px solid var(--rule); border-radius: 5px;
+    padding: .8rem .9rem; overflow-x: auto; font-family: var(--mono);
+    font-size: .8rem; margin: 0 0 1rem; line-height: 1.45;
+  }
+  .meta { font-size: .82rem; color: var(--muted); margin: 0 0 .5rem; }
+  .meta b { color: var(--ink); font-weight: 600; }
+  ul.notes { margin: 0 0 1rem; padding-left: 1.1rem; color: var(--muted); font-size: .85rem; }
+  ul.notes li { margin-bottom: .25rem; }
+  .pill {
+    display: inline-block; font-size: .72rem; padding: .12rem .5rem; border-radius: 999px;
+    background: var(--sunk); color: var(--muted); font-family: var(--mono);
+  }
+  .pill.hard { background: var(--warn-soft); color: var(--warn); }
+
+  /* ---- form ---- */
+  form { display: grid; gap: .7rem; margin-bottom: 1rem; }
+  .field { display: grid; grid-template-columns: 1fr; gap: .2rem; }
+  @media (min-width: 620px) { .field { grid-template-columns: 170px 1fr; align-items: center; gap: .8rem; } }
+  .field label { font-family: var(--mono); font-size: .82rem; color: var(--act); }
+  .field input {
+    font: inherit; font-family: var(--mono); font-size: .84rem; padding: .4rem .55rem;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 4px; width: 100%;
+  }
+  .field input:focus { outline: 2px solid var(--act); outline-offset: 1px; }
+  .actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  button.primary {
+    font: inherit; font-weight: 600; padding: .45rem 1.1rem; cursor: pointer;
+    background: var(--act); color: var(--ground);
+    border: 1px solid var(--act); border-radius: 4px;
+  }
+  button.ghost {
+    font: inherit; padding: .45rem .9rem; cursor: pointer; color: var(--muted);
+    background: none; border: 1px solid var(--rule); border-radius: 4px;
+  }
+
+  /* ---- result ---- */
+  .result { border-left: 3px solid var(--accent); background: var(--surface); padding: .9rem 1.1rem; margin-bottom: 1rem; }
+  .result.bad { border-left-color: var(--warn); background: var(--warn-soft); }
+  .value { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; }
+  .value small { font-size: .8rem; font-weight: 400; color: var(--muted); margin-left: .4rem; }
+  .warn { color: var(--warn); font-size: .85rem; margin: .5rem 0 0; }
+  /* The hand-logging path, folded away where the instance form can do the job.
+     Still one click, because plenty of people arrive already holding a log. */
+  details.secondary { margin-top: 1.6rem; border-top: 1px solid var(--rule);
+    padding-top: .8rem; }
+  details.secondary > summary { cursor: pointer; font-size: .85rem;
+    color: var(--muted); }
+  details.secondary[open] > summary { margin-bottom: .6rem; }
+  .none { color: var(--faint); font-style: italic; }
+  /* Side by side, never summed: the columns describe four analyses, and the
+     units below them are what stops anyone reading them as a ranking. */
+  .parallel { display: grid; gap: .7rem; margin-bottom: 1rem;
+    grid-template-columns: 1fr; }
+  @media (min-width: 720px) {
+    .parallel { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
+  }
+  .parallel .column {
+    border: 1px solid var(--rule); border-top: 3px solid var(--accent);
+    border-radius: 0 0 6px 6px; background: var(--surface); padding: .8rem .9rem;
+  }
+  .parallel .column.bad { border-top-color: var(--warn); }
+  .parallel .column h4 { margin: 0 0 .5rem; font-size: .9rem; }
+  .parallel .column .value { font-size: 1.35rem; }
+  .parallel .column .unit { margin: 0 0 .5rem; font-size: .8rem;
+    color: var(--muted); font-family: var(--mono); }
+  .parallel .column details { font-size: .8rem; color: var(--muted); }
+  .parallel .column summary { cursor: pointer; }
+  .term {
+    border: 1px solid var(--rule); border-radius: 6px; background: var(--surface);
+    padding: .8rem .9rem; margin-bottom: .6rem;
+  }
+  .term .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+  select {
+    font: inherit; font-family: var(--mono); font-size: .82rem; padding: .35rem .5rem;
+    background: var(--ground); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 4px; max-width: 100%;
+  }
+  select:focus { outline: 2px solid var(--act); outline-offset: 1px; }
+  .slot {
+    margin: .55rem 0 0 1rem; padding-left: .8rem;
+    border-left: 2px solid var(--accent-soft);
+  }
+  .slot > .label {
+    font-family: var(--mono); font-size: .76rem; color: var(--act);
+    display: block; margin-bottom: .3rem;
+  }
+  .drop { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; }
+  .drop:hover { color: var(--warn); }
+  .op { font-family: var(--mono); color: var(--faint); margin: 0 0 .6rem; }
+  .route {
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0; background: var(--surface);
+    padding: .9rem 1.1rem; margin-bottom: .7rem; cursor: pointer;
+  }
+  .route[aria-pressed="true"] { background: var(--accent-soft); }
+  .route h4 { margin: 0 0 .3rem; font-size: .95rem; }
+  .route p { margin: 0 0 .4rem; color: var(--muted); font-size: .87rem; }
+  .route .model { color: var(--warn); font-size: .82rem; margin: 0; }
+  .caution {
+    border-left: 3px solid var(--warn); background: var(--warn-soft);
+    padding: .8rem 1rem; margin: 0 0 1.2rem; font-size: .87rem;
+  }
+  textarea {
+    font-family: var(--mono); font-size: .8rem; width: 100%; min-height: 7rem;
+    padding: .6rem; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 4px; resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--act); outline-offset: 1px; }
+  .sub { color: var(--faint); font-size: .8rem; font-family: var(--mono); }
+
+  /* ---- the introduction ---- */
+  #welcome { max-width: 1180px; }
+  /* One rule, everywhere: prose fills whatever holds it, and the holder does
+     the constraining.  Cards, panels and the two reference columns are narrow
+     already; a measure cap on top of them narrows the text twice, and on a
+     paragraph with nothing beside it leaves half a wide screen empty. */
+  .hero h2 {
+    font-family: var(--sans); font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+    line-height: 1.25; font-weight: 600; margin: .4rem 0 .7rem;
+  }
+  .lede { font-size: 1rem; color: var(--muted); margin: 0 0 1rem; }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .kicker {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--accent); font-weight: 700;
+  }
+  .cards { display: grid; gap: .7rem; margin: .4rem 0 1.4rem; }
+  @media (min-width: 700px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+  .card {
+    border: 1px solid var(--rule); border-radius: 6px; background: var(--surface);
+    padding: .8rem .9rem;
+  }
+  .card h4 {
+    margin: 0 0 .3rem; font-size: .95rem; font-family: var(--mono);
+    font-weight: 600; color: var(--accent);
+  }
+  .card p { margin: 0; font-size: .85rem; color: var(--muted); }
+  .steps { display: grid; gap: .8rem; margin: .4rem 0 1.4rem; }
+  @media (min-width: 860px) { .steps { grid-template-columns: 1fr 1fr; } }
+  .step {
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0; background: var(--surface); padding: .9rem 1.1rem;
+  }
+  .step.real { border-left-color: var(--good); }
+  .step h4 { margin: 0 0 .35rem; font-size: .95rem; }
+  .step p { margin: 0 0 .4rem; color: var(--muted); font-size: .88rem; }
+  .step p:last-child { margin-bottom: 0; }
+  .step .tag {
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
+    font-weight: 700; color: var(--good);
+  }
+  /* Two columns with names on them: what the library reimplements, and what
+     those works themselves stand on.  A single list of seventeen entries read
+     as one undifferentiated pile. */
+  .refcols { display: grid; gap: .2rem 2rem; margin-bottom: 1rem; }
+  @media (min-width: 900px) { .refcols { grid-template-columns: 1fr 1fr; } }
+  .refhead {
+    font-weight: 600; font-size: .88rem; margin: 1.1rem 0 .35rem; color: var(--ink);
+  }
+  .refcols > div > .refhead:first-child { margin-top: .2rem; }
+  ul.refs { list-style: none; margin: 0 0 .4rem; padding: 0; }
+  ul.refs li {
+    padding: .45rem 0 .45rem .8rem; border-left: 2px solid var(--rule);
+    margin-bottom: .3rem; break-inside: avoid;
+  }
+  ul.refs li b { display: block; font-weight: 600; font-size: .89rem; }
+  ul.refs a { color: var(--act); text-decoration: none; }
+  ul.refs a:hover { text-decoration: underline; }
+  ul.refs li span {
+    display: block; color: var(--muted); font-size: .84rem; margin-top: .1rem;
+  }
+  /* the situation: a drawing of the problem, and a paragraph about it */
+  .situation {
+    display: grid; gap: .9rem; align-items: start; margin: 0 0 1.2rem;
+    padding: .9rem 1rem; border: 1px solid var(--rule); border-radius: 6px;
+    background: var(--surface);
+  }
+  @media (min-width: 720px) {
+    .situation { grid-template-columns: minmax(240px, 34%) 1fr; }
+  }
+  .picture { margin: 0; }
+  .picture svg { width: 100%; height: auto; display: block; }
+  .story { margin: 0; color: var(--ink); font-size: .93rem; }
+  .lede.wide { max-width: none; }
+
+  /* The published results: one box, and inside it one row per study, the
+     drawing on the left and a couple of lines about it on the right.  Six
+     separate cards read as six separate claims; they are one body of work. */
+  #findings {
+    border: 1px solid var(--rule); border-radius: 6px; background: var(--surface);
+    margin: .3rem 0 1.4rem; overflow: hidden;
+  }
+  .finding { padding: .9rem 1rem; border-top: 1px solid var(--rule); }
+  .finding:first-child { border-top: 0; }
+  @media (min-width: 720px) {
+    .finding { display: grid; grid-template-columns: minmax(320px, 44%) 1fr;
+      gap: 1.2rem; align-items: start; }
+  }
+  @media (min-width: 1180px) {
+    .finding { grid-template-columns: minmax(420px, 50%) 1fr; }
+  }
+  /* Any chart can be opened to the full width of the box, because a figure
+     with axis labels on it is only useful at a size where they can be read. */
+  .finding .plot { cursor: zoom-in; }
+  .finding.open { grid-template-columns: 1fr; }
+  .finding.open .plot { cursor: zoom-out; }
+  .finding .zoom {
+    font-size: .72rem; color: var(--faint); margin: .15rem 0 0;
+    font-family: var(--mono);
+  }
+  .finding .plot svg { width: 100%; height: auto; display: block; }
+  .finding h4 { margin: 0 0 .25rem; font-size: .9rem; }
+  .finding p { margin: 0 0 .35rem; font-size: .84rem; color: var(--muted); }
+  .finding .sources { font-size: .76rem; margin: 0; }
+  .finding .sources a { color: var(--act); text-decoration: none; }
+  .finding .sources a:hover { text-decoration: underline; }
+  .finding .sources span { color: var(--faint); margin: 0 .3rem; }
+  .kind {
+    display: inline-block; font-size: .68rem; letter-spacing: .04em;
+    text-transform: uppercase; font-weight: 700; padding: .1rem .45rem;
+    border-radius: 3px; vertical-align: .1rem; margin-left: .4rem;
+  }
+  /* Only a schematic is labelled.  A figure whose values are real is the
+     ordinary case and does not need a badge saying so; the method behind
+     "how this was made" says it for anyone who wants it. */
+  .kind.schematic { background: var(--warn-soft); color: var(--warn); }
+  .chart { margin: .2rem 0 .6rem; }
+  .timelegend { display: grid; gap: .45rem; margin-bottom: 1rem; }
+  .timerow { font-size: .84rem; }
+  .timerow b { font-weight: 600; }
+  .timerow em { display: block; color: var(--muted); font-style: normal;
+    font-size: .82rem; }
+  .swatch { padding: .05rem .3rem; border-radius: 3px; }
+  .swatch.q { background: var(--accent-soft); color: var(--accent); }
+  .swatch.c { background: var(--sunk); color: var(--good); }
+  .brand {
+    font: inherit; font-family: var(--mono); font-size: 1rem; font-weight: 600;
+    background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+    color: var(--ink);
+  }
+  .brand:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1><button class="brand" id="home" title="Back to the introduction"
+      >hybrid-benchmarking</button></h1>
+  <p>Resource estimates</p>
+  <!-- One mode is on the menu, so the bar itself is off it.  The buttons stay
+       in the document: the handler, and anything that restores them, work. -->
+  <div class="tabs" id="modes" style="margin-left:auto" hidden>
+    <button data-mode="problems" aria-pressed="true">Problems</button>
+    <!-- Build and Subroutines are the registry's own view: still served, still
+         reachable by URL, but off the menu for now.  Restore by unhiding. -->
+    <button data-mode="build" aria-pressed="false" hidden>Build</button>
+    <button data-mode="browse" aria-pressed="false" hidden>Subroutines</button>
+  </div>
+</header>
+
+<main>
+  <nav>
+    <input id="filter" type="search" placeholder="Search the problems" autocomplete="off">
+    <ul id="list"></ul>
+  </nav>
+  <article id="welcome">
+    <div class="hero">
+      <span class="kicker">Resource estimates, fault-tolerant regime</span>
+      <h2>What a quantum computer could ideally do, before there is one.</h2>
+      <p class="lede">This gives you a <b>lower bound</b> on the cost of running
+        a few quantum algorithms on a problem like yours: specifically, the
+        ones that promise better asymptotic scaling than the classical methods
+        they replace.</p>
+      <p class="lede">Nothing here is simulated, and no quantum hardware is
+        involved. The numbers come from the published algorithmic analyses,
+        beyond complexity theory, so with prefactors, evaluated for actual
+        problem sizes.</p>
+    </div>
+
+    <h3>Counted in three things</h3>
+    <div class="cards">
+      <div class="card"><h4>Gates</h4>
+        <p>Sum up all 1-qubit, 2-qubit and Toffoli gates in the circuit.</p></div>
+      <div class="card"><h4>Cycles</h4>
+        <p>Number of layers of gates, assuming gates in the same layer can run
+          in parallel.</p></div>
+      <div class="card"><h4>Queries</h4>
+        <p>How often the algorithm has to ask for information from the
+          input.</p></div>
+    </div>
+    <p class="meta"><b>Which gates?</b> The model: single-qubit gates,
+      two-qubit controlled rotations and Toffoli each count as one. Cycles use
+      the same model, with gates on disjoint qubits sharing a cycle and
+      multi-controlled gates sharing one ancilla register.</p>
+    <p class="meta">This is not a Clifford+T count. A Toffoli is one gate here,
+      where a fault-tolerant implementation of it costs several T gates and the
+      magic states behind them. So these are <b>logical</b> operations, without
+      error correction assumed: its cost would add on top of every result you
+      see here.</p>
+
+    <h3>Two ways in</h3>
+    <div class="steps">
+      <div class="step">
+        <h4>Describe your problem in simple numbers</h4>
+        <p>How many employees, how many delivery stops, how much room in the
+          van. Those answers are mapped onto a model instance of that shape, the
+          classical algorithm is run on it here, and every method is costed on
+          the same instance.</p>
+        <p>Good for a sense of the magnitude, and for seeing which method the
+          size of your problem favours. It is a problem <em>like</em> yours.</p>
+      </div>
+      <div class="step real">
+        <span class="tag">the real thing</span>
+        <h4>Use a data file of your own</h4>
+        <p>For now this is restricted to certain formats. For an advanced user,
+          going directly through the code is the better route if anything in
+          this interface gets in the way.</p>
+        <p>The counts actually depend on the structure of the problem: how
+          ill-conditioned the matrix is, how many columns improve at each step,
+          how deep the layers go, and so on. So the file is read, and the
+          classical algorithm runs here with the analytical resource estimates
+          built in.</p>
+      </div>
+    </div>
+
+    <h3>What these studies found</h3>
+    <p class="lede">Each of these asks the same question of a different
+    method: how fast would a quantum computer have to be before it beat the
+    program people run today? The last one is the exception, and compares four
+    quantum methods with each other. Every chart links to the paper it came
+    from, and says behind it how the values were obtained.</p>
+    <div id="findings"><p class="none">Loading the results…</p></div>
+
+    <h3>Where to start</h3>
+    <p class="lede wide">Pick your problem from the menu on the left. Seventy-one of
+      them, grouped by the kind of task rather than by the mathematics: choosing
+      what to fund, deciding where to put things, avoiding clashes. If none is
+      exactly yours, take the closest: several of those names are the same
+      problem underneath, so approximately right is usually right.</p>
+
+    <h3>Where this comes from</h3>
+    <p class="lede">Everything here is <b>reimplemented from the published
+      statements</b>: the lemma, not somebody's code. The original repositories
+      are used to check the results against, never copied from. These are the
+      works that were read.</p>
+
+    <div class="refcols">
+      <div>
+    <p class="refhead">Works used: the analyses this reimplements</p>
+    <ul class="refs">
+      <li><b><a href="https://repo.uni-hannover.de/items/c6ec36d6-7ade-42c5-871e-ff5bb13b6c79" target="_blank" rel="noopener">Hybrid benchmarking of quantum algorithms</a></b>
+        <span>Lefterovici. PhD thesis, Gottfried Wilhelm Leibniz Universität Hannover, 2026</span></li>
+      <li><b><a href="https://arxiv.org/abs/2311.09995" target="_blank" rel="noopener">Realistic runtime analysis for quantum simplex computation</a></b>
+        <span>Ammann, Hess, Ramacciotti, Fekete, Goedicke, Gross, Lefterovici, Osborne, Perk, Rotundo, Skelton, Stiller and de Wolff. arXiv:2311.09995, 2023</span></li>
+      <li><b><a href="https://arxiv.org/abs/2503.21420" target="_blank" rel="noopener">Beyond asymptotic scaling: comparing functional quantum linear solvers</a></b>
+        <span>Lefterovici, Perk, Ramacciotti, Rotundo, Skelton and Steinbach. IEEE Transactions on Quantum Engineering, 2026</span></li>
+      <li><b><a href="https://www.nature.com/articles/s41534-025-01097-8" target="_blank" rel="noopener">A quantum algorithm for solving 0-1 Knapsack problems</a></b>
+        <span>Wilkening, Lefterovici, Binkowski, Perk, Fekete and Osborne. npj Quantum Information 11, 146, 2025</span></li>
+      <li><b><a href="https://ieeexplore.ieee.org/document/11250149" target="_blank" rel="noopener">A quantum search method for quadratic and multidimensional knapsack problems</a></b>
+        <span>Wilkening, Lefterovici, Binkowski, Funck, Perk, Karimov, Fekete and Osborne. IEEE Quantum Computing and Engineering, 2025, pages 2209 to 2215</span></li>
+      <li><b><a href="https://arxiv.org/abs/2604.24962" target="_blank" rel="noopener">Use case study: benchmarking quantum breadth-first search for maximum flow problems</a></b>
+        <span>Lefterovici, Lelakowski and Perk. arXiv:2604.24962, 2026</span></li>
+      <li><b><a href="https://arxiv.org/abs/2604.24362" target="_blank" rel="noopener">Practical lower bounds for hybrid quantum interior point methods in linear programming</a></b>
+        <span>Binkowski. arXiv:2604.24362, 2026</span></li>
+    </ul>
+      </div>
+      <div>
+    <p class="refhead">Works built upon: the results those rest on</p>
+    <ul class="refs">
+      <li><b><a href="https://doi.org/10.1287/opre.2022.2341" target="_blank" rel="noopener">Fast quantum subroutines for the simplex method</a></b>
+        <span>Nannicini. Operations Research, 2022</span></li>
+      <li><b><a href="https://arxiv.org/abs/quant-ph/9605034" target="_blank" rel="noopener">Tight bounds on quantum searching</a></b>
+        <span>Boyer, Brassard, Høyer and Tapp. Fortschritte der Physik 46, 493, 1998</span></li>
+      <li><b><a href="https://doi.org/10.1090/conm/305/05215" target="_blank" rel="noopener">Quantum amplitude amplification and estimation</a></b>
+        <span>Brassard, Høyer, Mosca and Tapp. Contemporary Mathematics 305, 53, 2002</span></li>
+      <li><b><a href="https://doi.org/10.1103/PhysRevLett.103.150502" target="_blank" rel="noopener">Quantum algorithm for linear systems of equations</a></b>
+        <span>Harrow, Hassidim and Lloyd. Physical Review Letters 103, 150502, 2009</span></li>
+      <li><b><a href="https://doi.org/10.1137/16M1087072" target="_blank" rel="noopener">Quantum algorithm for systems of linear equations with exponentially improved dependence on precision</a></b>
+        <span>Childs, Kothari and Somma. SIAM Journal on Computing 46(6), 1920 to 1950, 2017</span></li>
+      <li><b><a href="https://doi.org/10.1145/3313276.3316366" target="_blank" rel="noopener">Quantum singular value transformation and beyond</a></b>
+        <span>Gilyén, Su, Low and Wiebe. Symposium on Theory of Computing, 2019</span></li>
+      <li><b><a href="https://doi.org/10.22331/q-2019-07-12-163" target="_blank" rel="noopener">Hamiltonian simulation by qubitization</a></b>
+        <span>Low and Chuang. Quantum 3, 163, 2019</span></li>
+      <li><b><a href="https://doi.org/10.1145/2591796.2591854" target="_blank" rel="noopener">Exponential improvement in precision for simulating sparse Hamiltonians</a></b>
+        <span>Berry, Childs, Cleve, Kothari and Somma. Symposium on Theory of Computing, 2014</span></li>
+      <li><b><a href="https://doi.org/10.22331/q-2023-10-10-1133" target="_blank" rel="noopener">Quantifying Grover speed-ups beyond asymptotic analysis</a></b>
+        <span>Cade, Folkertsma, Niesen and Weggemans, with QUBRABENCH. Quantum 7, 1133, 2023</span></li>
+    </ul>
+      </div>
+    </div>
+
+    <div class="refcols">
+      <div>
+        <p class="refhead">The classical side, which is what actually runs here</p>
+    <ul class="refs">
+      <li><b>Maximum flow by blocking flows</b>
+        <span>Dinitz. 1970, known as Dinic's algorithm, instrumented here</span></li>
+      <li><b>The simplex method</b>
+        <span>Dantzig. 1947, revised, with steepest edge pricing and Bland's rule</span></li>
+      <li><b>Instance formats and benchmark sets</b>
+        <span>DIMACS, Pisinger, Martello and Toth, Billionnet and Soutif, OR-Library, Matrix Market, MPS. the formats read by this tool</span></li>
+    </ul>
+      </div>
+      <div>
+        <p class="meta">Every number that comes out carries where it came from:
+      which lemma, what it assumes, the regime it was derived in, and whether it
+      is a bound or exact. A plausible number without that is the thing this
+      tool exists to prevent. Nothing leaves this machine: the page loads nothing
+      from the internet, and no file you point it at is uploaded anywhere.</p>
+      </div>
+    </div>
+
+  </article>
+  <article id="detail" hidden><p class="none">Loading the registry…</p></article>
+  <article id="builder" hidden></article>
+  <article id="problems" hidden><p class="none">Loading…</p></article>
+</main>
+
+<script src="boot.js"></script>
+<script>
+const EXAMPLES = {
+  X: "1000000", t: "1", p: "0.25", p_0: "0.0001",
+  d: "4", kappa: "10", epsilon: "1e-8", delta: "1e-3",
+  N: "1000", x_norm: "1", A_max: "1", A_1: "3", t_sim: "100",
+  n: "200", m: "50", c_max: "2", u_norm: "1.5",
+  bits: "8", capacity: "7", profit_bound: "11",
+  profits: "[6, 2, 1, 2]", weights: "[2, 2, 1, 5]",
+  schedule: "[[6, [1, 2]], [9, [1]]]",
+  layers: "[1, 3, 5, 2]", phases: "[[1, 3, 5, 2], [1, 2, 4]]",
+  inner_gates: "1", inner_gates_2: "1", oracle_gates: "1",
+  prepare_gates: "1", n_qubits: "10", ancillas: "4", terms: "64",
+};
+
+let catalogue = [], current = null, chosenImpl = null, chosenUnit = null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* The subroutine list and the problem menu are the same <ul>, so whichever
+   finished loading last used to win -- which is why the left menu sometimes
+   came up holding subroutines.  Browse now loads when it is entered, and it is
+   not entered at startup. */
+let browseLoaded = false;
+
+async function boot() {
+  if (browseLoaded) { drawList(); return; }
+  catalogue = await (await fetch("/api/routines")).json();
+  browseLoaded = true;
+  drawList();
+  select("QSearch");
+}
+
+function drawList() {
+  const needle = $("filter").value.toLowerCase();
+  const shown = catalogue.filter(r =>
+    !needle || r.name.toLowerCase().includes(needle) ||
+    r.summary.toLowerCase().includes(needle));
+  $("list").innerHTML = shown.map(r => `
+    <li><button data-name="${esc(r.name)}"
+        aria-current="${r.name === (current && current.name)}">
+      <span style="font-family:var(--sans);color:inherit">${esc(r.name)}</span>
+      <span>${r.units.length ? r.units.map(u => u[0]).join("") : "–"}</span>
+    </button></li>`).join("");
+  $("list").querySelectorAll("button").forEach(b =>
+    b.onclick = () => select(b.dataset.name));
+}
+
+async function select(name) {
+  const data = await (await fetch("/api/routine/" + encodeURIComponent(name))).json();
+  if (data.error) { $("detail").innerHTML = `<p class="none">${esc(data.error)}</p>`; return; }
+  current = data;
+  chosenImpl = data.implementations[0];
+  chosenUnit = chosenImpl.units[0] || null;
+  drawList();
+  drawDetail();
+}
+
+function drawDetail() {
+  const r = current, impl = chosenImpl;
+  const cost = chosenUnit ? impl.costs[chosenUnit] : null;
+  const multi = r.implementations.length > 1;
+
+  let html = `<h2>${esc(r.name)}</h2><p class="summary">${esc(r.summary)}</p>`;
+
+  if (multi) {
+    html += `<h3>Construction</h3><div class="tabs" id="impls">` +
+      r.implementations.map(i =>
+        `<button data-impl="${esc(i.name)}" aria-pressed="${i === impl}">${esc(i.name)}</button>`
+      ).join("") + `</div><p class="meta">${esc(impl.summary)}</p>`;
+  }
+
+  if (impl.citation) html += `<p class="meta"><b>Source</b> ${esc(impl.citation)}</p>`;
+  if (impl.built_from.length)
+    html += `<p class="meta"><b>Built from</b> ${impl.built_from.map(esc).join(", ")}</p>`;
+
+  if (!impl.units.length) {
+    html += `<h3>Cost</h3><p class="none">This entry has no cost of its own:
+      it is the unit other costs are counted in.</p>`;
+  } else {
+    html += `<h3>Counted in</h3><div class="tabs" id="units">` +
+      impl.units.map(u =>
+        `<button data-unit="${u}" aria-pressed="${u === chosenUnit}">${esc(impl.costs[u].unit_label)}</button>`
+      ).join("") + `</div>`;
+  }
+
+  if (r.missing && Object.keys(r.missing).length) {
+    html += `<ul class="notes">` + Object.entries(r.missing).map(([u, why]) =>
+      `<li><b>${u.toLowerCase()}</b>: ${esc(why)}</li>`).join("") + `</ul>`;
+  }
+
+  if (cost) {
+    html += `<h3>Formula</h3><pre>${esc(cost.formula)}</pre>`;
+    html += `<p class="meta"><b>${esc(cost.bound)}</b>, ${esc(cost.derivation)}</p>`;
+    if (cost.assumptions.length)
+      html += `<h3>Assuming</h3><ul class="notes">` +
+        cost.assumptions.map(a => `<li>${esc(a)}</li>`).join("") + `</ul>`;
+    if (cost.conditions.length)
+      html += `<h3>Valid where</h3><ul class="notes">` + cost.conditions.map(c =>
+        `<li>${esc(c.message)} <span class="pill${c.hard ? " hard" : ""}">${
+          c.hard ? "required" : "regime"}</span></li>`).join("") + `</ul>`;
+
+    html += `<h3>Evaluate</h3><form id="params">` +
+      cost.parameters.map(p => `<div class="field">
+        <label for="f_${p}">${esc(p)}</label>
+        <input id="f_${p}" name="${esc(p)}" value="${esc(EXAMPLES[p] || "")}"
+               placeholder="${esc(EXAMPLES[p] || "number, or JSON for a vector")}">
+      </div>`).join("") +
+      `<div class="actions">
+         <button class="primary" type="submit">Evaluate</button>
+         <button class="ghost" type="button" id="copy">Copy as code</button>
+       </div></form><div id="out"></div>`;
+  }
+
+  $("detail").innerHTML = html;
+
+  if (multi) $("impls").querySelectorAll("button").forEach(b => b.onclick = () => {
+    chosenImpl = current.implementations.find(i => i.name === b.dataset.impl);
+    chosenUnit = chosenImpl.units[0] || null;
+    drawDetail();
+  });
+  const units = $("units");
+  if (units) units.querySelectorAll("button").forEach(b => b.onclick = () => {
+    chosenUnit = b.dataset.unit; drawDetail();
+  });
+  const form = $("params");
+  if (form) {
+    form.onsubmit = (e) => { e.preventDefault(); run(); };
+    $("copy").onclick = () => run(true);
+  }
+}
+
+function collect() {
+  const values = {};
+  new FormData($("params")).forEach((v, k) => { if (String(v).trim()) values[k] = v; });
+  return values;
+}
+
+async function run(copyOnly) {
+  const path = chosenImpl.name === "default"
+    ? current.name : current.name + "/" + chosenImpl.name;
+  const body = { path, unit: chosenUnit, values: collect() };
+  const res = await (await fetch("/api/evaluate", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })).json();
+
+  if (res.error) {
+    $("out").innerHTML = `<div class="result bad"><b>Cannot evaluate</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+  if (copyOnly) {
+    navigator.clipboard && navigator.clipboard.writeText(res.snippet);
+    $("out").innerHTML = `<h3>Copied</h3><pre>${esc(res.snippet)}</pre>`;
+    return;
+  }
+  $("out").innerHTML = `
+    <div class="result">
+      <div class="value">${res.value.toPrecision(6)}<small>${esc(res.unit_label)}</small></div>
+      <p class="meta" style="margin:.4rem 0 0">${esc(res.provenance)}</p>
+      ${res.warnings.map(w => `<p class="warn">⚠ ${esc(w)}</p>`).join("")}
+    </div>
+    <h3>The same call, as code</h3><pre>${esc(res.snippet)}</pre>`;
+}
+
+$("filter").oninput = () =>
+  ($("problems").hidden ? drawList() : drawProblemList());
+
+/* ------------------------------------------------------------------ build */
+
+let ENTRIES = [], detailCache = {}, spec = null;
+
+async function entryDetail(path) {
+  if (!detailCache[path])
+    detailCache[path] = await (await fetch("/api/routine/" + encodeURIComponent(path))).json();
+  return detailCache[path];
+}
+
+function costOf(data, unit) {
+  if (data.costs) return data.costs[unit];                 // an implementation
+  for (const impl of data.implementations || [])           // a routine
+    if (impl.costs[unit]) return impl.costs[unit];
+  return null;
+}
+
+function unitsOf(path) {
+  const found = ENTRIES.find(e => e.path === path);
+  return found ? found.units : [];
+}
+
+async function boot_build() {
+  ENTRIES = await (await fetch("/api/entries")).json();
+  spec = { op: "+", terms: [blank()] };
+  drawBuilder();
+}
+
+const blank = () => ({ routine: "", unit: "", bind: {} });
+
+function options(paths, chosen) {
+  return [`<option value="">choose…</option>`].concat(paths.map(p =>
+    `<option value="${esc(p)}" ${p === chosen ? "selected" : ""}>${esc(p)}</option>`
+  )).join("");
+}
+
+async function renderNode(node, address, allowed) {
+  const paths = allowed || ENTRIES.map(e => e.path);
+  let html = `<div class="row">
+    <select data-pick="${address}">${options(paths, node.routine)}</select>`;
+  if (node.routine) {
+    const units = unitsOf(node.routine);
+    html += `<select data-unit="${address}">` + units.map(u =>
+      `<option value="${u}" ${u === node.unit ? "selected" : ""}>${u.toLowerCase()}</option>`
+    ).join("") + `</select>`;
+  }
+  html += `</div>`;
+
+  if (node.routine && node.unit) {
+    const data = await entryDetail(node.routine);
+    const cost = costOf(data, node.unit);
+    const slots = (cost && cost.slots) || {};
+    for (const [slot, unit] of Object.entries(slots)) {
+      const filled = node.bind[slot];
+      const choices = await (await fetch("/api/fillings/" + unit)).json();
+      html += `<div class="slot"><span class="label">${esc(slot)}, takes ${unit.toLowerCase()}</span>`;
+      if (filled) {
+        html += await renderNode(filled, address + ".bind." + slot, choices);
+        html += `<button class="drop" data-clear="${address}.bind.${slot}">leave empty (cost per call)</button>`;
+      } else {
+        html += `<div class="row"><select data-fill="${address}.bind.${slot}">
+          ${options(choices, "")}</select>
+          <span class="pill">empty: counts calls</span></div>`;
+      }
+      html += `</div>`;
+    }
+  }
+  return html;
+}
+
+function at(address) {
+  let node = spec;
+  for (const step of address.split(".").filter(Boolean)) {
+    node = /^\d+$/.test(step) ? node.terms[+step] : node[step];
+  }
+  return node;
+}
+
+function setAt(address, value) {
+  const steps = address.split(".").filter(Boolean);
+  const last = steps.pop();
+  let node = spec;
+  for (const step of steps) node = /^\d+$/.test(step) ? node.terms[+step] : node[step];
+  if (value === null) delete node[last]; else node[last] = value;
+}
+
+async function drawBuilder() {
+  let html = `<h2>Build an algorithm</h2>
+    <p class="summary">Assemble routines the way the published analyses are
+    assembled. A wrapper left empty reports how many times it calls something;
+    fill its slot and you get the composite, carrying the union of the
+    parameters and the weaker of the two bound directions.</p>`;
+
+  html += `<h3>Terms, combined by
+    <select id="op">
+      <option value="+" ${spec.op === "+" ? "selected" : ""}>+ (one after another)</option>
+      <option value="*" ${spec.op === "*" ? "selected" : ""}>× (repetitions × what is repeated)</option>
+    </select></h3>`;
+
+  for (let i = 0; i < spec.terms.length; i++) {
+    html += `<div class="term">` + await renderNode(spec.terms[i], String(i));
+    if (spec.terms.length > 1)
+      html += `<button class="drop" data-remove="${i}">remove this term</button>`;
+    html += `</div>`;
+  }
+  html += `<div class="actions" style="margin-bottom:1.2rem">
+      <button class="ghost" type="button" id="add">Add a term</button>
+    </div><div id="assembled"></div>`;
+
+  $("builder").innerHTML = html;
+  wireBuilder();
+  refreshAssembled();
+}
+
+function wireBuilder() {
+  const b = $("builder");
+  b.querySelectorAll("[data-pick]").forEach(el => el.onchange = () => {
+    const node = at(el.dataset.pick);
+    node.routine = el.value; node.bind = {};
+    node.unit = unitsOf(el.value)[0] || "";
+    drawBuilder();
+  });
+  b.querySelectorAll("[data-unit]").forEach(el => el.onchange = () => {
+    const node = at(el.dataset.unit);
+    node.unit = el.value; node.bind = {};
+    drawBuilder();
+  });
+  b.querySelectorAll("[data-fill]").forEach(el => el.onchange = () => {
+    if (!el.value) return;
+    setAt(el.dataset.fill, { routine: el.value, unit: unitsOf(el.value)[0] || "", bind: {} });
+    drawBuilder();
+  });
+  b.querySelectorAll("[data-clear]").forEach(el => el.onclick = () => {
+    setAt(el.dataset.clear, null); drawBuilder();
+  });
+  b.querySelectorAll("[data-remove]").forEach(el => el.onclick = () => {
+    spec.terms.splice(+el.dataset.remove, 1); drawBuilder();
+  });
+  $("op").onchange = () => { spec.op = $("op").value; refreshAssembled(); };
+  $("add").onclick = () => { spec.terms.push(blank()); drawBuilder(); };
+}
+
+function ready(node) {
+  if (!node.routine || !node.unit) return false;
+  return Object.values(node.bind || {}).every(ready);
+}
+
+async function refreshAssembled() {
+  const out = $("assembled");
+  if (!spec.terms.every(ready)) {
+    out.innerHTML = `<p class="none">Choose a routine and a unit for every term.</p>`;
+    return;
+  }
+  const res = await (await fetch("/api/compose", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ spec }),
+  })).json();
+
+  if (res.error) {
+    out.innerHTML = `<div class="result bad"><b>These do not combine</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+
+  let html = `<h3>Assembled</h3>
+    <p class="meta"><b>${esc(res.bound)}</b>, ${esc(res.derivation)},
+      counted in ${esc(res.unit_label)}</p>`;
+  if (Object.keys(res.open_slots).length)
+    html += `<p class="meta">Slots left empty: ` + Object.entries(res.open_slots)
+      .map(([s, u]) => `<span class="pill">${esc(s)} (${u.toLowerCase()})</span>`)
+      .join(" ") + `: these stay as parameters, so the result counts calls.</p>`;
+  if (res.sources.length)
+    html += `<h3>Drawing on</h3><ul class="notes">` +
+      res.sources.map(x => `<li>${esc(x)}</li>`).join("") + `</ul>`;
+  if (res.assumptions.length)
+    html += `<h3>Assuming, in total</h3><ul class="notes">` +
+      res.assumptions.map(a => `<li>${esc(a)}</li>`).join("") + `</ul>`;
+  if (res.conditions.length)
+    html += `<h3>Valid where</h3><ul class="notes">` + res.conditions.map(c =>
+      `<li>${esc(c.message)} <span class="pill${c.hard ? " hard" : ""}">${
+        c.hard ? "required" : "regime"}</span></li>`).join("") + `</ul>`;
+
+  html += `<h3>Evaluate</h3><form id="cparams">` + res.parameters.map(p =>
+    `<div class="field"><label for="c_${p}">${esc(p)}</label>
+      <input id="c_${p}" name="${esc(p)}" value="${esc(EXAMPLES[p] || "")}"
+             placeholder="${esc(EXAMPLES[p] || "number, or JSON for a vector")}"></div>`
+  ).join("") + `<div class="actions">
+      <button class="primary" type="submit">Evaluate</button>
+    </div></form><div id="cout"></div>
+    <h3>The same composition, as code</h3><pre>${esc(res.snippet)}</pre>`;
+
+  out.innerHTML = html;
+  $("cparams").onsubmit = (e) => { e.preventDefault(); runComposition(); };
+}
+
+async function runComposition() {
+  const values = {};
+  new FormData($("cparams")).forEach((v, k) => { if (String(v).trim()) values[k] = v; });
+  const res = await (await fetch("/api/compose/evaluate", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ spec, values }),
+  })).json();
+  if (res.error) {
+    $("cout").innerHTML = `<div class="result bad"><b>Cannot evaluate</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+  $("cout").innerHTML = `<div class="result">
+      <div class="value">${res.value.toPrecision(6)}<small>${esc(res.unit_label)}</small></div>
+      <p class="meta" style="margin:.4rem 0 0">${esc(res.provenance)}</p>
+      ${res.warnings.map(w => `<p class="warn">⚠ ${esc(w)}</p>`).join("")}
+    </div><pre>${esc(res.snippet)}</pre>`;
+}
+
+/* --------------------------------------------------------------- problems */
+
+let PROBLEMS = [], problem = null, route = null, logText = "";
+
+/* The figures are redrawings of published results, so they carry their own
+   provenance: which paper, which code, and whether the values are as published
+   or a schematic.  Rendered as markup because the SVG is ours; the captions
+   are escaped like any other text. */
+async function bootFigures() {
+  let figures = [];
+  try {
+    figures = await (await fetch("/api/figures")).json();
+  } catch (error) { figures = []; }
+
+  if (!figures.length) { $("findings").innerHTML = ""; return; }
+
+  /* The long version of each caption lives behind "how this was made", so the
+     provenance is one click away rather than three lines of every row. */
+  $("findings").innerHTML = figures.map(f => `
+    <div class="finding">
+      <div class="plot">${f.figure}
+        <p class="zoom">click to enlarge</p></div>
+      <div>
+        <h4>${esc(f.title)}${f.kind === "schematic"
+          ? `<span class="kind schematic">schematic</span>` : ""}</h4>
+        <p>${esc(f.short || f.caption)}</p>
+        <p class="sources"><a href="${esc(f.paper_url)}" target="_blank"
+          rel="noopener">${esc(f.paper)}</a>${f.code_url
+          ? `<span>&middot;</span><a href="${esc(f.code_url)}" target="_blank"
+              rel="noopener">the code</a>` : ""}</p>
+        ${f.method || f.caption ? `<details><summary>How this was made</summary>
+          <ul class="notes"><li>${esc(f.caption)}</li>${
+            f.method ? `<li>${esc(f.method)}</li>` : ""}</ul></details>` : ""}
+      </div>
+    </div>`).join("");
+
+  $("findings").querySelectorAll(".plot").forEach(plot => {
+    plot.onclick = () => plot.closest(".finding").classList.toggle("open");
+  });
+}
+
+async function boot_problems() {
+  PROBLEMS = await (await fetch("/api/problems")).json();
+  drawProblemList();
+  /* No problem is picked for you.  The introduction says what the tool is for,
+     which is the thing somebody arriving needs before a form. */
+}
+
+function showWelcome() {
+  problem = null; route = null; logText = "";
+  $("welcome").hidden = false;
+  $("problems").hidden = true;
+  $("detail").hidden = true;
+  $("builder").hidden = true;
+  drawProblemList();
+}
+
+function drawProblemList() {
+  const needle = $("filter").value.toLowerCase();
+  const shown = PROBLEMS.filter(p =>
+    !needle || (p.label + " " + p.blurb).toLowerCase().includes(needle));
+
+  /* The server sends the problems already ordered by heading, so a group is a
+     run of equal category and the page never has to know what the headings are
+     or which order they belong in. */
+  const groups = [];
+  for (const p of shown) {
+    const last = groups[groups.length - 1];
+    if (last && last.key === p.category) last.items.push(p);
+    else groups.push({key: p.category, label: p.category_label, items: [p]});
+  }
+
+  const item = p => `
+    <li><button data-problem="${esc(p.key)}"
+        aria-current="${p.key === (problem && problem.key)}"
+        style="display:block">
+      <span style="font-family:var(--sans);color:inherit">${esc(p.label)}</span>
+    </button></li>`;
+
+  /* Open the group holding the current problem, and every group while a search
+     is running -- a heading that hid a match would read as no match. */
+  $("list").innerHTML = groups.map(g => {
+    const open = needle || g.items.some(p => p.key === (problem && problem.key));
+    return `<li><details ${open ? "open" : ""}>
+      <summary>${esc(g.label)}<span class="count">${g.items.length}</span></summary>
+      <ul>${g.items.map(item).join("")}</ul>
+    </details></li>`;
+  }).join("") || `<li><p class="none">Nothing matches that.</p></li>`;
+
+  $("list").querySelectorAll("button[data-problem]").forEach(b =>
+    b.onclick = () => pickProblem(b.dataset.problem));
+}
+
+async function pickProblem(key) {
+  problem = await (await fetch("/api/problem/" + key)).json();
+  route = null; logText = "";
+  $("welcome").hidden = true;
+  $("problems").hidden = false;
+  drawProblemList();
+  drawProblem();
+}
+
+let level = "beginner";
+
+function drawProblem() {
+  const p = problem;
+  /* The story and the drawing come from the server as trusted content: the
+     story is escaped like any other text, the picture is inline SVG we wrote
+     ourselves and is inserted as markup, which is why illustrations.json is
+     validated on the way in rather than sanitised here. */
+  let html = `<h2>${esc(p.label)}</h2>
+    <p class="summary">${esc(p.blurb)}</p>`;
+
+  if (p.story || p.picture) html += `<div class="situation">
+    ${p.picture ? `<figure class="picture">${p.picture}</figure>` : ""}
+    ${p.story ? `<p class="story">${esc(p.story)}</p>` : ""}</div>`;
+
+  html += `<div class="tabs levels">
+      <button data-level="beginner" aria-pressed="${level === "beginner"}"
+        >Describe it</button>
+      <button data-level="file" aria-pressed="${level === "file"}"
+        >I have a data file</button>
+    </div>`;
+
+  if (level === "beginner") {
+    $("problems").innerHTML = html + `<div id="beginner"></div>`;
+    $("problems").querySelectorAll(".levels button").forEach(b =>
+      b.onclick = () => { level = b.dataset.level; drawProblem(); });
+    drawBeginner();
+    return;
+  }
+
+  if (p.incomparable) html += `<div class="caution"><b>These routes are not
+    comparable with one another.</b> Each rests on a different cost model and a
+    different set of assumptions, so the numbers answer different questions.
+    Read each with the note attached to it.</div>`;
+
+  html += `<h3>Ways to attack it</h3>` + p.routes.map(r => `
+    <div class="route" data-route="${esc(r.key)}" aria-pressed="${r === route}">
+      <h4>${esc(r.label)} <span class="pill">${esc(r.unit_label)}</span></h4>
+      <p><b>${esc(r.classical)}</b> solves this classically. The quantum version
+         replaces ${esc(r.replaces)}.</p>
+      <p class="model">${esc(r.note)}</p>
+    </div>`).join("");
+
+  html += `<div id="routebody"></div>`;
+  $("problems").innerHTML = html;
+  $("problems").querySelectorAll(".levels button").forEach(b =>
+    b.onclick = () => { level = b.dataset.level; drawProblem(); });
+  $("problems").querySelectorAll(".route").forEach(el => el.onclick = () => {
+    route = problem.routes.find(r => r.key === el.dataset.route);
+    drawProblem();
+  });
+  if (route) drawRoute();
+}
+
+async function drawBeginner() {
+  const form = await (await fetch("/api/beginner/" + problem.key)).json();
+  $("beginner").innerHTML = `
+    <p class="meta">Answer these and every way of attacking the problem is
+      costed side by side. No file needed: an instance of the size you
+      describe is made up and actually solved here.</p>
+    <form id="askform">` + form.asks.map(a => `
+      <div class="field">
+        <label for="ask_${esc(a.name)}">${esc(a.label)}</label>
+        <input id="ask_${esc(a.name)}" value="${esc(a.example)}"
+               title="${esc(a.help)}">
+      </div>` + (a.help ? `<p class="meta" style="margin:-.4rem 0 .2rem">
+        ${esc(a.help)}</p>` : "")).join("") + `
+      <div class="actions">
+        <button class="primary" type="submit">Work out what it would cost</button>
+      </div>
+    </form><div id="askout"></div>`;
+  $("askform").onsubmit = (e) => { e.preventDefault(); runBeginner(form); };
+}
+
+/* Seconds, at the scale these numbers actually live on: a classical solve is
+   milliseconds and a quantum projection can be years. */
+function humaniseSeconds(s) {
+  if (!(s > 0)) return "0";
+  const small = [[1e-18, "as"], [1e-15, "fs"], [1e-12, "ps"],
+                 [1e-9, "ns"], [1e-6, "\u00b5s"], [1e-3, "ms"]];
+  for (const [size, name] of small)
+    if (s < size * 1000) return `${(s / size).toPrecision(3) / 1} ${name}`;
+  if (s < 90) return `${(s).toPrecision(3) / 1} s`;
+  if (s < 5400) return `${(s / 60).toPrecision(3) / 1} min`;
+  if (s < 172800) return `${(s / 3600).toPrecision(3) / 1} h`;
+  if (s < 6.3e7) return `${(s / 86400).toPrecision(3) / 1} days`;
+  const years = s / 3.15576e7;
+  if (years < 1e3) return `${years.toPrecision(3) / 1} years`;
+  if (years < 1.38e10) return `${(years / 1e3).toPrecision(3) / 1}k years`;
+  return `${(years / 1.38e10).toPrecision(3) / 1}\u00d7 the universe`;
+}
+
+/* Measured classical time against projected quantum time, one pair per route.
+   Log scale, because the two can be thirty orders of magnitude apart and a
+   linear axis would draw every classical bar as nothing.
+
+   The quantum bar is the *hybrid* total where a routine replaces only part of
+   the solve: Dinic's layering sweeps become quantum searches and its
+   blocking-flow phases stay classical, so the bar is the replaced part costed
+   plus the retained part measured.  Comparing a count of sweeps against a
+   whole max-flow solve would compare two different algorithms. */
+function timeChart(routes) {
+  const rows = routes.filter(r => r.timing && r.timing.hybrid_seconds > 0);
+  const untimed = routes.filter(r => r.timing && !r.timing.seconds && !r.error);
+  if (!rows.length) return "";
+
+  const W = 800, BAR = 760, titleH = 20, barH = 15, barGap = 5, blockGap = 20;
+  const block = titleH + barH + barGap + barH + blockGap;
+  const axisH = 24;
+  const H = rows.length * block + axisH;
+
+  const values = [];
+  rows.forEach(r => values.push(r.timing.hybrid_seconds,
+                                r.timing.classical_seconds));
+  const positive = values.filter(v => v > 0);
+  const lo = Math.floor(Math.log10(Math.min(...positive)));
+  const hi = Math.ceil(Math.log10(Math.max(...positive)));
+  const span = Math.max(1, hi - lo);
+  const x = v => BAR * (Math.log10(Math.max(v, Math.pow(10, lo))) - lo) / span;
+  const step = span > 18 ? 4 : span > 12 ? 3 : span > 6 ? 2 : 1;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto"
+    aria-label="projected quantum time against measured classical time">`;
+
+  for (let p = lo; p <= hi; p += step) {
+    const at = x(Math.pow(10, p));
+    svg += `<line x1="${at}" y1="0" x2="${at}" y2="${H - axisH}"
+      stroke="var(--rule)" stroke-width="1"/>
+      <text x="${at}" y="${H - 8}" font-size="11" fill="var(--faint)"
+        text-anchor="${p === lo ? "start" : "middle"}"
+        font-family="var(--mono)">${esc(humaniseSeconds(Math.pow(10, p)))}</text>`;
+  }
+
+  // Values are written on the plot, at the end of each bar -- or inside it,
+  // when the bar runs far enough right that the label would not fit.
+  const label = (value, at, y, colour) => {
+    const inside = at > BAR - 110;
+    return `<text x="${inside ? at - 6 : at + 6}" y="${y + barH - 3}"
+      font-size="11.5" font-family="var(--mono)"
+      text-anchor="${inside ? "end" : "start"}"
+      fill="${inside ? "var(--ground)" : colour}">${esc(value)}</text>`;
+  };
+
+  rows.forEach((r, i) => {
+    const top = i * block;
+    const q = Math.max(x(r.timing.hybrid_seconds), 2);
+    const c = Math.max(x(r.timing.classical_seconds), 2);
+    const qy = top + titleH, cy = qy + barH + barGap;
+    svg += `
+      <text x="0" y="${top + 13}" font-size="12.5" font-weight="600"
+        fill="var(--ink)">${esc(r.label)}</text>
+      <rect x="0" y="${qy}" width="${q}" height="${barH}" rx="2"
+        fill="var(--accent)"/>
+      ${label(humanphrase(r.timing.hybrid), q, qy, "var(--accent)")}
+      <rect x="0" y="${cy}" width="${c}" height="${barH}" rx="2"
+        fill="var(--good)"/>
+      ${label(humanphrase(r.timing.classical), c, cy, "var(--good)")}`;
+  });
+  svg += `</svg>`;
+
+  const legend = rows.map(r => `
+    <div class="timerow">
+      <b>${esc(r.label)}</b>
+      <em>${esc(r.timing.summary)}${
+        r.timing.note ? `. ${esc(r.timing.note)}` : ""}</em>
+    </div>`).join("");
+
+  const missing = untimed.map(r => `<li>${esc(r.label)}: ${
+    esc(r.timing.why_not || "not timed")}</li>`).join("");
+
+  return `<h3>How long that would take</h3>
+    <p class="meta">Each pair is one method: <b class="swatch q">quantum</b>, if
+      every counted operation took ${esc(humaniseSeconds(rows[0].timing.rate))}
+      (the speed record for an isolated gate operation) against
+      <b class="swatch c">classical</b>, measured on this machine a moment ago.
+      Where a quantum routine replaces only part of a solve, its bar is that
+      part costed plus the rest of the solve as measured, since the rest still
+      has to run. The scale is logarithmic: each gridline is a factor of
+      ${Math.pow(10, step)}.</p>
+    <div class="chart">${svg}</div>
+    <div class="timelegend">${legend}</div>
+    ${missing ? `<ul class="notes">${missing}</ul>` : ""}
+    <p class="meta"><b>The required rate is the number that does not age.</b>
+      A projection assumes a clock; the rate a method would need in order to
+      match the classical work it replaces is measured, and hardware either
+      reaches it later or does not. It is also generous: a measured classical
+      time over a lower bound on the count is an upper bound on what the
+      quantum side needs.</p>
+    <details><summary>Why the quantum bars are optimistic</summary>
+      <ul class="notes">${(rows[0].timing.assumptions || []).map(a =>
+        `<li>${esc(a)}</li>`).join("")}</ul></details>`;
+}
+
+/* The server already humanised these; this only tidies the unit it chose. */
+function humanphrase(text) { return String(text || "").replace(/^us /, "\u00b5s "); }
+
+async function runBeginner(form) {
+  const values = {};
+  form.asks.forEach(a => values[a.name] = $("ask_" + a.name).value.trim());
+  $("askout").innerHTML = `<p class="meta">Building an instance and solving
+    it…</p>`;
+
+  const res = await (await fetch("/api/problem/compare", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ problem: problem.key, values }),
+  })).json();
+  if (res.error) {
+    $("askout").innerHTML = `<div class="result bad"><b>Cannot do that</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+
+  // The caveat leads, because it is the difference between this number and an
+  // answer, and it is the thing someone skimming will otherwise miss.
+  let html = `<div class="caution"><b>This is a problem of your shape, not your
+    problem.</b> ${esc(res.caveat)}</div>`;
+
+  html += `<h3>What each approach would cost</h3>
+    <div class="parallel">` + res.routes.map(r => {
+      if (r.error) return `<div class="column bad">
+        <h4>${esc(r.label)}</h4><p class="warn">${esc(r.error)}</p></div>`;
+      return `<div class="column">
+        <h4>${esc(r.label)}</h4>
+        <div class="value">${r.total.toPrecision(4)}</div>
+        <p class="unit">${esc(r.unit_label)}</p>
+        <p class="meta"><b>${esc(r.bound)}</b>, ${esc(r.derivation)}</p>
+        <p class="meta">${esc(r.classical)} does this classically${
+          r.records ? `, in ${r.records} logged step${r.records === 1 ? "" : "s"}`
+                    : ""}.</p>
+        <details><summary>What this number assumes</summary>
+          <ul class="notes">${r.assumptions.map(a =>
+            `<li>${esc(a)}</li>`).join("")}</ul></details>
+      </div>`;
+    }).join("") + `</div>`;
+
+  /* The caption that used to stand here -- that the columns are not a race --
+     is gone at Andreea's request: each column already names its own unit,
+     bound and assumptions, which says it without the paragraph.  The data
+     still says it too: compare() returns comparable:false and the units
+     present, and the cost algebra still refuses to add gates to cycles. */
+
+  html += timeChart(res.routes);
+
+  if (res.warnings.length) html += res.warnings.map(w =>
+    `<p class="warn">⚠ ${esc(w)}</p>`).join("");
+
+  html += `<h3>The same thing, as code</h3><pre>${esc(res.snippet)}</pre>`;
+  $("askout").innerHTML = html;
+}
+
+async function drawRoute() {
+  const r = route;
+  const tpl = await (await fetch(
+    `/api/template/${problem.key}/${r.key}?${r.per_record.some(f => !f.example.startsWith("[")) ? "csv" : "json"}`)).text();
+
+  let html = "";
+
+  if (r.generated) html += `<h3>Give it an instance file</h3>
+    <p class="meta">That is the whole input. ${esc(r.classical)} runs here,
+      instrumented, works out the quantities the bound needs, and the answer is
+      a ${esc(r.unit_label)} count. Accepts ${esc(r.accepts || "an instance file")}.
+      Nothing is uploaded and nothing is installed: the file is read where it
+      sits, and you see the log it produced before you see the number.</p>
+    <form id="genform">
+      <div class="field">
+        <label for="genpath">file</label>
+        <input id="genpath" name="instance"
+               placeholder="${esc(r.example_file || "/path/to/instance")}">
+      </div>
+      <div class="field">
+        <label for="genbudget">seconds</label>
+        <input id="genbudget" name="budget" value="300"
+               title="How long the classical run may take. A run cut off part
+                      way still produces a log, marked as one.">
+      </div>`
+      + r.chosen.map(f => `
+      <div class="field"><label for="gen_${f.name}">${esc(f.label)}</label>
+        <input id="gen_${f.name}" name="${esc(f.name)}" value="${esc(f.example)}"
+               title="${esc(f.help)}"></div>`).join("")
+      + `<div class="actions">
+           <button class="primary" type="submit">Run it and cost it</button>
+         </div>
+    </form><div id="genout"></div>`;
+
+  // Where the instance form exists it is the answer, so the hand-logging path
+  // folds away behind it. Left open and equally weighted it reads as an
+  // instruction to go and instrument a solver yourself, which is the dead end
+  // this panel was built to remove.
+  if (r.generated) html += `<details class="secondary">
+    <summary>I already have a log, or I want to produce one myself</summary>`;
+
+  html += `<h3>${r.generated ? "The shape of a log" : "What to log"}</h3>
+    <p class="meta">${r.generated ? "If you would rather run" : "Run"}
+      ${esc(r.classical)} ${r.generated ? "yourself" : "on your instance with logging"},
+      record ${r.whole_run ? "the run" : "one row per iteration"} in this shape.
+      Every column is named below.</p>
+    <pre>${esc(tpl)}</pre>`;
+
+  html += `<h3>Your log</h3>
+    <form id="logform">
+      <div class="field">
+        <label for="logpath">file</label>
+        <input id="logpath" name="path" placeholder="/path/to/your-log.csv">
+      </div>
+      <p class="meta" style="margin:0">Read where it sits: nothing is uploaded,
+        the server is on this machine. Or paste it:</p>
+      <textarea id="logtext" placeholder="paste a log here instead"></textarea>`;
+
+  if (r.chosen.length) html += r.chosen.map(f => `
+      <div class="field"><label for="ch_${f.name}">${esc(f.label)}</label>
+        <input id="ch_${f.name}" name="${esc(f.name)}" value="${esc(f.example)}"
+               title="${esc(f.help)}"></div>`).join("");
+
+  html += `<div class="actions"><button class="primary" type="submit">Cost this run</button></div>
+    </form><div id="logout"></div>`;
+  if (r.generated) html += `</details>`;
+
+  document.getElementById("routebody").innerHTML = html;
+  $("logform").onsubmit = (e) => { e.preventDefault(); runLog(); };
+  if (r.generated)
+    $("genform").onsubmit = (e) => { e.preventDefault(); runInstance(); };
+}
+
+function costHtml(res) {
+  return `<div class="result">
+      <div class="value">${res.total.toPrecision(6)}<small>${esc(res.unit_label)}</small></div>
+      <p class="meta" style="margin:.4rem 0 0">
+        ${res.whole_run ? "for the whole run" :
+          `summed over ${res.records} iterations · largest single one
+           ${res.largest.toPrecision(4)}`}</p>
+      <p class="meta" style="margin:.2rem 0 0">${esc(res.provenance)}</p>
+      ${(res.warnings || []).map(w => `<p class="warn">⚠ ${esc(w)}</p>`).join("")}
+    </div>
+    <p class="model" style="color:var(--warn);font-size:.85rem">${esc(res.note || "")}</p>
+    <h3>The same run, as code</h3><pre>${esc(res.snippet)}</pre>`;
+}
+
+async function runInstance() {
+  const chosen = {};
+  route.chosen.forEach(f => {
+    const el = document.getElementById("gen_" + f.name);
+    if (el && el.value.trim()) chosen[f.name] = el.value;
+  });
+  $("genout").innerHTML = `<p class="meta">running ${esc(route.classical)}…</p>`;
+
+  const res = await (await fetch("/api/problem/generate", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      problem: problem.key, route: route.key, chosen,
+      instance: $("genpath").value.trim(),
+      budget: parseFloat($("genbudget").value) || 300,
+    }),
+  })).json();
+
+  if (res.error && !res.log) {
+    $("genout").innerHTML = `<div class="result bad"><b>Cannot run this</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+
+  // The log first, always. Skipping past it to the number would make this an
+  // oracle, which is the one thing the whole tool is arranged not to be.
+  let html = `<p class="meta">${esc(res.instance)}, ${esc(res.implementation)}</p>
+    <p class="meta">${esc(res.status)} in ${res.elapsed}s`
+    + (Object.keys(res.result || {}).length ? " · " + Object.entries(res.result)
+        .map(([k, v]) => esc(k.replace(/_/g, " ") + " " + v)).join(" · ") : "")
+    + `</p>`;
+  if (res.advice) html += `<p class="warn">${esc(res.advice)}</p>`;
+  if (res.handoff) html += `<p class="warn">${esc(res.handoff)}</p>`;
+  html += `<h3>The log this produced</h3><pre>${esc(res.log)}</pre>`;
+  if (res.error) html += `<div class="result bad"><p class="warn">${esc(res.error)}</p></div>`;
+  else html += costHtml(res);
+  $("genout").innerHTML = html;
+}
+
+async function runLog() {
+  const chosen = {};
+  route.chosen.forEach(f => {
+    const el = document.getElementById("ch_" + f.name);
+    if (el && el.value.trim()) chosen[f.name] = el.value;
+  });
+  const res = await (await fetch("/api/problem/run", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      problem: problem.key, route: route.key, chosen,
+      path: $("logpath").value.trim(), text: $("logtext").value,
+    }),
+  })).json();
+
+  if (res.error) {
+    $("logout").innerHTML = `<div class="result bad"><b>Cannot cost this</b>
+      <p class="warn">${esc(res.error)}</p></div>`;
+    return;
+  }
+  $("logout").innerHTML = costHtml(res);
+}
+
+$("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
+  const mode = b.dataset.mode;
+  $("modes").querySelectorAll("button").forEach(x =>
+    x.setAttribute("aria-pressed", String(x === b)));
+  document.querySelector("nav").hidden = mode === "build";
+  $("welcome").hidden = !(mode === "problems" && !problem);
+  $("detail").hidden = mode !== "browse";
+  $("builder").hidden = mode !== "build";
+  $("problems").hidden = !(mode === "problems" && problem);
+  $("filter").hidden = !(mode === "browse" || mode === "problems");
+  if (mode === "build" && !spec) boot_build();
+  if (mode === "browse") boot();
+  if (mode === "problems") drawProblemList();
+});
+
+/* Problems is the mode the page opens in and the only one on the menu, so the
+   search box opens with it rather than waiting for a tab that is no longer
+   there to be clicked.  The registry is not fetched at all until Browse is
+   entered, which cannot happen from the menu as it stands. */
+$("home").onclick = showWelcome;
+bootFigures();
+$("filter").hidden = false;
+boot_problems();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+# Build the browser version and publish it.
+#
+# This runs on the pages branch alone.  Nothing here touches main, and the
+# package is not modified to suit the browser: the workflow builds the ordinary
+# wheel, copies the ordinary page, and adds the one script that replaces the
+# local server with Python running in the tab.
+name: browser build
+
+on:
+  push:
+    branches: [pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: The tests still have to pass
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m pytest -q
+
+      - name: Build the browser version
+        run: sh pages/build.sh
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
