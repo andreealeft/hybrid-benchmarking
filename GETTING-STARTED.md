@@ -8,56 +8,65 @@ library directly.
 
 ## If you just want a number
 
-You will type four commands, once. After that, starting the tool is one word.
+One command, once. After that there is an icon you double-click, and you never
+need a terminal again.
 
-### 1. Check you have Python
+![Opening a terminal, pasting the line, and the tool starting](docs/install.gif)
 
-Open a terminal — **Terminal** on macOS (Spotlight, type "Terminal"),
-**PowerShell** on Windows, whatever you use on Linux — and type:
+### First, open a terminal
 
-```sh
-python3 --version
-```
+A terminal is a window you type commands into. Every computer has one; it is
+just kept out of the way. Find yours:
 
-If that prints `Python 3.9` or higher, you are done with this step. If it says
-the command is not found, install Python from
-[python.org/downloads](https://www.python.org/downloads/); on Windows, tick
-**Add Python to PATH** in the installer, and use `python` instead of `python3`
-in everything below.
+**On a Mac** it is called **Terminal**. Hold `Cmd` and press the space bar, type
+`terminal`, and press return. A window with plain text in it appears. (It also
+lives in Applications, in the Utilities folder, if you would rather look for
+it.)
 
-### 2. Get the code
+**On Windows** it is called **PowerShell**. Press the Windows key, type
+`powershell`, and press return. A blue window with plain text appears. Windows
+11 may call it **Terminal** instead; either is fine.
 
-```sh
-git clone https://github.com/andreealeft/hybrid-benchmarking.git
-cd hybrid-benchmarking
-```
+**On Linux** it is usually called **Terminal**. On most desktops
+`Ctrl-Alt-T` opens one. Otherwise open the applications menu and search for
+`terminal`: depending on the desktop it may be called Terminal, GNOME Terminal,
+Konsole, or xfce4-terminal. All of them do the same thing here.
 
-No `git`? Go to the page above, click **Code → Download ZIP**, unzip it, and
-in the terminal type `cd ` followed by a space and then drag the unzipped
-folder onto the terminal window. Press return.
+Nothing you paste can run without you pressing return, and nothing here asks for
+your password except Linux, if Python has to be installed first.
 
-### 3. Install it
+### Then paste one line
 
-```sh
-pip3 install -e .
-```
-
-That downloads two mathematics packages and takes a minute or two. If `pip3` is
-not found, use `python3 -m pip install -e .` instead.
-
-### 4. Start it
+**Mac and Linux**, copy this, paste it into the terminal window, and press
+return:
 
 ```sh
-hybrid-benchmarking
+curl -fsSL https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.sh | sh
 ```
 
-A browser tab opens at `http://127.0.0.1:8765/`. **Nothing leaves your
-machine**: the tool runs a small server on your own computer, the page loads
-nothing from the internet, and no file you point it at is uploaded anywhere. It
-works with the network unplugged. Close it with `Ctrl-C` in the terminal.
+**Windows**, copy this one instead:
 
-Next time, steps 1 to 3 are done: open a terminal and type
-`hybrid-benchmarking`.
+```powershell
+irm https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.ps1 | iex
+```
+
+To paste into a terminal: `Cmd-V` on a Mac, `Ctrl-V` on Windows,
+`Ctrl-Shift-V` on Linux.
+
+It takes about a minute. It installs into a folder of its own, writes an icon
+onto your Desktop, and opens the tool in your browser straight away.
+
+If Python is missing it says so: on a Mac it opens the download page, and on
+Linux it prints the one command your system needs. Install it, then paste the
+same line again.
+
+**From then on, double-click the icon.** It opens in your browser in a few
+seconds and keeps itself up to date, so this is the only time a terminal is
+involved.
+
+Everything lives in one folder of its own: under Application Support on a Mac,
+AppData on Windows, and `.local/share` on Linux. The rest of your computer is
+untouched, and uninstalling is deleting that folder and the icon.
 
 ### Using it
 

@@ -1,12 +1,58 @@
 # hybrid-benchmarking
 
 Resource analysis of fault-tolerant quantum algorithms without a quantum
-computer. Quantum subroutines with their costs, composable into published
-analyses, and honest about where every number came from.
+computer: what a quantum computer would have to do, counted before there is one.
 
-**Never used it before?** [Getting started](GETTING-STARTED.md) installs it in
-four commands and runs it in your browser, with no Python needed. The rest of
-this page assumes you write code.
+## Install it
+
+One line pasted into a terminal, once. A terminal is a window you type commands
+into: every computer has one, it is only kept out of the way. Find yours, then
+paste the line under it.
+
+### On a Mac
+
+The terminal is called **Terminal**. Hold `Cmd`, press the space bar, type
+`terminal`, press return. A window of plain text appears. Paste with `Cmd-V`,
+then press return.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.sh | sh
+```
+
+### On Linux
+
+The terminal is usually called **Terminal**, and `Ctrl-Alt-T` opens it on most
+desktops. Otherwise search the applications menu for `terminal`: it may be
+called GNOME Terminal, Konsole or xfce4-terminal, and any of them will do. Paste
+with `Ctrl-Shift-V`, then press return.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.sh | sh
+```
+
+### On Windows
+
+The terminal is called **PowerShell**, or **Terminal** on Windows 11. Press the
+Windows key, type `powershell`, press return. Paste with `Ctrl-V`, then press
+return.
+
+```powershell
+irm https://raw.githubusercontent.com/andreealeft/hybrid-benchmarking/main/install/install.ps1 | iex
+```
+
+![Opening a terminal, pasting the line, and the tool starting](docs/install.gif)
+
+It takes about a minute, installs into a folder of its own, opens in your
+browser, and leaves an icon on your Desktop. **Double-click that icon from then
+on**, and it keeps itself up to date.
+
+If Python is missing, the line says so and tells you what to do; paste it again
+afterwards. [Getting started](GETTING-STARTED.md) says all of this at more
+length, assuming nothing.
+
+## For people who write code
+
+The rest of this page is for them.
 
 The shortest useful thing you can do needs no data at all:
 

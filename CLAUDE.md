@@ -407,6 +407,31 @@ should cost is the open question: nothing, since its layer has nothing to add,
 or a full-width addition, which is what Sören's 0-1 code counts for a zero
 summand. It changes counts either way.
 
+## Installed by double-clicking, and kept current by itself
+
+`install/macOS-install.command` and `install/Windows-install.bat` install the
+package from a zip of `main` and write a desktop icon. The icon calls
+`hybrid-benchmarking open`, which is where the logic lives, because it has to be
+right on Windows too and a batch file cannot be tested here: already running,
+show it; not running, start it **detached** and wait. Detached is not a detail.
+An icon that stays running is one the Finder will not launch a second time, and
+an app with no windows has no front to bring forward, so the second
+double-click failed with `-600` until the icon became a doorbell rather than the
+house.
+
+`update.py` runs at every launch and installs a newer version if there is one.
+Three rules hold it: **a checkout is never touched**, so somebody's source tree
+is safe; **failure is silent**, since being out of date beats not opening; and
+it is **bounded** to a few seconds. It is also the only thing this tool sends
+anywhere, so the front page says so rather than claiming that nothing leaves at
+all, which would now be false.
+
+**The data-file route is hidden from the interface**, at Andreea's request, and
+only from the interface: the readers, the route and the tests are untouched and
+the command line still reads files. The page now says plainly that it makes up
+an instance of the size you describe, that the charts come from far harder real
+benchmark instances, and where to write for real work.
+
 ## Three levels, and what the first one costs honestly
 
 The interface now meets people at three depths. **Describe it** asks for the
@@ -686,10 +711,135 @@ nothing quantum simulated.
 form and ours does not, so our logged Newton-system dimension runs larger on any
 instance with removable structure. Unquantified — `highspy` is not installed.
 
+## The look of it, and the two branches
+
+The palette is **deep navy against orange**, from a Dopely card Andreea chose,
+over cool neutrals: navy `#032c42` carries the identity and the controls both,
+orange `#c26608` is what was measured, gold `#a6720a` is the cautions, and the
+dark theme lightens all three. It arrived after several rejected schemes, and
+the rejections are the useful part: a Classiq pink and olive read as two
+opinions, a warm Ember scheme went flat because cream paper and brown ink pull
+everything into one tonal band, and a mid blue was too light to hold a page
+down. **Every drawing and figure is painted in the theme variables**, never in
+literal colours, which is what made each of those swaps a five-line edit rather
+than seventy-one.
+
+`docs/` and the `pages` branch hold a **browser build**: the same page with
+Pyodide starting Python in the tab and answering `/api` from a dispatcher
+instead of a server. It works and it is published, and Andreea did not want it,
+so it is unlinked from everywhere. Delete the branch and turn off Pages if it
+is ever in the way.
+
+**Figures are rendered and looked at, not merely parsed.** Substitute the
+palette into the SVG, `qlmanage -t` it, and read the PNG. Three faults surfaced
+that way and would not have otherwise: swatches struck through centred labels,
+a legend landed on top of a label it had replaced, and the classical curve of
+the variants figure ran through the tail of the name of the other one. The
+scratchpad script that does it is worth rebuilding rather than working blind,
+and two things about it are worth getting right, because both cost a wrong
+conclusion: give the standalone file an `xmlns`, or Quick Look renders the
+markup as text rather than as a drawing, and paint the background `--surface`
+rather than `--ground`, because the figures sit on a card — paint the page
+ground and a perfectly correct masking rect reads as a white scar across the
+chart.
+
+**Every key is now named in its own colour, and that is a test rather than a
+habit.** `test_a_key_is_named_in_its_own_colour` walks each figure and holds
+every legend swatch and reference rule to the rule the last three commits kept
+re-establishing by hand. It excludes the data marks themselves, since the bar
+chart's group headings follow its last bar in document order and are headings
+rather than series names. The two the rule had never reached were the two that
+are not line charts: the linear-solver bars, where the four names were in plain
+ink, and the simplex bands, where the record line was introduced in grey. It
+also caught a fourth nobody had looked at, the variants figure's crossover
+annotation.
+
+The variants legend moved out of the left panel and under both of them, which
+is where a legend describing two panels belongs: stacked in the corner it had
+nowhere to go, the band between the two curves being eleven points tall.
+
+## Installed by a pasted line, and kept current by itself
+
+`install/install.sh` (macOS and Linux) and `install/install.ps1` (Windows,
+untested) are what the README tells people to paste. They build a venv of their
+own under Application Support, `.local/share` or AppData, install from a zip of
+`main`, and **write the desktop icon locally**, which is the whole trick: an
+icon made on the machine carries no quarantine flag, where a downloaded app is
+refused by macOS 26 with a message about malware and a highlighted *Move to
+Bin*. Downloadable installers were built, signed nothing, and were removed for
+exactly that reason.
+
+The icon calls `hybrid-benchmarking open`: check, start **detached**, show. It
+must not stay running, or the Finder refuses the second double-click with
+`-600`. `update.py` runs first and installs a newer version if there is one,
+never over a checkout, silently on failure, and it stops a running server
+through `POST /api/quit` so the new code takes over rather than waiting for a
+reboot.
+
+**It updates on the commit, not on the version number**, and that was a bug
+that looked exactly like working code. It compared `version` in
+`pyproject.toml` and installed only when that number rose, so six consecutive
+pushes reached nobody: five of them changed what a reader sees, none bumped a
+version, and the updater reported success by saying nothing at all. Remembering
+to bump a number by hand is the step that was missed six times running, so the
+question it asks is now which commit `main` is on, and pushing is shipping.
+Nothing else was needed on the delivery side: pip reinstalls a package from a
+URL even when the version is unchanged, which was checked rather than assumed.
+
+The source moved for a second reason, independent of the first.
+`raw.githubusercontent.com` serves `cache-control: max-age=300`, so the file it
+hands back can be five minutes behind the push — which is how an app installed
+minutes ago could still miss what was already on `main`. The commit feed at
+`commits/main.atom` is served `max-age=0, must-revalidate` and is current the
+moment a push lands. The version is still read, but only for the sentence a
+person sees and as the fallback when the feed cannot be reached, so an outage
+degrades to the old behaviour rather than to none.
+
+**Delivery is two pip passes, and it has to be.** `pip install --upgrade`
+against a URL does *not* reliably replace a package whose version has not
+moved: it did in one venv here and did not in another, and the one where it did
+not exited zero and left the old files in place. Now that a version bump is no
+longer what triggers an update, an unchanged version number is the ordinary
+case rather than a corner of it. So the second pass carries
+`--force-reinstall --no-deps` and is what actually replaces the files, and the
+first is an ordinary resolving install, which is what `--no-deps` gives up: a
+release that adds a dependency would otherwise install cleanly and fail to
+import. Both must exit zero before the stamp is written.
+
+**And it fetches the commit by name, because pip caches.** This was a third
+bug sitting behind the other two, and the worst of the three: pip keeps an HTTP
+cache keyed on the URL, the branch archive's URL never changes, so pip answered
+`Using cached` and installed a zip from the first time it had ever run. The
+check fired, the install reported success, the stamp was written, and nothing on
+disk moved — a copy that would have sat on its first-ever version for good while
+every visible sign said it was current. Caught by running the real installer as
+a sandboxed new user, pushing without a version bump, and looking at what
+actually arrived. The archive URL now names the commit, which cannot go stale
+and installs the commit that was decided on rather than whatever `main` has
+become a moment later; the branch fallback passes `--no-cache-dir`, and so do
+both installers, since a re-run of one would have hit the same cache.
+
+What the running copy was built from is written to `installed-commit` in the
+same data directory the installers put the venv in — **outside** the venv,
+since installing over it is precisely what would erase it. A copy with no stamp
+counts as out of date, which is what makes this self-healing: every install
+made before the stamp existed updates once, writes one, and settles.
+
+**And the page itself is served `Cache-Control: no-store`.** The package is
+replaced underneath a server at an address that never changes, so a browser
+holding the old page would show the old interface over the new code, with
+nothing on screen to say so and no reason for somebody who opened a desktop
+icon to think of reloading. Local traffic costs nothing, so there was never
+anything to weigh against saying it plainly.
+
+`tests/test_update.py` holds all of it, and it is new: this was the only
+machinery in the library whose job is to run on a stranger's machine, and the
+only machinery with no test at all.
+
 ## Where it stands
 
 Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2520 tests.
+interface and a CLI. 2561 tests.

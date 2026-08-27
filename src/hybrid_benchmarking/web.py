@@ -163,6 +163,21 @@ def figures() -> List[Dict[str, Any]]:
     return all_figures()
 
 
+def running_version() -> Dict[str, Any]:
+    """Which build is answering, so that a reader can tell.
+
+    Nothing on screen said this, and that is what let a stale copy pass for a
+    current one: the tool updates itself in the background at an address that
+    never changes, so there was no moment at which anybody could have noticed
+    they were looking at last week's numbers.  A version somebody can read out
+    is what makes "are you on the latest?" a question with an answer.
+    """
+    from .update import installed, stamp
+
+    built = stamp()
+    return {"version": installed(), "built_from": built[:7] if built else None}
+
+
 def problems() -> List[Dict[str, Any]]:
     """Every problem the library can cost, under the name people use.
 
@@ -479,6 +494,14 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        # The package underneath this server is replaced in place by the
+        # updater, at an address that never changes.  A browser holding the
+        # old page would then show the old interface over the new code, and
+        # the reader would have no way of telling: no version is on screen,
+        # and reloading is not something one thinks to do with an app that
+        # was opened from a desktop icon.  Nothing here crosses a network, so
+        # there is no bandwidth to weigh against saying so plainly.
+        self.send_header("Cache-Control", "no-store, must-revalidate")
         self.end_headers()
         self.wfile.write(body)
 
@@ -501,6 +524,8 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(problems())
         if self.path == "/api/figures":
             return self._json(figures())
+        if self.path == "/api/version":
+            return self._json(running_version())
         if self.path.startswith("/api/beginner/"):
             try:
                 return self._json(beginner_form(self.path.rsplit("/", 1)[-1]))
@@ -547,6 +572,18 @@ class _Handler(BaseHTTPRequestHandler):
         self._send(404, b"not found", "text/plain; charset=utf-8")
 
     def do_POST(self) -> None:  # noqa: N802
+        if self.path == "/api/quit":
+            # An update installed under a server that is already running leaves
+            # the old code serving until the machine restarts, which on this
+            # tool could be weeks.  So the launcher asks the old one to stand
+            # down and starts the new one.  Shutting down from inside a handler
+            # would deadlock, hence the thread.
+            import threading
+
+            self._json({"stopping": True})
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
+            return
+
         if self.path not in ("/api/evaluate", "/api/compose",
                              "/api/compose/evaluate", "/api/problem/run",
                              "/api/problem/generate", "/api/problem/compare"):

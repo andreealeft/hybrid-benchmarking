@@ -32,6 +32,20 @@ def test_they_come_back_in_the_order_of_the_thesis():
     assert KEYS == list(F.ORDER)
 
 
+def _is_a_key(node) -> bool:
+    """A legend swatch or a reference rule, rather than a mark carrying data."""
+    tag = node.tag.split("}")[-1]
+    if tag == "line":
+        return True
+    if tag != "rect":
+        return False
+    try:
+        return (float(node.get("width", 0)) <= 20
+                and float(node.get("height", 0)) <= 20)
+    except ValueError:
+        return False
+
+
 @pytest.mark.parametrize("entry", FIGURES, ids=KEYS)
 class TestEachFigure:
     def test_it_says_which_kind_it_is(self, entry):
@@ -79,6 +93,32 @@ class TestEachFigure:
 
     def test_a_dashed_stroke_is_only_ever_a_reference_line(self, entry):
         assert entry["figure"].lower().count("stroke-dasharray") <= 2
+
+    def test_a_key_is_named_in_its_own_colour(self, entry):
+        """Whatever introduces a coloured mark is written in that mark's
+        colour, so that nothing ties a name to a line by position alone.
+
+        This fault has been found and fixed three times in four figures, each
+        time by rendering and looking, because markup where a legend reads
+        "Dinic" in plain ink beside a rule that is orange parses exactly as
+        well as markup where it does not.  A reader who cannot tell which
+        curve is which is reading a picture, not a result.
+
+        What counts as a key is a legend swatch or a reference rule -- a short
+        line, or a rect small enough to be a marker.  The data marks
+        themselves are excluded: the bar chart's group headings follow its
+        last bar in document order and are headings, not series names.
+        """
+        series = ("var(--accent)", "var(--good)", "var(--warn)")
+        nodes = list(ET.fromstring(entry["figure"]))
+        for mark, label in zip(nodes, nodes[1:]):
+            colour = mark.get("fill") or mark.get("stroke")
+            if colour not in series or not _is_a_key(mark):
+                continue
+            if label.tag.split("}")[-1] != "text":
+                continue
+            assert label.get("fill") == colour, (
+                entry["key"], colour, (label.text or "").strip())
 
 
 class TestThePageReceivesThem:

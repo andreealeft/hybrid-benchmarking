@@ -12,6 +12,7 @@ import threading
 import urllib.error
 import urllib.request
 import re
+import time
 from pathlib import Path
 
 import pytest
@@ -46,9 +47,45 @@ class TestNothingLeavesTheMachine:
         stripped = page
         for address in anchors:
             stripped = stripped.replace('<a href="{}"'.format(address), "<a")
+        for address in re.findall(r'<a href="(mailto:[^"]+)"', page):
+            stripped = stripped.replace('<a href="{}"'.format(address), "<a")
         for marker in ("http://", "https://", "//cdn", "@import", "url(",
                        "src=\"//"):
             assert marker not in stripped.replace("http://127.0.0.1", ""), marker
+
+    def test_the_page_says_what_does_leave_the_machine(self):
+        """The tool checks for a newer version when it starts, so the page has
+        to say so.  A claim that nothing leaves at all would now be false, and
+        a false privacy claim is worse than no claim."""
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        flat = " ".join(page.split())
+        assert "Your data never leaves this machine" in flat
+        assert "check for a newer version" in flat
+
+    def test_the_search_box_filters_the_list_that_is_on_screen(self):
+        """A regression, and a nasty one: the box decided what to redraw by
+        asking whether the problems article was hidden.  That article is hidden
+        whenever the introduction is showing, so typing on the front page
+        redrew the subroutine list instead, which is empty until Browse is
+        entered and Browse is no longer reachable.  The menu emptied, and
+        clearing the box could not bring it back.
+        """
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        flat = " ".join(page.split())
+        assert '$("filter").oninput = () => ($("detail").hidden ?' in flat
+        assert '($("problems").hidden ? drawList()' not in flat
+
+    def test_a_search_that_finds_nothing_offers_the_way_back(self):
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        assert 'id="clearfilter"' in page
+        assert "Show all of them" in page
+
+    def test_the_data_file_route_is_off_the_page(self):
+        """Hidden, not removed: the readers and the route are untouched and
+        still reachable from the command line."""
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        assert 'data-level="file"' not in page
+        assert "I have a data file" not in page
 
     def test_the_page_opens_on_the_introduction(self):
         """What someone arriving sees before they have picked anything.
@@ -188,6 +225,30 @@ class TestOverHttp:
         status, body = self._get("/")
         assert status == 200 and b"hybrid-benchmarking" in body
 
+    def test_nothing_is_cached_by_the_browser(self):
+        """The updater replaces the package underneath this server, at an
+        address that never changes.  A browser holding the old page would show
+        the old interface over the new code, with nothing on screen to say so
+        and no reason for somebody who opened an icon to think of reloading.
+
+        Local traffic costs nothing, so there is no reason to allow it.
+        """
+        for path in ("/", "/api/routines", "/api/figures", "/api/problems"):
+            with urllib.request.urlopen(self.url.rstrip("/") + path) as answer:
+                told = answer.headers.get("Cache-Control", "")
+            assert "no-store" in told, path
+
+    def test_it_says_which_build_is_answering(self):
+        """Nothing on screen said this, and that is what let a stale copy pass
+        for a current one: the tool replaces itself in the background at an
+        address that never changes, so there was no moment at which anybody
+        could have noticed they were reading last week's numbers."""
+        status, body = self._get("/api/version")
+        build = json.loads(body)
+        assert status == 200
+        assert build["version"]
+        assert "built_from" in build, "absent is fine, missing is not"
+
     def test_the_catalogue_is_served(self):
         status, body = self._get("/api/routines")
         assert status == 200 and len(json.loads(body)) == len(hb.names())
@@ -310,3 +371,162 @@ class TestTheDependencyPromise:
         out = subprocess.run([sys.executable, "-c", probe], capture_output=True,
                              text=True, check=True).stdout.strip()
         assert out == "True"
+
+
+class TestOpeningItWithoutATerminal:
+    """What the desktop icons call.
+
+    The icons are shell and batch, which no test suite of ours will ever run,
+    so the part that has to be right lives here instead: is it already running,
+    start it if not, show it either way.
+    """
+
+    def test_it_can_tell_whether_something_is_listening(self):
+        from hybrid_benchmarking.cli import listening
+
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        try:
+            import threading
+
+            thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+            thread.start()
+            assert listening("127.0.0.1", port)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+        assert not listening("127.0.0.1", port)
+
+    def test_a_running_one_is_shown_rather_than_started_again(self, monkeypatch):
+        """The failure this prevents is the ugly one: a second double-click
+        starting a second server, dying on the port, and looking broken."""
+        import argparse
+        import threading
+
+        from hybrid_benchmarking import cli
+
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+
+        started, opened = [], []
+        monkeypatch.setattr(cli.subprocess, "Popen",
+                            lambda *a, **k: started.append(a))
+        monkeypatch.setattr(cli.webbrowser, "open", lambda link: opened.append(link))
+        try:
+            code = cli._command_open(argparse.Namespace(
+                host="127.0.0.1", port=port, wait=5))
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+        assert code == 0
+        assert not started, "it started a second server on a live port"
+        assert opened == ["http://127.0.0.1:{}/".format(port)]
+
+
+class TestKeepingItselfCurrent:
+    """The one thing the tool sends anywhere, and the rules around it.
+
+    None of these touch the network: what is tested is the decision, not the
+    download.
+    """
+
+    def test_a_working_copy_is_never_overwritten(self):
+        """Installing a release over somebody's source tree would destroy
+        work, so the updater declines when it is not in site-packages."""
+        from hybrid_benchmarking import update
+
+        assert update.from_a_checkout() is True
+        assert update.check_and_update() is None
+
+    def test_versions_compare_as_numbers_not_as_text(self):
+        from hybrid_benchmarking.update import newer
+
+        assert newer("0.3.0", "0.2.0")
+        assert newer("0.10.0", "0.9.0"), "compared as text, 0.10 loses"
+        assert not newer("0.2.0", "0.2.0")
+        assert not newer("0.1.0", "0.2.0")
+
+    def test_being_offline_is_not_an_error(self, monkeypatch):
+        from hybrid_benchmarking import update
+
+        def refuse(*args, **kwargs):
+            raise OSError("no network")
+
+        monkeypatch.setattr("urllib.request.urlopen", refuse)
+        assert update.latest() is None
+
+    def test_it_does_not_stop_the_tool_from_opening(self, monkeypatch):
+        """Whatever the check does, the interface still comes up."""
+        import argparse
+        import threading
+
+        from hybrid_benchmarking import cli
+
+        def explode(*args, **kwargs):
+            raise RuntimeError("the check went wrong")
+
+        monkeypatch.setattr("hybrid_benchmarking.update.check_and_update",
+                            explode)
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        opened = []
+        monkeypatch.setattr(cli.webbrowser, "open", lambda link: opened.append(link))
+        try:
+            code = cli._command_open(argparse.Namespace(
+                host="127.0.0.1", port=port, wait=5, no_update=False))
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+        assert code == 0 and opened
+
+
+class TestStandingDownForANewVersion:
+    """An update under a running server would otherwise serve the old code.
+
+    The server outlives every launch by design, so without this it would keep
+    answering from the version installed weeks ago while the new one sat on
+    disk unused.
+    """
+
+    def test_the_server_can_be_asked_to_stop(self):
+        import threading
+        import urllib.request
+
+        from hybrid_benchmarking.cli import listening
+
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        assert listening("127.0.0.1", port)
+
+        answer = urllib.request.urlopen(urllib.request.Request(
+            url + "api/quit", data=b"{}", method="POST"), timeout=3).read()
+        assert b"stopping" in answer
+
+        for _ in range(40):
+            if not listening("127.0.0.1", port):
+                break
+            time.sleep(0.1)
+        assert not listening("127.0.0.1", port)
+        httpd.server_close()
+
+    def test_it_is_not_stopped_by_an_ordinary_page_load(self):
+        """Only a POST does it: a link, a prefetch or a refresh must not."""
+        import threading
+        import urllib.request
+
+        from hybrid_benchmarking.cli import listening
+
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        try:
+            with pytest.raises(urllib.error.HTTPError):
+                urllib.request.urlopen(url + "api/quit", timeout=3)
+            assert listening("127.0.0.1", port)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
