@@ -35,8 +35,8 @@ _DATA = Path(__file__).parent / "static" / "figures.json"
 
 #: The order they appear in, which is the order of the thesis: the three
 #: methods first, then the work that extends them.
-ORDER = ("simplex", "linear-solvers", "knapsack", "knapsack-variants",
-         "max-flow", "interior-point")
+ORDER = ("simplex", "knapsack", "knapsack-variants", "max-flow",
+         "interior-point", "linear-solvers")
 
 _LOADED: List[Dict[str, Any]] = []
 

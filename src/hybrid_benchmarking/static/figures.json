@@ -8,8 +8,8 @@
   "method": "Computed on this machine, not copied from the paper: equation (10) of arXiv:2604.24362 evaluated by the local reimplementation on the first Newton system of a generated linear program with 180 variables and 60 constraints, whose modified normal equation system came out with dimension 240, sparsity 122 and condition number 18.4, swept over the readout precision from 0.1 down to one millionth; the reference line is the same instance solved classically here in 54 ms, converted to cycles at the paper's 800 ps figure for one entangling gate. The instance generator is seeded from the values given, so the same request reproduces the same instance and the same numbers.",
   "paper": "Practical lower bounds for hybrid quantum interior point methods in linear programming",
   "paper_url": "https://arxiv.org/abs/2604.24362",
-  "short": "The solver itself is cheap. Reading the answer back out as numbers is what costs, and no better solver touches it.",
-  "title": "The readout, not the solver, sets the cost of a quantum interior point step"
+  "short": "The quantum part that does the work is cheap. Turning its result into ordinary numbers you can use costs so much more that a better method would not help.",
+  "title": "Reading the answer back out is what costs"
  },
  "knapsack": {
   "caption": "Elapsed processor cycles for knapsack instances of growing size, on the hard instance group: the classical solver COMBO and the search built on the quantum tree generator. The point is the slope. The quantum curve rises far more slowly, so the gap widens with size and reaches more than a factor of ten at 600 items. No crossing is marked: at the smallest size plotted the two curves sit within the width of the digitisation, so where exactly they part is not something this redrawing can settle.",
@@ -20,8 +20,8 @@
   "method": "point values digitised from the vector paths of the published cycle count figure (figure 6.2 of the thesis, panel for hard instances with g between 7 and 10), mapped to data coordinates through the axis tick calibration. The crossover line first drawn here was removed: it rested on a difference of two pixels between the curves at the smallest size, which is inside the error of reading points off a printed figure.",
   "paper": "A quantum algorithm for solving 0-1 Knapsack problems",
   "paper_url": "https://www.nature.com/articles/s41534-025-01097-8",
-  "short": "The quantum curve rises far more slowly than COMBO, the classical solver: at 600 items the gap is more than a factor of ten.",
-  "title": "Elapsed cycles against instance size on hard knapsack instances"
+  "short": "The quantum cost rises far more slowly as the problem grows, so the gap widens: by six hundred items it is more than a factor of ten in the quantum side's favour.",
+  "title": "Choosing what to pack, against the best classical solver available"
  },
  "knapsack-variants": {
   "caption": "For each instance size, the middle time Gurobi needed to reach a solution within 40 percent of the best known bound, and the middle time the quantum tree generator search needed to reach a solution at least as good. On the quadratic knapsack the quantum side is ahead at every size, by a factor between 40 and 700 on these medians, while on the multidimensional knapsack the two swap places above about 220 items and by 500 items the quantum side is twenty times slower: adding many weight limits is what the method handles badly, which is the paper's own conclusion. The Gurobi times are measured on a desktop machine and the quantum times are estimates from the authors' simulator, converted at one nanosecond per quantum cycle with every gate costing the same, arbitrary connectivity and nothing charged for error correction, so the two sides are not measured in the same sense.",
@@ -32,8 +32,8 @@
   "method": "Computed from figure 2 of the paper, which plots quantum tree generator runtime against Gurobi runtime: the 4416 vector markers were read out of the arXiv PDF and mapped to data coordinates through the gridline positions, marker area is linear in the number of items and marker colour is the relative gap to the best known bound, so each marker was recovered as one Gurobi incumbent solution paired with the earliest quantum solution at least as good, then grouped by instance size, restricted to the 1685 pairs within 40 percent of that bound, and reduced to a median on each side; the instances are QKPLIB for the quadratic problem and ORLIB, GK and SAC 94 for the multidimensional one, and sizes with no pair in that quality band are absent.",
   "paper": "A quantum search method for quadratic and multidimensional knapsack problems",
   "paper_url": "https://arxiv.org/abs/2503.22325",
-  "short": "Against Gurobi, from the paper's own figure: the quantum search leads on the quadratic knapsack at every size, and falls behind on the multidimensional one past about 220 items.",
-  "title": "Time to a good solution, quantum search against the classical solver Gurobi"
+  "short": "On the first, where pairs of choices are worth more together, the quantum side is ahead at every size. On the second, where several limits apply at once, the two swap places above about two hundred items.",
+  "title": "Two harder packing problems, against the best classical solver available"
  },
  "linear-solvers": {
   "caption": "Median number of oracle query calls made by four quantum linear solvers on the three data sets of the paper: random instances built to satisfy the assumptions of functional quantum linear solvers, linear systems taken from simplex iterations on MIPLIB, and discretised Poisson equations. The vertical axis is logarithmic and spans nineteen decades, which is what it takes to hold HHL and the rest in one picture: HHL costs between eight and eleven orders of magnitude more queries than the cheapest of the other three on every data set. On the random instances the method based on the quantum singular value transformation is the cheapest by about two orders of magnitude, while on the two structured data sets the Chebyshev method comes out slightly ahead of it, so the advantage of that method is clearest where the assumptions hold exactly. The values are medians computed here from the query counts published in that repository, not from our own library, which follows the printed lemmas in three places where the repository does not: the round count of amplitude amplification, the logarithm base in the j0 bound, and the logarithm base and crossover test in the Hamiltonian simulation cost. Our own numbers for these four solvers therefore differ from the ones plotted.",
@@ -44,8 +44,8 @@
   "method": "Median query count per algorithm within each data set, computed from the repository's tabulated counts in the columns HHL_New, QLS-Fourier_New, QLS-Chebyshev and QLS-QSVT (the four the authors' own plots use): 1,056,000 random instances in evaluation/instances/RandomGenerated/bounds_n=1000.csv, 10,233 simplex iterations over 106 MIPLIB instances in evaluation/queries.csv, and 90 Poisson instances in evaluation/instances/PDEs/results.txt.",
   "paper": "Beyond asymptotic scaling: comparing functional quantum linear solvers",
   "paper_url": "https://arxiv.org/abs/2503.21420",
-  "short": "HHL costs eight to eleven orders of magnitude more queries than the cheapest alternative on every data set. Which of the other three wins depends on the data set.",
-  "title": "Query counts of four quantum linear solvers"
+  "short": "This one has no classical side: it sets four quantum methods against one another on the same equations. The oldest of them costs billions of times more than the cheapest, and which of the rest wins depends on the data.",
+  "title": "Four quantum methods for solving equations, compared with each other"
  },
  "max-flow": {
   "caption": "Two whole algorithms on the same networks: orange is Dinic's maximum flow algorithm timed on this machine, navy is the same algorithm with only its layering step handed to the quantum breadth first search, the rest of the solve still running classically and still measured. The quantum side loses at every size tested, from about 1.2 times slower on a network of 50 vertices to about 8.5 times slower on one of 1333, and the two lines never cross, so nothing in this range points to a size at which the quantum route would begin to pay. The classical seconds are measurements from the library's own instrumented Dinic; the quantum seconds are a projection rather than a measurement, counted gates charged at the isolated gate speed record of 6.5 nanoseconds each with no error correction, which is a floor, so the real gap is wider than the one drawn.",
@@ -56,8 +56,8 @@
   "method": "Run on this machine with the hybrid benchmarking library: for each of eight network sizes from 50 to 1333 vertices, holding three connections per vertex, the library's instrumented Dinic solver was run inside a 120 second budget, five times per instance for timing and over nine interpreter hash seeds for instance structure, and the medians taken; the classical series is the whole measured solve, the quantum series is the measured part of the solve that Dinic keeps plus the quantum breadth first search gate count projected at 6.5 nanoseconds per gate. The generator is seeded from the values given, so the same sizes reproduce the same networks and the same numbers once the interpreter's hash seed is fixed, which the run did. The generator has since been changed to seed from a checksum of the answers rather than from Python's salted string hash, which is what made those nine variants possible: a rerun now gives one instance per size.",
   "paper": "Use case study: benchmarking quantum breadth-first search for maximum flow problems",
   "paper_url": "https://arxiv.org/abs/2604.24962",
-  "short": "Dinic's algorithm as measured here, against the same algorithm with its layering step replaced by quantum search.",
-  "title": "Dinic's algorithm against Dinic with its layering step made quantum"
+  "short": "One step inside the classical method is handed to a quantum search and the rest is left alone. It comes out slower at every size tried, and the gap grows.",
+  "title": "Getting the most through a network, classical against part quantum"
  },
  "simplex": {
   "caption": "The vertical axis is the time a single quantum gate would have to take, on a logarithmic scale spanning fifteen powers of ten. To beat one iteration of the classical simplex method on the benchmark instances, the quantum simplex would need a gate time between 10 to the minus 18 and 10 to the minus 21 seconds, while the fastest isolated gate operation ever measured is 6.5 nanoseconds and control electronics in the 1 to 10 GHz range put a floor near 0.1 nanoseconds. All values are taken from section 4.6 of the thesis, results R1 and R2, which accompany figures 4.4 to 4.6.",
@@ -68,7 +68,7 @@
   "method": "The three plotted quantities are quoted from section 4.6.3 of the thesis: the required gate time band from result R2, the 6.5 times 10 to the minus 9 second record and the 10 to the minus 10 second control electronics floor from result R1.",
   "paper": "Realistic runtime analysis for quantum simplex computation",
   "paper_url": "https://arxiv.org/abs/2311.09995",
-  "short": "To beat one classical simplex iteration, a gate would have to take 10 to the minus 18 seconds or less. The fastest gate ever measured is 6.5 nanoseconds.",
-  "title": "Gate time the quantum simplex would need"
+  "short": "To beat one step of the best classical method available, a single quantum operation would have to take about a billionth of a billionth of a second. The fastest one ever measured is six and a half billionths.",
+  "title": "How fast a gate would have to be, to beat the classical method"
  }
 }
