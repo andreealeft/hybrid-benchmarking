@@ -14,15 +14,28 @@ icon on your Desktop.
 **On a Mac.** Download
 [Install-hybrid-benchmarking-mac.zip](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/Install-hybrid-benchmarking-mac.zip).
 Your Mac unpacks it into an app called **Install hybrid benchmarking**.
-**Right-click that app and choose Open**, then Open again when the Mac asks.
-That right-click matters: a plain double-click will refuse, because the app came
-from the internet and is not signed by a registered developer. It works quietly
-and tells you when it is finished.
+
+Double-click it. **Your Mac will refuse the first time**, with a message saying
+Apple could not verify the app is free of malware. That is what macOS says about
+any app not signed by a registered developer, and it says the same thing whether
+the app is harmless or not. Getting past it takes four clicks:
+
+1. Press **Done**. Do not press *Move to Bin*, which is the highlighted button.
+2. Open **System Settings**, then **Privacy & Security**.
+3. Scroll down to the Security section. There is a line saying the app was
+   blocked, with an **Open Anyway** button beside it. It appears only for about
+   an hour after you tried, so if it is not there, double-click the app again
+   and come back.
+4. Press **Open Anyway**, confirm with your password or Touch ID, then **Open**.
+
+You do this once, for the installer only. The icon it puts on your Desktop is
+made on your own machine and is never checked or blocked.
 
 **On Windows.** Download
 [Windows-install.bat](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/Windows-install.bat)
 and double-click it. If Windows says it protected your PC, choose **More info**
-and then **Run anyway**, for the same reason.
+and then **Run anyway**, for the same reason: the file is not signed, and
+Windows says so whether or not there is anything wrong with it.
 
 Either way, if Python is missing the installer opens the download page and says
 what to do; install it and open the installer again.
