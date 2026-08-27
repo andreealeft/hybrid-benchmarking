@@ -46,9 +46,27 @@ class TestNothingLeavesTheMachine:
         stripped = page
         for address in anchors:
             stripped = stripped.replace('<a href="{}"'.format(address), "<a")
+        for address in re.findall(r'<a href="(mailto:[^"]+)"', page):
+            stripped = stripped.replace('<a href="{}"'.format(address), "<a")
         for marker in ("http://", "https://", "//cdn", "@import", "url(",
                        "src=\"//"):
             assert marker not in stripped.replace("http://127.0.0.1", ""), marker
+
+    def test_the_page_says_what_does_leave_the_machine(self):
+        """The tool checks for a newer version when it starts, so the page has
+        to say so.  A claim that nothing leaves at all would now be false, and
+        a false privacy claim is worse than no claim."""
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        flat = " ".join(page.split())
+        assert "Your data never leaves this machine" in flat
+        assert "check for a newer version" in flat
+
+    def test_the_data_file_route_is_off_the_page(self):
+        """Hidden, not removed: the readers and the route are untouched and
+        still reachable from the command line."""
+        page = (Path(hb.__file__).parent / "static" / "index.html").read_text()
+        assert 'data-level="file"' not in page
+        assert "I have a data file" not in page
 
     def test_the_page_opens_on_the_introduction(self):
         """What someone arriving sees before they have picked anything.
@@ -362,3 +380,61 @@ class TestOpeningItWithoutATerminal:
         assert code == 0
         assert not started, "it started a second server on a live port"
         assert opened == ["http://127.0.0.1:{}/".format(port)]
+
+
+class TestKeepingItselfCurrent:
+    """The one thing the tool sends anywhere, and the rules around it.
+
+    None of these touch the network: what is tested is the decision, not the
+    download.
+    """
+
+    def test_a_working_copy_is_never_overwritten(self):
+        """Installing a release over somebody's source tree would destroy
+        work, so the updater declines when it is not in site-packages."""
+        from hybrid_benchmarking import update
+
+        assert update.from_a_checkout() is True
+        assert update.check_and_update() is None
+
+    def test_versions_compare_as_numbers_not_as_text(self):
+        from hybrid_benchmarking.update import newer
+
+        assert newer("0.3.0", "0.2.0")
+        assert newer("0.10.0", "0.9.0"), "compared as text, 0.10 loses"
+        assert not newer("0.2.0", "0.2.0")
+        assert not newer("0.1.0", "0.2.0")
+
+    def test_being_offline_is_not_an_error(self, monkeypatch):
+        from hybrid_benchmarking import update
+
+        def refuse(*args, **kwargs):
+            raise OSError("no network")
+
+        monkeypatch.setattr("urllib.request.urlopen", refuse)
+        assert update.latest() is None
+
+    def test_it_does_not_stop_the_tool_from_opening(self, monkeypatch):
+        """Whatever the check does, the interface still comes up."""
+        import argparse
+        import threading
+
+        from hybrid_benchmarking import cli
+
+        def explode(*args, **kwargs):
+            raise RuntimeError("the check went wrong")
+
+        monkeypatch.setattr("hybrid_benchmarking.update.check_and_update",
+                            explode)
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        opened = []
+        monkeypatch.setattr(cli.webbrowser, "open", lambda link: opened.append(link))
+        try:
+            code = cli._command_open(argparse.Namespace(
+                host="127.0.0.1", port=port, wait=5, no_update=False))
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+        assert code == 0 and opened

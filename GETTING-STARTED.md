@@ -31,6 +31,20 @@ Double-click it whenever you want the tool. It starts on your own machine and
 opens in your browser after a few seconds. Nothing is uploaded, and it works
 with the network unplugged.
 
+**It updates itself.** Each time you open it, it asks GitHub whether there is a
+newer version and installs one if there is. That request is the only thing this
+tool ever sends anywhere: your instances, your answers and your files stay on
+your machine. If the check cannot be made, because you are offline or the
+network is slow, the tool opens anyway on what is already installed.
+
+**What you get from the interface is a feel for the size of the numbers**, on a
+small made-up instance of the size you describe. The charts on the front page
+come from real benchmark instances, which are far harder than anything the
+interface will build for you. Putting your own instances through it is done
+from the command line or from Python, below, and
+[andreea.lefterovici@gmail.com](mailto:andreea.lefterovici@gmail.com) will help
+if you would like a hand.
+
 It keeps running quietly after you close the browser tab, so opening it again
 is instant, and double-clicking the icon while it is already running simply
 brings the page back. On a Mac there is a second icon beside it, **Stop hybrid

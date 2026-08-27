@@ -407,6 +407,31 @@ should cost is the open question: nothing, since its layer has nothing to add,
 or a full-width addition, which is what Sören's 0-1 code counts for a zero
 summand. It changes counts either way.
 
+## Installed by double-clicking, and kept current by itself
+
+`install/macOS-install.command` and `install/Windows-install.bat` install the
+package from a zip of `main` and write a desktop icon. The icon calls
+`hybrid-benchmarking open`, which is where the logic lives, because it has to be
+right on Windows too and a batch file cannot be tested here: already running,
+show it; not running, start it **detached** and wait. Detached is not a detail.
+An icon that stays running is one the Finder will not launch a second time, and
+an app with no windows has no front to bring forward, so the second
+double-click failed with `-600` until the icon became a doorbell rather than the
+house.
+
+`update.py` runs at every launch and installs a newer version if there is one.
+Three rules hold it: **a checkout is never touched**, so somebody's source tree
+is safe; **failure is silent**, since being out of date beats not opening; and
+it is **bounded** to a few seconds. It is also the only thing this tool sends
+anywhere, so the front page says so rather than claiming that nothing leaves at
+all, which would now be false.
+
+**The data-file route is hidden from the interface**, at Andreea's request, and
+only from the interface: the readers, the route and the tests are untouched and
+the command line still reads files. The page now says plainly that it makes up
+an instance of the size you describe, that the charts come from far harder real
+benchmark instances, and where to write for real work.
+
 ## Three levels, and what the first one costs honestly
 
 The interface now meets people at three depths. **Describe it** asks for the

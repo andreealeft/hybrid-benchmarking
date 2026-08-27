@@ -79,6 +79,19 @@ def _command_open(args: argparse.Namespace) -> int:
     """
     url = "http://{}:{}/".format(args.host, args.port)
 
+    # Before anything starts, and only when this is an installed copy rather
+    # than somebody's working tree.  It fails silently: being out of date is a
+    # smaller problem than not opening at all.
+    if not getattr(args, "no_update", False):
+        from .update import check_and_update
+
+        try:
+            got = check_and_update(announce=print)
+            if got:
+                print("updated to {}".format(got))
+        except Exception:
+            pass
+
     if not listening(args.host, args.port):
         log = Path.home() / "hybrid-benchmarking.log"
         detach = {}
@@ -501,6 +514,8 @@ def build_parser() -> argparse.ArgumentParser:
     show.add_argument("--port", type=int, default=8765)
     show.add_argument("--wait", type=int, default=20,
                       help="seconds to wait for it to come up")
+    show.add_argument("--no-update", action="store_true",
+                      help="do not look for a newer version first")
     show.set_defaults(handler=_command_open)
 
     listing = sub.add_parser("list", help="what can be counted, and in what")
