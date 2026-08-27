@@ -234,6 +234,15 @@
     border-left: 3px solid var(--warn); background: var(--warn-soft);
     padding: .8rem 1rem; margin: 0 0 1.2rem; font-size: .87rem;
   }
+  /* On the caution panel the accent all but vanishes, so this link takes the
+     colour of the text around it and is marked by its underline instead.  That
+     is near-white against the dark theme and dark against the light one, which
+     is what "white" has to mean on a page with both. */
+  a.plain {
+    color: inherit; text-decoration: underline;
+    text-underline-offset: .15em; font-weight: 600;
+  }
+  a.plain:hover { text-decoration-thickness: 2px; }
   textarea {
     font-family: var(--mono); font-size: .8rem; width: 100%; min-height: 7rem;
     padding: .6rem; background: var(--surface); color: var(--ink);
@@ -426,12 +435,21 @@
       the same model, with gates on disjoint qubits sharing a cycle and
       multi-controlled gates sharing one ancilla register.</p>
     <p class="meta">This is not a Clifford+T count. A Toffoli is one gate here,
-      where a fault-tolerant implementation of it costs several T gates and the
-      magic states behind them. So these are <b>logical</b> operations, without
-      error correction assumed: its cost would add on top of every result you
+      where a fault-tolerant implementation of it is more complex.
+      So these are <b>logical</b> operations, without
+      error correction assumed. Its cost would add on top of every result you
       see here.</p>
 
-    <h3>Two ways in</h3>
+    <div class="caution"><b>This is a demonstration, and what it gives you is a
+      preliminary answer.</b> It builds a small made-up instance of the size you
+      describe and gives you the implementation counts. The plots further down come from real benchmark
+      instances, far harder than anything this page will build, and that is
+      where the published findings come from. For real work, or to put your own
+      instances through it, please use directly the code in GitHub or write to
+      <a class="plain" href="mailto:andreea.lefterovici@gmail.com"
+        >andreea.lefterovici@gmail.com</a>.</div>
+
+    <h3>How to use it</h3>
     <div class="steps">
       <div class="step">
         <h4>Describe your problem in simple numbers</h4>
@@ -443,16 +461,16 @@
           size of your problem favours. It is a problem <em>like</em> yours.</p>
       </div>
       <div class="step real">
-        <span class="tag">the real thing</span>
-        <h4>Use a data file of your own</h4>
-        <p>For now this is restricted to certain formats. For an advanced user,
-          going directly through the code is the better route if anything in
-          this interface gets in the way.</p>
-        <p>The counts actually depend on the structure of the problem: how
-          ill-conditioned the matrix is, how many columns improve at each step,
-          how deep the layers go, and so on. So the file is read, and the
-          classical algorithm runs here with the analytical resource estimates
-          built in.</p>
+        <span class="tag">for real work</span>
+        <h4>Your own instances</h4>
+        <p>What a method costs depends on the structure of a problem and not
+          only on its size: how ill-conditioned the matrix is, how many columns
+          improve at each step, how deep the layers go. A made-up instance of
+          the right size cannot tell you that, and this page only makes up
+          instances.</p>
+        <p>Reading your own instances, in the formats the readers understand,
+          is done outside this page by using the code from GitHub directly or by
+          contacting me.</p>
       </div>
     </div>
 
@@ -460,8 +478,8 @@
     <p class="lede">Each of these asks the same question of a different
     method: how fast would a quantum computer have to be before it beat the
     program people run today? The last one is the exception, and compares four
-    quantum methods with each other. Every chart links to the paper it came
-    from, and says behind it how the values were obtained.</p>
+    quantum methods with each other. Every plot links to the paper it came
+    from, and roughly explains how the values were obtained.</p>
     <div id="findings"><p class="none">Loading the results…</p></div>
 
     <h3>Where to start</h3>
@@ -473,9 +491,8 @@
 
     <h3>Where this comes from</h3>
     <p class="lede">Everything here is <b>reimplemented from the published
-      statements</b>: the lemma, not somebody's code. The original repositories
-      are used to check the results against, never copied from. These are the
-      works that were read.</p>
+      statements</b>. The original repositories are used to check the results
+      against, never copied from.</p>
 
     <div class="refcols">
       <div>
@@ -536,10 +553,12 @@
       </div>
       <div>
         <p class="meta">Every number that comes out carries where it came from:
-      which lemma, what it assumes, the regime it was derived in, and whether it
-      is a bound or exact. A plausible number without that is the thing this
-      tool exists to prevent. Nothing leaves this machine: the page loads nothing
-      from the internet, and no file you point it at is uploaded anywhere.</p>
+      which lemma, what it assumes, the regime it was derived in, etc.</p>
+        <p class="meta">Your data never leaves this machine: everything is
+      computed here and nothing you type is sent anywhere. The one thing that
+      does go out is a check for a newer version each time the tool starts, so
+      that a copy kept for months does not quietly fall behind the results.</p>
+        <p class="meta" id="build"></p>
       </div>
     </div>
 
@@ -717,8 +736,14 @@ async function run(copyOnly) {
     <h3>The same call, as code</h3><pre>${esc(res.snippet)}</pre>`;
 }
 
+/* Which list the box filters is decided by which one is on screen, and that
+   has to be asked of the registry view rather than of the problems view.  The
+   problems article is hidden whenever the introduction is showing, so testing
+   it meant that typing on the front page redrew the subroutine list instead:
+   that list is empty until Browse is entered, which it now never is, so the
+   menu emptied and clearing the box could not bring it back. */
 $("filter").oninput = () =>
-  ($("problems").hidden ? drawList() : drawProblemList());
+  ($("detail").hidden ? drawProblemList() : drawList());
 
 /* ------------------------------------------------------------------ build */
 
@@ -961,9 +986,7 @@ async function bootFigures() {
           ? `<span class="kind schematic">schematic</span>` : ""}</h4>
         <p>${esc(f.short || f.caption)}</p>
         <p class="sources"><a href="${esc(f.paper_url)}" target="_blank"
-          rel="noopener">${esc(f.paper)}</a>${f.code_url
-          ? `<span>&middot;</span><a href="${esc(f.code_url)}" target="_blank"
-              rel="noopener">the code</a>` : ""}</p>
+          rel="noopener">${esc(f.paper)}</a></p>
         ${f.method || f.caption ? `<details><summary>How this was made</summary>
           <ul class="notes"><li>${esc(f.caption)}</li>${
             f.method ? `<li>${esc(f.method)}</li>` : ""}</ul></details>` : ""}
@@ -973,6 +996,18 @@ async function bootFigures() {
   $("findings").querySelectorAll(".plot").forEach(plot => {
     plot.onclick = () => plot.closest(".finding").classList.toggle("open");
   });
+}
+
+/* Which build is answering.  It updates itself in the background at an
+   address that never changes, so without this there is no moment at which
+   anybody could notice they are reading last week's numbers.  Quiet, and
+   absent rather than wrong if the question cannot be answered. */
+async function bootVersion() {
+  try {
+    const build = await (await fetch("/api/version")).json();
+    $("build").textContent = "This copy is version " + build.version
+      + (build.built_from ? ", build " + build.built_from : "") + ".";
+  } catch (error) { /* leave it empty */ }
 }
 
 async function boot_problems() {
@@ -992,9 +1027,10 @@ function showWelcome() {
 }
 
 function drawProblemList() {
-  const needle = $("filter").value.toLowerCase();
-  const shown = PROBLEMS.filter(p =>
-    !needle || (p.label + " " + p.blurb).toLowerCase().includes(needle));
+  const needle = $("filter").value.trim().toLowerCase();
+  const shown = PROBLEMS.filter(p => !needle ||
+    (p.label + " " + p.blurb + " " + (p.category_label || ""))
+      .toLowerCase().includes(needle));
 
   /* The server sends the problems already ordered by heading, so a group is a
      run of equal category and the page never has to know what the headings are
@@ -1021,10 +1057,14 @@ function drawProblemList() {
       <summary>${esc(g.label)}<span class="count">${g.items.length}</span></summary>
       <ul>${g.items.map(item).join("")}</ul>
     </details></li>`;
-  }).join("") || `<li><p class="none">Nothing matches that.</p></li>`;
+  }).join("") || `<li><p class="none">Nothing matches “${esc(needle)}”.
+    <button class="ghost" id="clearfilter">Show all of them</button></p></li>`;
 
   $("list").querySelectorAll("button[data-problem]").forEach(b =>
     b.onclick = () => pickProblem(b.dataset.problem));
+
+  const clear = $("clearfilter");
+  if (clear) clear.onclick = () => { $("filter").value = ""; drawProblemList(); };
 }
 
 async function pickProblem(key) {
@@ -1051,12 +1091,10 @@ function drawProblem() {
     ${p.picture ? `<figure class="picture">${p.picture}</figure>` : ""}
     ${p.story ? `<p class="story">${esc(p.story)}</p>` : ""}</div>`;
 
-  html += `<div class="tabs levels">
-      <button data-level="beginner" aria-pressed="${level === "beginner"}"
-        >Describe it</button>
-      <button data-level="file" aria-pressed="${level === "file"}"
-        >I have a data file</button>
-    </div>`;
+  /* The data-file route is off the page: the buttons are gone and the level is
+     pinned, though the code behind it is untouched and still reachable from the
+     command line, where somebody working with their own instances belongs. */
+  level = "beginner";
 
   if (level === "beginner") {
     $("problems").innerHTML = html + `<div id="beginner"></div>`;
@@ -1253,6 +1291,14 @@ async function runBeginner(form) {
   let html = `<div class="caution"><b>This is a problem of your shape, not your
     problem.</b> ${esc(res.caveat)}</div>`;
 
+  /* The chart leads, and the columns follow it.  Somebody arriving with a
+     problem is asking how long it would take, not how many gates it is: the
+     count is the evidence for the answer rather than the answer, and a
+     column of numbers in a unit they have never met is a poor first thing to
+     meet.  The caveat still comes above both, because it is the difference
+     between these numbers and an answer. */
+  html += timeChart(res.routes);
+
   html += `<h3>What each approach would cost</h3>
     <div class="parallel">` + res.routes.map(r => {
       if (r.error) return `<div class="column bad">
@@ -1276,8 +1322,6 @@ async function runBeginner(form) {
      bound and assumptions, which says it without the paragraph.  The data
      still says it too: compare() returns comparable:false and the units
      present, and the cost algebra still refuses to add gates to cycles. */
-
-  html += timeChart(res.routes);
 
   if (res.warnings.length) html += res.warnings.map(w =>
     `<p class="warn">⚠ ${esc(w)}</p>`).join("");
@@ -1454,6 +1498,7 @@ $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
    entered, which cannot happen from the menu as it stands. */
 $("home").onclick = showWelcome;
 bootFigures();
+bootVersion();
 $("filter").hidden = false;
 boot_problems();
 </script>

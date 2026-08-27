@@ -27,6 +27,18 @@ print("index.html copied, boot.js injected")
 PY
 
 cp pages/api.py docs/api.py
-cp pages/boot.js docs/boot.js
+
+# boot.js names the wheel it loads, and that name carries the version, so it is
+# written in here from the file that was actually built rather than kept as a
+# constant somebody has to remember to edit.
+python3 - <<'PY'
+import pathlib
+wheels = sorted(pathlib.Path("docs").glob("*.whl"))
+assert len(wheels) == 1, "expected exactly one wheel, found {}".format(wheels)
+boot = pathlib.Path("pages/boot.js").read_text()
+assert "@WHEEL@" in boot, "boot.js has no placeholder to fill"
+pathlib.Path("docs/boot.js").write_text(boot.replace("@WHEEL@", wheels[0].name))
+print("boot.js points at", wheels[0].name)
+PY
 touch docs/.nojekyll
 echo "built"

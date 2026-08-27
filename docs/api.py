@@ -51,6 +51,10 @@ def handle(path: str, method: str = "GET", body: str = "") -> str:
                 return json.dumps(web.problems())
             if path == "/api/figures":
                 return json.dumps(web.figures())
+            if path == "/api/version":
+                # There is no updater in a tab: this build is whatever was
+                # last published, so it reports the version and no commit.
+                return json.dumps(web.running_version())
             if path == "/api/entries":
                 return json.dumps(web.entries())
             if path.startswith("/api/beginner/"):

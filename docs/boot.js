@@ -17,7 +17,14 @@
   "use strict";
 
   var PYODIDE = "https://cdn.jsdelivr.net/pyodide/v314.0.6/full/";
-  var WHEEL = "hybrid_benchmarking-0.1.0.dev0-py3-none-any.whl";
+
+  /* Written in by pages/build.sh from the wheel it has just built, because the
+     name carries the version and the version moves.  Hardcoded, it went stale
+     the first time the version was bumped and the whole build would have
+     answered 404 to its own package: a name that has to track a build is not a
+     constant, and this is the second place in this repository where treating
+     one as a constant broke delivery silently. */
+  var WHEEL = "hybrid_benchmarking-0.2.3-py3-none-any.whl";
 
   var realFetch = window.fetch.bind(window);
   var starting = null;
