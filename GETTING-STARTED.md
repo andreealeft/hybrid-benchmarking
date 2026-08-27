@@ -8,56 +8,32 @@ library directly.
 
 ## If you just want a number
 
-You will type four commands, once. After that, starting the tool is one word.
+Nothing to type. Download one file, open it once, and from then on there is an
+icon on your Desktop.
 
-### 1. Check you have Python
+**On a Mac.** Download
+[macOS-install.command](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/macOS-install.command).
+In your Downloads folder, **right-click it and choose Open**, then Open again
+when the Mac asks. That right-click matters: a plain double-click will refuse,
+because the file came from the internet and is not signed by a registered
+developer. A window appears, tells you what it is doing, and closes.
 
-Open a terminal — **Terminal** on macOS (Spotlight, type "Terminal"),
-**PowerShell** on Windows, whatever you use on Linux — and type:
+**On Windows.** Download
+[Windows-install.bat](https://github.com/andreealeft/hybrid-benchmarking/raw/main/install/Windows-install.bat)
+and double-click it. If Windows says it protected your PC, choose **More info**
+and then **Run anyway**, for the same reason.
 
-```sh
-python3 --version
-```
+Either way, if Python is missing the installer opens the download page and says
+what to do; install it and open the installer again.
 
-If that prints `Python 3.9` or higher, you are done with this step. If it says
-the command is not found, install Python from
-[python.org/downloads](https://www.python.org/downloads/); on Windows, tick
-**Add Python to PATH** in the installer, and use `python` instead of `python3`
-in everything below.
+When it finishes there is an icon on the Desktop called **Hybrid benchmarking**.
+Double-click it whenever you want the tool. It starts on your own machine and
+opens in your browser after a few seconds. Nothing is uploaded, and it works
+with the network unplugged.
 
-### 2. Get the code
-
-```sh
-git clone https://github.com/andreealeft/hybrid-benchmarking.git
-cd hybrid-benchmarking
-```
-
-No `git`? Go to the page above, click **Code → Download ZIP**, unzip it, and
-in the terminal type `cd ` followed by a space and then drag the unzipped
-folder onto the terminal window. Press return.
-
-### 3. Install it
-
-```sh
-pip3 install -e .
-```
-
-That downloads two mathematics packages and takes a minute or two. If `pip3` is
-not found, use `python3 -m pip install -e .` instead.
-
-### 4. Start it
-
-```sh
-hybrid-benchmarking
-```
-
-A browser tab opens at `http://127.0.0.1:8765/`. **Nothing leaves your
-machine**: the tool runs a small server on your own computer, the page loads
-nothing from the internet, and no file you point it at is uploaded anywhere. It
-works with the network unplugged. Close it with `Ctrl-C` in the terminal.
-
-Next time, steps 1 to 3 are done: open a terminal and type
-`hybrid-benchmarking`.
+To stop it, quit the icon from the Dock on a Mac, or close it from the Task
+Manager on Windows. Double-clicking it again while it is already running simply
+brings the page back.
 
 ### Using it
 

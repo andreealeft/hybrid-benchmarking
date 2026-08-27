@@ -4,9 +4,12 @@ Resource analysis of fault-tolerant quantum algorithms without a quantum
 computer. Quantum subroutines with their costs, composable into published
 analyses, and honest about where every number came from.
 
-**Never used it before?** [Getting started](GETTING-STARTED.md) installs it in
-four commands and runs it in your browser, with no Python needed. The rest of
-this page assumes you write code.
+**Never used it before?** Download the installer for
+[Mac](install/macOS-install.command) or
+[Windows](install/Windows-install.bat), open it once, and use the icon it puts
+on your Desktop. Nothing to type; [Getting started](GETTING-STARTED.md) has the
+details and the command line version. The rest of this page assumes you write
+code.
 
 The shortest useful thing you can do needs no data at all:
 
