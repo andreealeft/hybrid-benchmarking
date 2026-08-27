@@ -12,6 +12,7 @@ import threading
 import urllib.error
 import urllib.request
 import re
+import time
 from pathlib import Path
 
 import pytest
@@ -456,3 +457,52 @@ class TestKeepingItselfCurrent:
             httpd.shutdown()
             httpd.server_close()
         assert code == 0 and opened
+
+
+class TestStandingDownForANewVersion:
+    """An update under a running server would otherwise serve the old code.
+
+    The server outlives every launch by design, so without this it would keep
+    answering from the version installed weeks ago while the new one sat on
+    disk unused.
+    """
+
+    def test_the_server_can_be_asked_to_stop(self):
+        import threading
+        import urllib.request
+
+        from hybrid_benchmarking.cli import listening
+
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        assert listening("127.0.0.1", port)
+
+        answer = urllib.request.urlopen(urllib.request.Request(
+            url + "api/quit", data=b"{}", method="POST"), timeout=3).read()
+        assert b"stopping" in answer
+
+        for _ in range(40):
+            if not listening("127.0.0.1", port):
+                break
+            time.sleep(0.1)
+        assert not listening("127.0.0.1", port)
+        httpd.server_close()
+
+    def test_it_is_not_stopped_by_an_ordinary_page_load(self):
+        """Only a POST does it: a link, a prefetch or a refresh must not."""
+        import threading
+        import urllib.request
+
+        from hybrid_benchmarking.cli import listening
+
+        url, httpd = serve(port=0, open_browser=False)
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        try:
+            with pytest.raises(urllib.error.HTTPError):
+                urllib.request.urlopen(url + "api/quit", timeout=3)
+            assert listening("127.0.0.1", port)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()

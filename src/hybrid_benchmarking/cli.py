@@ -82,15 +82,32 @@ def _command_open(args: argparse.Namespace) -> int:
     # Before anything starts, and only when this is an installed copy rather
     # than somebody's working tree.  It fails silently: being out of date is a
     # smaller problem than not opening at all.
+    updated = None
     if not getattr(args, "no_update", False):
         from .update import check_and_update
 
         try:
-            got = check_and_update(announce=print)
-            if got:
-                print("updated to {}".format(got))
+            updated = check_and_update(announce=print)
+            if updated:
+                print("updated to {}".format(updated))
         except Exception:
             pass
+
+    # A server that is already up is running the code from before the update,
+    # and it outlives every launch, so it would serve the old version until the
+    # machine restarted.  Ask it to stop, and start the new one below.
+    if updated and listening(args.host, args.port):
+        try:
+            import urllib.request
+
+            urllib.request.urlopen(urllib.request.Request(
+                url + "api/quit", data=b"{}", method="POST"), timeout=3).read()
+        except Exception:
+            pass
+        for _ in range(20):
+            if not listening(args.host, args.port):
+                break
+            time.sleep(0.25)
 
     if not listening(args.host, args.port):
         log = Path.home() / "hybrid-benchmarking.log"

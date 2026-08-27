@@ -547,6 +547,18 @@ class _Handler(BaseHTTPRequestHandler):
         self._send(404, b"not found", "text/plain; charset=utf-8")
 
     def do_POST(self) -> None:  # noqa: N802
+        if self.path == "/api/quit":
+            # An update installed under a server that is already running leaves
+            # the old code serving until the machine restarts, which on this
+            # tool could be weeks.  So the launcher asks the old one to stand
+            # down and starts the new one.  Shutting down from inside a handler
+            # would deadlock, hence the thread.
+            import threading
+
+            self._json({"stopping": True})
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
+            return
+
         if self.path not in ("/api/evaluate", "/api/compose",
                              "/api/compose/evaluate", "/api/problem/run",
                              "/api/problem/generate", "/api/problem/compare"):
