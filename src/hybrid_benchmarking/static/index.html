@@ -234,6 +234,15 @@
     border-left: 3px solid var(--warn); background: var(--warn-soft);
     padding: .8rem 1rem; margin: 0 0 1.2rem; font-size: .87rem;
   }
+  /* On the caution panel the accent all but vanishes, so this link takes the
+     colour of the text around it and is marked by its underline instead.  That
+     is near-white against the dark theme and dark against the light one, which
+     is what "white" has to mean on a page with both. */
+  a.plain {
+    color: inherit; text-decoration: underline;
+    text-underline-offset: .15em; font-weight: 600;
+  }
+  a.plain:hover { text-decoration-thickness: 2px; }
   textarea {
     font-family: var(--mono); font-size: .8rem; width: 100%; min-height: 7rem;
     padding: .6rem; background: var(--surface); color: var(--ink);
@@ -436,8 +445,9 @@
       small made-up instance of the size you describe and costs that. The charts
       further down come from real benchmark instances, far harder than anything
       this page will build, and that is where the published findings come from.
-      To put your own instances through it, use the code, or write to
-      <a href="mailto:andreea.lefterovici@gmail.com">andreea.lefterovici@gmail.com</a>.</div>
+      For real work, or to put your own instances through it, write to
+      <a class="plain" href="mailto:andreea.lefterovici@gmail.com"
+        >andreea.lefterovici@gmail.com</a>.</div>
 
     <h3>How to use it</h3>
     <div class="steps">
@@ -458,10 +468,8 @@
           improve at each step, how deep the layers go. A made-up instance of
           the right size cannot tell you that, and this page only makes up
           instances.</p>
-        <p>Reading your own files, in the formats the readers understand, is
-          done from the command line or from Python. Write to
-          <a href="mailto:andreea.lefterovici@gmail.com">andreea.lefterovici@gmail.com</a>
-          if you would like a hand with it.</p>
+        <p>Reading your own instances, in the formats the readers understand,
+          is done outside this page. The note above says where to ask.</p>
       </div>
     </div>
 
