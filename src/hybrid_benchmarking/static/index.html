@@ -116,7 +116,7 @@
     max-width: 1240px; min-width: 0;
   }
   h2 { font-family: var(--mono); font-size: 1.25rem; margin: 0 0 .35rem; font-weight: 600; }
-  .summary { color: var(--muted); margin: 0 0 1.2rem; max-width: 84ch; }
+  .summary { color: var(--muted); margin: 0 0 1.2rem; }
   h3 {
     font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
     color: var(--act); margin: 1.6rem 0 .55rem; font-weight: 700;
@@ -135,7 +135,7 @@
     padding: .8rem .9rem; overflow-x: auto; font-family: var(--mono);
     font-size: .8rem; margin: 0 0 1rem; line-height: 1.45;
   }
-  .meta { font-size: .82rem; color: var(--muted); margin: 0 0 .5rem; max-width: 90ch; }
+  .meta { font-size: .82rem; color: var(--muted); margin: 0 0 .5rem; }
   .meta b { color: var(--ink); font-weight: 600; }
   ul.notes { margin: 0 0 1rem; padding-left: 1.1rem; color: var(--muted); font-size: .85rem; }
   ul.notes li { margin-bottom: .25rem; }
@@ -244,18 +244,15 @@
 
   /* ---- the introduction ---- */
   #welcome { max-width: 1180px; }
-  /* Anything not inside a card or a panel takes the full column: a cap that
-     is right for a line of prose leaves half a wide screen empty. */
-  #welcome > .lede,
-  #welcome > .meta,
-  #welcome > p,
-  #welcome .hero h2,
-  #welcome .hero .lede { max-width: none; }
+  /* One rule, everywhere: prose fills whatever holds it, and the holder does
+     the constraining.  Cards, panels and the two reference columns are narrow
+     already; a measure cap on top of them narrows the text twice, and on a
+     paragraph with nothing beside it leaves half a wide screen empty. */
   .hero h2 {
     font-family: var(--sans); font-size: clamp(1.5rem, 2.6vw, 2.1rem);
-    line-height: 1.25; font-weight: 600; margin: .4rem 0 .7rem; max-width: 18ch;
+    line-height: 1.25; font-weight: 600; margin: .4rem 0 .7rem;
   }
-  .lede { font-size: 1rem; color: var(--muted); max-width: 78ch; margin: 0 0 1rem; }
+  .lede { font-size: 1rem; color: var(--muted); margin: 0 0 1rem; }
   .lede b { color: var(--ink); font-weight: 600; }
   .kicker {
     font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
