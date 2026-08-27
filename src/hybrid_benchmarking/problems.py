@@ -739,54 +739,54 @@ class Ask:
 #: nouns, so one frame serves every name in the family.
 BEGINNER: Dict[str, Tuple[Ask, ...]] = {
     "maximum-flow": (
-        Ask("things", "How many {a} are there?", "60",
+        Ask("things", "How many {a} are there?", "10",
             "Every place the flow can pass through, counting where it starts "
             "and where it ends up."),
-        Ask("links", "How many {b} connect them?", "180",
+        Ask("links", "How many {b} connect them?", "20",
             "More connections means more ways through, and a bigger circuit."),
     ),
     "vertex-cover": (
-        Ask("things", "How many {a} are there?", "60", ""),
-        Ask("links", "How many {b} have to be covered?", "180", ""),
+        Ask("things", "How many {a} are there?", "10", ""),
+        Ask("links", "How many {b} have to be covered?", "20", ""),
     ),
     "independent-set": (
-        Ask("things", "How many {a} are there?", "60", ""),
-        Ask("links", "How many {b} are there?", "180",
+        Ask("things", "How many {a} are there?", "10", ""),
+        Ask("links", "How many {b} are there?", "20",
             "Each one rules out having both of the things it joins."),
     ),
     "clique": (
-        Ask("things", "How many {a} are there?", "40", ""),
-        Ask("links", "How many {b} are there?", "500",
+        Ask("things", "How many {a} are there?", "10", ""),
+        Ask("links", "How many {b} are there?", "30",
             "A sparse set of these makes a *denser* problem, which is the "
             "awkward thing about this one."),
     ),
     "linear-programming": (
-        Ask("things", "How many {a} can you set?", "200", ""),
-        Ask("links", "How many {b} must hold?", "50", ""),
+        Ask("things", "How many {a} can you set?", "20", ""),
+        Ask("links", "How many {b} must hold?", "8", ""),
     ),
     "knapsack": (
-        Ask("things", "How many {a} are there to choose from?", "40", ""),
-        Ask("budget", "How much {b} do you have?", "100",
+        Ask("things", "How many {a} are there to choose from?", "10", ""),
+        Ask("budget", "How much {b} do you have?", "20",
             "Roughly. It sets how many of them you can afford at once."),
     ),
     "quadratic-knapsack": (
-        Ask("things", "How many {a} are there to choose from?", "30", ""),
-        Ask("budget", "How much {b} do you have?", "100", ""),
+        Ask("things", "How many {a} are there to choose from?", "10", ""),
+        Ask("budget", "How much {b} do you have?", "20", ""),
         Ask("pairs", "Out of every hundred pairs, how many help each other?",
             "30", "Pairs that are worth more together than apart. Only "
                   "bonuses: a pair that gets in its own way is not something "
                   "this counts."),
     ),
     "multidimensional-knapsack": (
-        Ask("things", "How many {a} are there to choose from?", "40", ""),
-        Ask("limits", "How many separate {b} are there?", "3",
+        Ask("things", "How many {a} are there to choose from?", "10", ""),
+        Ask("limits", "How many separate {b} are there?", "2",
             "Every one of them has to hold at once, which is what makes this "
             "harder than a single budget."),
-        Ask("budget", "How much of each is available?", "100", ""),
+        Ask("budget", "How much of each is available?", "20", ""),
     ),
     "linear-systems": (
-        Ask("things", "How many {a} are there?", "500", ""),
-        Ask("links", "How many others does each {b} touch?", "5",
+        Ask("things", "How many {a} are there?", "40", ""),
+        Ask("links", "How many others does each {b} touch?", "4",
             "Most large systems are sparse: each unknown depends on only a few "
             "of its neighbours."),
     ),
