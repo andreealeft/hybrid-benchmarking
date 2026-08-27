@@ -145,6 +145,71 @@ class TestTheQuestionItAsks:
         assert asked == []
 
 
+class TestItInstallsWhatItDecidedOn:
+    """The third bug in this chain, and the one that would have hidden the
+    fix for the other two.
+
+    pip keeps an HTTP cache keyed on the URL, and the branch archive's URL
+    never changes.  So pip answered "Using cached", installed a zip from the
+    first time it had ever run, and reported success -- after which the stamp
+    was written and the copy never asked again.  Every visible sign said the
+    update had worked and nothing on disk had moved.
+    """
+
+    @staticmethod
+    def _argv_of_an_update(monkeypatch, target):
+        seen = {}
+
+        class Done:
+            returncode = 0
+
+        def watch(argv, **kwargs):
+            seen["argv"] = argv
+            return Done()
+
+        monkeypatch.setattr(up, "from_a_checkout", lambda: False)
+        monkeypatch.setattr(up, "what_to_install", lambda: target)
+        monkeypatch.setattr(up, "latest", lambda: "0.0.1")
+        monkeypatch.setattr(up.subprocess, "run", watch)
+        up.check_and_update()
+        return seen["argv"]
+
+    def test_the_archive_it_fetches_names_the_commit(
+            self, elsewhere, monkeypatch):
+        commit = "b" * 40
+        argv = self._argv_of_an_update(monkeypatch, commit)
+        assert any(part.endswith("/{}.zip".format(commit)) for part in argv), argv
+        assert not any("refs/heads/main" in part for part in argv), argv
+
+    def test_it_records_the_commit_it_actually_asked_for(
+            self, elsewhere, monkeypatch):
+        commit = "c" * 40
+        self._argv_of_an_update(monkeypatch, commit)
+        assert up.stamp() == commit
+
+    def test_the_branch_fallback_refuses_the_cache(
+            self, elsewhere, monkeypatch):
+        """No commit is known here, so the URL is the branch one and cannot be
+        made unique.  Then the cache has to be defeated rather than avoided."""
+        argv = self._argv_of_an_update(monkeypatch, "0.9.9")
+        assert "--no-cache-dir" in argv, argv
+        assert any("refs/heads/main" in part for part in argv), argv
+
+    def test_a_failed_install_is_not_recorded_as_done(
+            self, elsewhere, monkeypatch):
+        """Otherwise one failure is permanent: the stamp would say the commit
+        had arrived and nothing would ever ask again."""
+        class Failed:
+            returncode = 1
+
+        monkeypatch.setattr(up, "from_a_checkout", lambda: False)
+        monkeypatch.setattr(up, "what_to_install", lambda: "d" * 40)
+        monkeypatch.setattr(up, "latest", lambda: "0.0.1")
+        monkeypatch.setattr(up.subprocess, "run", lambda *a, **k: Failed())
+        assert up.check_and_update() is None
+        assert up.stamp() is None
+
+
 class TestWhatItRefusesToTouch:
     def test_a_working_copy_is_never_installed_over(self, monkeypatch):
         """Somebody developing the library has it installed from a source

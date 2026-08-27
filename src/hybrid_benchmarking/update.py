@@ -20,6 +20,14 @@ that was forgotten six times running.  Asking which commit ``main`` is on makes
 pushing and shipping the same event, and pip reinstalls a package from a URL
 even when its version is unchanged, so the delivery half needs nothing else.
 
+Delivery had a bug of its own hiding behind that one. pip keeps an HTTP cache
+keyed on the URL, and the branch archive's URL never changes, so once the
+trigger was fixed pip still answered ``Using cached`` and installed a zip from
+the first time it had ever run: the check fired, the install reported success,
+the stamp was written, and nothing on disk moved. What is fetched now names the
+commit, which cannot go stale and installs the commit that was decided on
+rather than whatever ``main`` has become a moment later.
+
 The source moved for a second reason, and it is a bug of its own.
 ``raw.githubusercontent.com`` serves ``cache-control: max-age=300``, so the
 file it hands back can be five minutes behind the push -- which is why an app
@@ -70,9 +78,20 @@ HEAD = ("https://github.com/andreealeft/hybrid-benchmarking/"
 SOURCE = ("https://raw.githubusercontent.com/andreealeft/"
           "hybrid-benchmarking/main/pyproject.toml")
 
-#: What gets installed when there is something newer.
-PACKAGE = ("https://github.com/andreealeft/hybrid-benchmarking/"
-           "archive/refs/heads/main.zip")
+#: What gets installed when there is something newer.  Addressed by commit
+#: wherever the commit is known, which matters for a reason that cost a whole
+#: round of this: pip keeps its own HTTP cache keyed on the URL, and the branch
+#: archive's URL never changes, so pip answered "Using cached" and installed a
+#: zip from the first time it ever ran.  The trigger fired, the install
+#: reported success, the stamp was written, and nothing changed on disk -- a
+#: copy that would have stayed on its first-ever version for good.  A URL that
+#: names the commit cannot go stale, and it installs the commit that was
+#: decided on rather than whatever ``main`` happens to be a moment later.
+ARCHIVE = "https://github.com/andreealeft/hybrid-benchmarking/archive/{}.zip"
+
+#: The branch, for the fallback path where no commit is known.  This one has
+#: to defeat the cache rather than sidestep it.
+PACKAGE = ARCHIVE.format("refs/heads/main")
 
 TIMEOUT = 4.0
 
@@ -220,25 +239,30 @@ def check_and_update(announce=None) -> Optional[str]:
     # updates no longer move the version, so saying "updating to 0.2.3" twice
     # running would read in the log like something stuck in a loop.  Name the
     # version when it is the thing that changed, and the commit when it is not.
+    by_commit = bool(re.fullmatch(r"[0-9a-f]{7,40}", target))
     version = latest()
     if version and newer(version, installed()):
         name = version
     else:
-        name = target[:7] if re.fullmatch(r"[0-9a-f]{7,40}", target) else target
+        name = target[:7] if by_commit else target
     if announce:
         announce("Updating to {}.".format(name))
 
     # Inside its own environment, which is where the desktop installer puts it,
     # pip installs there and --user is not merely unnecessary but refused.
     where = [] if in_an_environment() else ["--user"]
+    if by_commit:
+        source = [ARCHIVE.format(target)]
+    else:
+        source = ["--no-cache-dir", PACKAGE]
     done = subprocess.run(
         [sys.executable, "-m", "pip", "install", "--upgrade", "--quiet"]
-        + where + [PACKAGE],
+        + where + source,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
     )
     if done.returncode != 0:
         return None
 
-    if re.fullmatch(r"[0-9a-f]{7,40}", target):
+    if by_commit:
         write_stamp(target)
     return name

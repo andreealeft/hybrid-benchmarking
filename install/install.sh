@@ -50,7 +50,10 @@ echo "  Installing into a folder of its own. This takes a minute."
 mkdir -p "$HOME_DIR"
 [ -x "$VENV/bin/python" ] || "$PY" -m venv "$VENV"
 "$VENV/bin/python" -m pip install --upgrade --quiet pip
-"$VENV/bin/python" -m pip install --upgrade --quiet "$SOURCE"
+# --no-cache-dir because the archive's URL never changes: pip would
+# otherwise answer "Using cached" and reinstall the zip from the first
+# time this was ever run, which is a silent way to install nothing.
+"$VENV/bin/python" -m pip install --upgrade --quiet --no-cache-dir "$SOURCE"
 
 # ---------------------------------------------------------------- the icon
 # Written here rather than downloaded, which is the point: something made on

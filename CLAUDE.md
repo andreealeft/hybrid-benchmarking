@@ -795,6 +795,19 @@ moment a push lands. The version is still read, but only for the sentence a
 person sees and as the fallback when the feed cannot be reached, so an outage
 degrades to the old behaviour rather than to none.
 
+**And it fetches the commit by name, because pip caches.** This was a third
+bug sitting behind the other two, and the worst of the three: pip keeps an HTTP
+cache keyed on the URL, the branch archive's URL never changes, so pip answered
+`Using cached` and installed a zip from the first time it had ever run. The
+check fired, the install reported success, the stamp was written, and nothing on
+disk moved — a copy that would have sat on its first-ever version for good while
+every visible sign said it was current. Caught by running the real installer as
+a sandboxed new user, pushing without a version bump, and looking at what
+actually arrived. The archive URL now names the commit, which cannot go stale
+and installs the commit that was decided on rather than whatever `main` has
+become a moment later; the branch fallback passes `--no-cache-dir`, and so do
+both installers, since a re-run of one would have hit the same cache.
+
 What the running copy was built from is written to `installed-commit` in the
 same data directory the installers put the venv in — **outside** the venv,
 since installing over it is precisely what would erase it. A copy with no stamp
@@ -818,4 +831,4 @@ Complete: 46 routines / 53 implementations, all of Appendices A, B and C, the
 maximum-flow study, the interior point pipeline, the Cade family, the
 composition layer, the problem-first entry point with 71 names over 9 families, the log format, instance
 readers and instrumented classical solvers for every problem, a local web
-interface and a CLI. 2554 tests.
+interface and a CLI. 2558 tests.

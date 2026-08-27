@@ -37,7 +37,10 @@ if (-not (Test-Path (Join-Path $Venv "Scripts\python.exe"))) {
 }
 $venvPython = Join-Path $Venv "Scripts\python.exe"
 & $venvPython -m pip install --upgrade --quiet pip
-& $venvPython -m pip install --upgrade --quiet $Source
+# --no-cache-dir because the archive's URL never changes: pip would
+# otherwise answer "Using cached" and reinstall the zip from the first
+# time this was ever run, which is a silent way to install nothing.
+& $venvPython -m pip install --upgrade --quiet --no-cache-dir $Source
 
 # ---------------------------------------------------------------- the icon
 # pythonw runs without a console window, so the icon behaves like an app rather
